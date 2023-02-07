@@ -1,0 +1,511 @@
+{
+	"info": {
+		"_postman_id": "8147cb50-568b-41c2-9582-08c7bfb62934",
+		"name": "gap-apply-applicant-backend",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "19315684"
+	},
+	"item": [
+		{
+			"name": "FundingOrganisationController",
+			"item": [
+				{
+					"name": "getFundingOrganisationById",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "http://localhost:8081/funding-organisations/:id",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "8081",
+							"path": [
+								"funding-organisations",
+								":id"
+							],
+							"variable": [
+								{
+									"key": "id",
+									"value": "1"
+								}
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "GrantApplicantController",
+			"item": [
+				{
+					"name": "getGrantApplicantById",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "http://localhost:8081/grant-applicant/:grantApplicantId",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "8081",
+							"path": [
+								"grant-applicant",
+								":grantApplicantId"
+							],
+							"variable": [
+								{
+									"key": "grantApplicantId",
+									"value": "75ab5fbd-0682-4d3d-a467-01c7a447f07c"
+								}
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "GrantApplicantOrganisationProfileController",
+			"item": [
+				{
+					"name": "getOrganisationById",
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"method": "GET",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": ""
+						},
+						"url": {
+							"raw": "http://localhost:8081/grant-applicant-organisation-profile/:organisationId",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "8081",
+							"path": [
+								"grant-applicant-organisation-profile",
+								":organisationId"
+							],
+							"variable": [
+								{
+									"key": "organisationId",
+									"value": "1"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "updateOrganisation",
+					"request": {
+						"method": "PATCH",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"legalName\": \"Test Updated Org\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://localhost:8081/grant-applicant-organisation-profile/:organisationId",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "8081",
+							"path": [
+								"grant-applicant-organisation-profile",
+								":organisationId"
+							],
+							"variable": [
+								{
+									"key": "organisationId",
+									"value": "1"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "createOrganisation",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"legalName\": \"Test New Org\",\n    \"type\": \"UNLIMITED_COMPANY\",\n    \"addressLine1\": \"999 street\",\n    \"addressLine2\": \"Emergency Avenue\",\n    \"town\": \"Glasgow\",\n    \"county\": \"Scotland\",\n    \"postcode\": \"G53 8PO\",\n    \"charityCommissionNumber\": \"charity-comish\",\n    \"companiesHouseNumber\": \"companies-house\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://localhost:8081/grant-applicant-organisation-profile/",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "8081",
+							"path": [
+								"grant-applicant-organisation-profile",
+								""
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "GrantSchemeController",
+			"item": [
+				{
+					"name": "getGrantSchemeById",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "http://localhost:8081/grant-schemes/:grantSchemeId",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "8081",
+							"path": [
+								"grant-schemes",
+								":grantSchemeId"
+							],
+							"variable": [
+								{
+									"key": "grantSchemeId",
+									"value": "1"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "getHealthCheck",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "http://localhost:8081/health",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "8081",
+							"path": [
+								"health"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "HealthController",
+			"item": [
+				{
+					"name": "New Request",
+					"request": {
+						"method": "GET",
+						"header": []
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "SubmissionController",
+			"item": [
+				{
+					"name": "getSubmissions",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "http://localhost:8081/submissions",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "8081",
+							"path": [
+								"submissions"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "getSubmission",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "http://localhost:8081/submissions/:submissionId",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "8081",
+							"path": [
+								"submissions",
+								":submissionId"
+							],
+							"variable": [
+								{
+									"key": "submissionId",
+									"value": "3a6cfe2d-bf58-440d-9e07-3579c7dcf205"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "getSection",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "http://localhost:8081/submissions/:submissionId/sections/:sectionId",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "8081",
+							"path": [
+								"submissions",
+								":submissionId",
+								"sections",
+								":sectionId"
+							],
+							"variable": [
+								{
+									"key": "submissionId",
+									"value": "3a6cfe2d-bf58-440d-9e07-3579c7dcf205"
+								},
+								{
+									"key": "sectionId",
+									"value": "ELIGIBILITY"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "getQuestion",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "http://localhost:8081/submissions/:submissionId/sections/:sectionId/questions/:questionId",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "8081",
+							"path": [
+								"submissions",
+								":submissionId",
+								"sections",
+								":sectionId",
+								"questions",
+								":questionId"
+							],
+							"variable": [
+								{
+									"key": "submissionId",
+									"value": "3a6cfe2d-bf58-440d-9e07-3579c7dcf205"
+								},
+								{
+									"key": "sectionId",
+									"value": "CUSTOM_SECTION_1"
+								},
+								{
+									"key": "questionId",
+									"value": "CUSTOM_APPLICANT_TYPE"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "save",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"submissionId\":\"3a6cfe2d-bf58-440d-9e07-3579c7dcf205\",\n    \"questionId\":\"CUSTOM_APPLICANT_ORG_NAME\",\n    \"response\":\"Dales Org\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://localhost:8081/submissions/:submissionId/sections/:sectionId/questions/:questionId",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "8081",
+							"path": [
+								"submissions",
+								":submissionId",
+								"sections",
+								":sectionId",
+								"questions",
+								":questionId"
+							],
+							"variable": [
+								{
+									"key": "submissionId",
+									"value": "3a6cfe2d-bf58-440d-9e07-3579c7dcf205"
+								},
+								{
+									"key": "sectionId",
+									"value": "CUSTOM_SECTION_1"
+								},
+								{
+									"key": "questionId",
+									"value": "CUSTOM_APPLICANT_ORG_NAME"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "isSubmissionReadyToBeSubmitted",
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"method": "GET",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"submissionId\":\"3a6cfe2d-bf58-440d-9e07-3579c7dcf205\",\n    \"questionId\":\"CUSTOM_APPLICANT_ORG_NAME\",\n    \"response\":\"Dales Org\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://localhost:8081/submissions/:submissionId/ready",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "8081",
+							"path": [
+								"submissions",
+								":submissionId",
+								"ready"
+							],
+							"variable": [
+								{
+									"key": "submissionId",
+									"value": "3a6cfe2d-bf58-440d-9e07-3579c7dcf205"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "isSubmissionSubmitted",
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"method": "GET",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"submissionId\":\"3a6cfe2d-bf58-440d-9e07-3579c7dcf205\",\n    \"questionId\":\"CUSTOM_APPLICANT_ORG_NAME\",\n    \"response\":\"Dales Org\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://localhost:8081/submissions/:submissionId/isSubmitted",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "8081",
+							"path": [
+								"submissions",
+								":submissionId",
+								"isSubmitted"
+							],
+							"variable": [
+								{
+									"key": "submissionId",
+									"value": "3a6cfe2d-bf58-440d-9e07-3579c7dcf205"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "submitApplication",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"submissionId\":\"3a6cfe2d-bf58-440d-9e07-3579c7dcf207\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://localhost:8081/submissions/submit",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "8081",
+							"path": [
+								"submissions",
+								"submit"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		}
+	]
+}

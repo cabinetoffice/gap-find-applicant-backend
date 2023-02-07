@@ -1,0 +1,632 @@
+openapi: 3.0.0
+info:
+  title: Application Submission API
+  version: 0.1.0
+servers:
+  - url: http://localhost:8080
+    description: Application URL if running the service locally.
+  - url: http://staging-api.example.com
+    description: Add our other server locations in when we get dev/qa/staging
+components:
+  schemas:
+    Section:
+      type: object
+      properties:
+        sectionId:
+          type: string
+          example: ESSENTIAL
+        sectionTitle:
+          type: string
+          example: "Essential Information"
+        sectionStatus:
+          type: string
+          example: COMPLETE
+        questionIds:
+          type: array
+          items:
+            type: string
+          example:
+            - "APPLICANT_TYPE"
+            - "APPLICANT_ORG_NAME"
+            - "APPLICANT_ORG_ADDRESS"
+            - "APPLICANT_ORG_COMPANIES_HOUSE"
+            - "APPLICANT_ORG_COMPANIES_HOUSE"
+            - "APPLICANT_AMOUNT"
+    CreateSubmissionResponse:
+      type: object
+      properties:
+        submissionCreated:
+          type: boolean
+        submissionId:
+          type: string
+        message:
+          type: string
+    Submission:
+      type: object
+      properties:
+        grantSchemeId:
+          type: string
+        grantApplicationId:
+          type: string
+        grantSubmissionId:
+          type: string
+        applicationName:
+          type: string
+          example: "Name of the grant being applied for"
+        submissionStatus:
+          type: string
+          enum:
+            - IN_PROGRESS
+            - SUBMITTED
+            - UNDER_REVIEW
+            - AWARDED
+            - NOT_AWARDED
+            - WITHDRAWN
+        sections:
+          type: array
+          items:
+            $ref: '#/components/schemas/Section'
+    Question:
+      type: object
+      properties:
+        grantSchemeId:
+          type: string
+        grantApplicationId:
+          type: string
+        grantSubmissionId:
+          type: string
+        sectionId:
+          type: string
+        sectionTitle:
+          type: string
+        question:
+          type: object
+          properties:
+            questionId:
+              type: string
+            profileField:
+              type: string
+            fieldTitle:
+              type: string
+            hintText:
+              type: string
+            responseType:
+              type: string
+              enum:
+                - ShortAnswer
+                - LongAnswer
+                - YesNo
+                - SingleSelection
+                - Dropdown
+                - MultipleSelection
+                - Date
+                - AddressInput
+                - SingleFileUpload
+            validation:
+              type: object
+              properties:
+                mandatory:
+                  type: boolean
+                minLengthL:
+                  type: integer
+                maxLength:
+                  type: integer
+            response:
+              type: string
+        nextNavigation:
+          type: object
+          properties:
+            sectionId:
+              type: string
+            questionId:
+              type: string
+        previousNavigation:
+          type: object
+          properties:
+            sectionId:
+              type: string
+            questionId:
+              type: string
+    Registration:
+      type: object
+      properties:
+        firstName:
+          type: string
+        lastName:
+          type: string
+        email:
+          type: string
+        emailConfirmed:
+          type: string
+        telephone:
+          type: string
+
+
+paths:
+  /submissions:
+    get:
+      summary: Returns a list of an applicant's submissions to grant schemes.
+      tags:
+        - Submissions
+      responses:
+        '200':
+          description: A JSON array of submissions
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Submission'
+    post:
+        summary: creates a new submission
+        tags:
+          - Submissions
+        requestBody:
+          description: A json object containing the ID of the application a submission is being created for.
+          required: true
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  applicationId:
+                    type: string
+        responses:
+          '200':
+            description: success
+          '400':
+            description: request not understood
+          '401':
+            description: authentication failed
+          '403':
+            description: supplied ApplicantID is found but has an invalid status
+          '404':
+            description: supplied ApplicantID not found
+  /submissions/{submissionId}:
+    get:
+      summary: Returns a submission with its list of sections
+      tags:
+        - Submissions
+      parameters:
+        - name: submissionId
+          in: path
+          description: The ID of the submission to be fetched
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: success
+          content:
+            application/json:
+              schema:
+                type: object
+                $ref: '#/components/schemas/Submission'
+        '400':
+          description: request not understood
+        '401':
+          description: authentication failed
+        '404':
+          description: supplied SubmissionID not found
+  /submissions/{submissionId}/ready:
+    get:
+      summary: Returns true if The grant application form is in an ‘published’ state or all the sections mandatory question have been answered
+      parameters:
+        - name: submissionId
+          in: path
+          description: The ID of the submission to be fetched
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: success
+          content:
+            application/json:
+              schema:
+                type: boolean
+        '400':
+          description: request not understood
+        '401':
+          description: authentication failed
+        '404':
+          description: supplied SubmissionID not found
+  /submissions/{submissionId}/sections/{sectionId}:
+    get:
+      summary: Returns data about a section within a submission
+      parameters:
+        - name: submissionId
+          in: path
+          description: The ID of the submission that sections should be returned from
+          required: true
+          schema:
+            type: string
+        - name: sectionId
+          in: path
+          description: The Section ID to retreive the correct sections
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Section'
+        '400':
+          description: request not understood
+        '401':
+          description: authentication failed
+        '403':
+          description: supplied SectionID is not found
+        '404':
+          description: supplied SubmissionID not found
+  /submissions/{submissionId}/sections/{sectionId}/questions/{questionId}:
+    get:
+      summary: Returns data about a question within a section
+      tags:
+        - Submissions
+      parameters:
+        - name: submissionId
+          in: path
+          description: The ID of the submission that sections should be returned from
+          required: true
+          schema:
+            type: string
+        - name: sectionId
+          in: path
+          description: The Section ID we wish to retrieve questions from
+          required: true
+          schema:
+            type: string
+        - name: questionId
+          in: path
+          description: The ID of the question we wish to retrieve
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Question'
+        '400':
+          description: request not understood
+        '401':
+          description: authentication failed
+        '403':
+          description: supplied SectionID or QuestionID is not found
+        '404':
+          description: supplied SubmissionID not found
+    post:
+      summary: Creates a response to a question
+      tags:
+        - Submissions
+      requestBody:
+        description: A json object containing the applicant's response to this question
+        required: true
+        content:
+          application/json:
+            schema:
+              oneOf:
+                - type: object
+                  properties:
+                    submissionId:
+                      type: string
+                    sectionId:
+                      type: string
+                    response:
+                      type: string
+                - type: object
+                  properties:
+                    submissionId:
+                      type: string
+                    sectionId:
+                      type: string
+                    multiResponse:
+                      type: array
+                      items:
+                        type: string
+      parameters:
+        - name: submissionId
+          in: path
+          description: The submission ID of the question being answered
+          required: true
+          schema:
+            type: string
+        - name: sectionId
+          in: path
+          description: The Section ID of the question being answered
+          required: true
+          schema:
+            type: string
+        - name: questionId
+          in: path
+          description: The ID of the question being answered
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: success
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - type: object
+                    properties:
+                      responseAccepted:
+                        type: boolean
+                        example: true
+                      nextNavigation:
+                        type: object
+                        properties:
+                          sectionId:
+                            type: string
+                            example: ESSENTIAL
+                          questionId:
+                            type: string
+                            example: APPLICANT_TYPE
+                  - type: object
+                    properties:
+                      responseAccepted:
+                        type: boolean
+                        example: true
+                      nextNavigation:
+                        type: object
+                        properties:
+                          sectionList:
+                            type: boolean
+                            example: true
+        '400':
+          description: request not understood
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  responseAccepted:
+                    type: boolean
+                    example: false
+                  message:
+                    type: string
+                    example: Validation failure
+                  errors:
+                    type: array
+                    items:
+                      properties:
+                        fieldName:
+                          type: string
+                          example: "multiResponse[0]"
+                        errorMessage:
+                          type: string
+                          example: "You must enter an answer"
+                  invalidData:
+                    oneOf:
+                      - type: object
+                        properties:
+                          submissionId:
+                            type: string
+                            example: "3a6cfe2d-bf58-440d-9e07-3579c7dcf205"
+                          sectionId:
+                            type: string
+                            example: "CUSTOM_SECTION_1"
+                          multiResponse:
+                            type: array
+                            items:
+                              type: string
+                            example:
+                              - ""
+                              - "address line 2"
+                              - "city"
+                              - "county"
+                              - "postcode"
+                      - type: object
+                        properties:
+                          submissionId:
+                            type: string
+                            example: "3a6cfe2d-bf58-440d-9e07-3579c7dcf205"
+                          sectionId:
+                            type: string
+                            example: "CUSTOM_SECTION_1"
+                          response:
+                            type: string
+                            example: "An example question response"
+        '401':
+          description: authentication failed
+        '403':
+          description: supplied SectionID or QuestionID is not found
+        '404':
+          description: supplied SubmissionID not found
+  /submissions/createSubmissions/{applicationId}:
+    post:
+      summary: adds the application from GrantApplications into the user applications
+      parameters:
+        - name: applicationId
+          in: path
+          description: The grantApplicationId of the application we want to copy into the user applications
+          required: true
+          schema:
+            type: long
+      responses:
+        '200':
+          description: success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CreateSubmissionResponse'
+        '400':
+          description: request not understood
+        '401':
+          description: authentication failed
+        '403':
+          description: supplied ApplicantID is found but has an invalid status
+        '404':
+          description: supplied ApplicantID not found
+  /grant-applicant:
+    post:
+      summary: Returns applicant registration data for validation
+      tags:
+        - Registration
+      requestBody:
+        description: A json object containing the applicant's registration details
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Registration'
+      responses:
+        '200':
+          description: success
+          content:
+            application/json:
+              schema:
+                type: object
+                $ref: '#/components/schemas/Registration'
+        '400':
+          description: request not understood
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  registrationDetailsValid:
+                    type: boolean
+                    example: false
+                  message:
+                    type: string
+                    example: Validation failure
+                  details:
+                    type: object
+                    properties:
+                      firstName:
+                        type: string
+                        example: Please enter your first name
+        '406':
+          description: supplied email address do not match
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  emailAddressMatch:
+                    type: boolean
+                    example: false
+                  message:
+                    type: string
+                    example: Email addresses do not match
+                  details:
+                    type: object
+                    properties:
+                      email:
+                        type: string
+                        example: Your email addresses do not match
+        '404':
+          description: url not found
+  /submissions/{submissionId}/sections/{sectionId}/questions/{questionId}/attachment:
+    post:
+      summary: Attaches a file to a question response
+      requestBody:
+        description: Form with the file to be attached
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                file:
+                  type: string
+                  format: binary
+      parameters:
+        - name: submissionId
+          in: path
+          description: The submission ID of the question being answered
+          required: true
+          schema:
+            type: string
+        - name: sectionId
+          in: path
+          description: The Section ID of the question being answered
+          required: true
+          schema:
+            type: string
+        - name: questionId
+          in: path
+          description: The ID of the question being answered
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  responseAccepted:
+                    type: boolean
+                    example: true
+        '400':
+          description: request not understood
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  responseAccepted:
+                    type: boolean
+                    example: false
+                  message:
+                    type: string
+                    example: Validation failure
+                  details:
+                    type: string
+                    example: File type not accepted
+        '401':
+          description: authentication failed
+        '403':
+          description: supplied SectionID or QuestionID is not found
+        '404':
+          description: supplied SubmissionID not found
+    delete:
+      summary: Deletes a file attachment to a question response
+      parameters:
+        - name: submissionId
+          in: path
+          description: The submission ID of the question being answered
+          required: true
+          schema:
+            type: string
+        - name: sectionId
+          in: path
+          description: The Section ID of the question being answered
+          required: true
+          schema:
+            type: string
+        - name: questionId
+          in: path
+          description: The ID of the question being answered
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  attachmentDeleted:
+                    type: boolean
+                    example: true
+        '401':
+          description: authentication failed
+        '403':
+          description: supplied SectionID or QuestionID is not found
+        '404':
+          description: supplied SubmissionID not found
