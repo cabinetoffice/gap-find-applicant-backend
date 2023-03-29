@@ -13,29 +13,12 @@ import javax.validation.constraints.NotNull;
 @Builder
 @AllArgsConstructor
 @NoArgsConstructor
-@Configuration("cognitoConfigurationProperties")
-@ConfigurationProperties(prefix = "cognito")
-public class CognitoConfigProperties {
-
-    @NotNull
-    private String secretKey;
-
-    @NotNull
-    private String accessKey;
-
-    @NotNull
-    private String region;
-
-    @NotNull
-    private String userPoolId;
-
-    @NotNull
-    private String userPassword;
-
+@Configuration("userServiceConfigurationProperties")
+@ConfigurationProperties(prefix = "user-service")
+public class UserServiceConfig {
     @NotNull
     private String domain;
 
     @NotNull
-    private String appClientId;
-
+    private String cookieName;
 }

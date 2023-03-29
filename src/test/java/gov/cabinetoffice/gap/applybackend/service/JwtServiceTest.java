@@ -1,9 +1,8 @@
 package gov.cabinetoffice.gap.applybackend.service;
 
 import com.auth0.jwt.interfaces.DecodedJWT;
-import gov.cabinetoffice.gap.applybackend.config.CognitoConfigProperties;
+import gov.cabinetoffice.gap.applybackend.config.UserServiceConfig;
 import gov.cabinetoffice.gap.applybackend.dto.api.JwtPayload;
-import gov.cabinetoffice.gap.applybackend.exception.JwkNotValidTokenException;
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.junit.jupiter.api.BeforeEach;
@@ -12,35 +11,40 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContext;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.client.RestTemplate;
 
-import java.util.UUID;
+import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class JwtServiceTest {
 
-    private CognitoConfigProperties cognitoProps;
+    private UserServiceConfig userServiceConfig;
+
+    @Mock
+    private RestTemplate restTemplate;
 
     @InjectMocks
     private JwtService serviceUnderTest;
 
+
     @BeforeEach
     void setup() {
-        cognitoProps = CognitoConfigProperties.builder()
-                .accessKey("an-access-key")
-                .secretKey("a-secret-key")
-                .userPoolId("a-user-pool-id")
-                .region("eu-west-2")
-                .userPassword("a-user-password")
-                .domain("domain")
-                .appClientId("appClientId")
+        userServiceConfig = UserServiceConfig.builder()
+                .domain("http://localhost:8082")
+                .cookieName("user-service-token")
                 .build();
 
-        serviceUnderTest = new JwtService(cognitoProps);
+        serviceUnderTest = new JwtService(userServiceConfig, restTemplate);
     }
 
     @Test
@@ -60,21 +64,37 @@ class JwtServiceTest {
     }
 
     @Test
-    void verifyToken_ThrowErrorWhenNotExpectedIssuer() {
-        final String encodedJwt = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI3NWFiNWZiZC0wNjgyLTRkM2QtYTQ2Ny0wMWM3YTQ0N2YwN2MiLCJjdXN0b206ZmVhdHVyZXMiOiJ0ZXN0ZXIiLCJpc3MiOiJ3cm9uZ19kb21haW4iLCJjb2duaXRvOnVzZXJuYW1lIjoidGVzdEB0ZXN0LmNvbSIsImdpdmVuX25hbWUiOiJUZXN0IiwiYXVkIjoiYXBwQ2xpZW50SWQiLCJldmVudF9pZCI6ImxramRsa2pzZmxraiIsInRva2VuX3VzZSI6ImlkIiwiY3VzdG9tOnBob25lTnVtYmVyIjoiMDAwMDAwMDAwMDAwMCIsImF1dGhfdGltZSI6MTY2MTQxODk5MywiZXhwIjo5OTk5OTk5OTk5LCJpYXQiOjE2NjE0MTg5OTMsImZhbWlseV9uYW1lIjoiVGVzdGVyIiwiZW1haWwiOiJ0ZXN0QHRlc3QuY29tIn0.1AqU7qQ_KZ0ID7Pym_jsAcHV7w4h3dfC-7Ht-UlTvyo";
-        final DecodedJWT decodedJWT = serviceUnderTest.decodedJwt(encodedJwt);
-        Exception result = assertThrows(JwkNotValidTokenException.class,
-                () -> serviceUnderTest.verifyToken(decodedJWT));
-        assertTrue(result.getMessage().contains("Token is not valid"));
+    void verifyToken_ReturnsTrue() {
+        when(restTemplate.exchange(anyString(), eq(HttpMethod.GET), any(), eq(Boolean.class)))
+                .thenReturn(ResponseEntity.of(Optional.of(Boolean.TRUE)));
+
+        final boolean response = serviceUnderTest.verifyToken("testToken");
+
+        assertTrue(response);
     }
 
     @Test
-    void verifyToken_ThrowErrorWhenNotExpectedAud() {
-        final String encodedJwt = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI3NWFiNWZiZC0wNjgyLTRkM2QtYTQ2Ny0wMWM3YTQ0N2YwN2MiLCJjdXN0b206ZmVhdHVyZXMiOiJ0ZXN0ZXIiLCJpc3MiOiJkb21haW4iLCJjb2duaXRvOnVzZXJuYW1lIjoidGVzdEB0ZXN0LmNvbSIsImdpdmVuX25hbWUiOiJUZXN0IiwiYXVkIjoid3JvbmdfYXBwQ2xpZW50SWQiLCJldmVudF9pZCI6ImxramRsa2pzZmxraiIsInRva2VuX3VzZSI6ImlkIiwiY3VzdG9tOnBob25lTnVtYmVyIjoiMDAwMDAwMDAwMDAwMCIsImF1dGhfdGltZSI6MTY2MTQxODk5MywiZXhwIjo5OTk5OTk5OTk5LCJpYXQiOjE2NjE0MTg5OTMsImZhbWlseV9uYW1lIjoiVGVzdGVyIiwiZW1haWwiOiJ0ZXN0QHRlc3QuY29tIn0.mHNSL1QXuMaXM_ZYnEdwt_5oBAui-yGajRU1ddId3mM";
-        final DecodedJWT decodedJWT = serviceUnderTest.decodedJwt(encodedJwt);
-        Exception result = assertThrows(JwkNotValidTokenException.class,
-                () -> serviceUnderTest.verifyToken(decodedJWT));
-        assertTrue(result.getMessage().contains("Token is not valid"));
+    void verifyToken_ReturnsFalse() {
+        when(restTemplate.exchange(anyString(), eq(HttpMethod.GET), any(), eq(Boolean.class)))
+                .thenReturn(ResponseEntity.of(Optional.of(Boolean.FALSE)));
+
+        final boolean response = serviceUnderTest.verifyToken("testToken");
+
+        assertFalse(response);
+    }
+
+    @Test
+    void verifyToken_CallsUserService() {
+        final HttpHeaders requestHeaders = new HttpHeaders();
+        requestHeaders.add("Cookie", userServiceConfig.getCookieName() + "=" + "testToken");
+        final HttpEntity<String> requestEntity = new HttpEntity<>(null, requestHeaders);
+
+        when(restTemplate.exchange(anyString(), eq(HttpMethod.GET), any(), eq(Boolean.class)))
+                .thenReturn(ResponseEntity.of(Optional.of(Boolean.FALSE)));
+
+        serviceUnderTest.verifyToken("testToken");
+
+        verify(restTemplate).exchange(userServiceConfig.getDomain() + "/is-user-logged-in", HttpMethod.GET, requestEntity, Boolean.class);
     }
 
     @Test
@@ -133,7 +153,6 @@ class JwtServiceTest {
                 .eventId(eventId)
                 .tokenUse(tokenUse)
                 .phoneNumber(phoneNumber)
-                .authTime(authTime)
                 .exp(exp)
                 .iat(iat)
                 .familyName(familyName)

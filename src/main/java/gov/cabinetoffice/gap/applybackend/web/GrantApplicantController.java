@@ -5,8 +5,6 @@ import gov.cabinetoffice.gap.applybackend.dto.api.JwtPayload;
 import gov.cabinetoffice.gap.applybackend.exception.NotFoundException;
 import gov.cabinetoffice.gap.applybackend.model.GrantApplicant;
 import gov.cabinetoffice.gap.applybackend.model.GrantApplicantOrganisationProfile;
-import gov.cabinetoffice.gap.applybackend.model.RegisterApplicant;
-import gov.cabinetoffice.gap.applybackend.service.CreateGrantApplicantService;
 import gov.cabinetoffice.gap.applybackend.service.GrantApplicantOrganisationProfileService;
 import gov.cabinetoffice.gap.applybackend.service.GrantApplicantService;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -20,7 +18,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
-import javax.validation.Valid;
 import java.util.UUID;
 
 @RequiredArgsConstructor
@@ -29,7 +26,6 @@ import java.util.UUID;
 public class GrantApplicantController {
 
     private final GrantApplicantService grantApplicantService;
-    private final CreateGrantApplicantService createGrantApplicantService;
     private final GrantApplicantOrganisationProfileService grantApplicantOrganisationProfileService;
     private final ModelMapper modelMapper;
 
@@ -82,13 +78,5 @@ public class GrantApplicantController {
         grantApplicantOrganisationProfileService.createOrganisation(applicantId, profile);
 
         return ResponseEntity.ok("User has been created");
-    }
-
-
-    @PostMapping("/register")
-    public ResponseEntity<String> registerApplicant(@Valid @RequestBody RegisterApplicant registerApplicant) {
-        createGrantApplicantService.createNewUser(registerApplicant);
-        String response = "User has been created";
-        return ResponseEntity.ok(response);
     }
 }

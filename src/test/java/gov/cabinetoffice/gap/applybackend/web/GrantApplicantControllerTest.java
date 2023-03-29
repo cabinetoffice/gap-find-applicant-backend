@@ -7,7 +7,6 @@ import gov.cabinetoffice.gap.applybackend.exception.NotFoundException;
 import gov.cabinetoffice.gap.applybackend.model.GrantApplicant;
 import gov.cabinetoffice.gap.applybackend.model.GrantApplicantOrganisationProfile;
 import gov.cabinetoffice.gap.applybackend.model.RegisterApplicant;
-import gov.cabinetoffice.gap.applybackend.service.CreateGrantApplicantService;
 import gov.cabinetoffice.gap.applybackend.service.GrantApplicantOrganisationProfileService;
 import gov.cabinetoffice.gap.applybackend.service.GrantApplicantService;
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
@@ -41,8 +40,6 @@ class GrantApplicantControllerTest {
     private SecurityContext securityContext;
     @Mock
     private GrantApplicantService grantApplicantService;
-    @Mock
-    private CreateGrantApplicantService createGrantApplicantService;
     @Mock
     private ModelMapper modelMapper;
     @Mock
@@ -110,23 +107,6 @@ class GrantApplicantControllerTest {
 
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertEquals(response.getBody(), getGrantApplicantDto);
-    }
-
-    @Test
-    void RegisterApplicant_ReturnsTheCorrectResponse() {
-        RegisterApplicant applicantInformation = RegisterApplicant.builder()
-                .firstName("Test")
-                .lastName("Tester")
-                .email("test@test.com")
-                .emailConfirmed("test@test.com")
-                .telephone("07123456789")
-                .build();
-
-        ResponseEntity<String> response = controllerUnderTest.registerApplicant(applicantInformation);
-
-        verify(createGrantApplicantService, times(1)).createNewUser(applicantInformation);
-        assertEquals(HttpStatus.OK, response.getStatusCode());
-        assertEquals("User has been created", response.getBody());
     }
 
     @Test

@@ -1,9 +1,7 @@
 package gov.cabinetoffice.gap.applybackend.security;
 
-import com.auth0.jwk.JwkException;
 import com.auth0.jwt.interfaces.DecodedJWT;
 import gov.cabinetoffice.gap.applybackend.dto.api.JwtPayload;
-import gov.cabinetoffice.gap.applybackend.exception.JwkNotValidTokenException;
 import gov.cabinetoffice.gap.applybackend.service.JwtService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpHeaders;
@@ -44,15 +42,12 @@ public class JwtTokenFilter extends OncePerRequestFilter {
         }
         //verify the token
         String normalisedJwt = header.split(" ")[1];
-        DecodedJWT decodedJWT = jwtService.decodedJwt(normalisedJwt);
-        try {
-            if (!jwtService.verifyToken(decodedJWT)) {
-                chain.doFilter(request, response);
-                return;
-            }
-        } catch (JwkException e) {
-            throw new JwkNotValidTokenException("Token not valid");
+        if (!jwtService.verifyToken(normalisedJwt)) {
+            chain.doFilter(request, response);
+            return;
         }
+
+        DecodedJWT decodedJWT = jwtService.decodedJwt(normalisedJwt);
         //set the Security context, so we can access it everywhere
         JwtPayload jwtPayload = jwtService.decodeTheTokenPayloadInAReadableFormat(decodedJWT);
 

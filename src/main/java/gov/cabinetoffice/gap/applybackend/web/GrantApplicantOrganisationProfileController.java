@@ -17,6 +17,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
+import javax.validation.Valid;
 import java.util.UUID;
 
 @RequiredArgsConstructor
@@ -43,7 +44,7 @@ public class GrantApplicantOrganisationProfileController {
             @ApiResponse(responseCode = "404", description = "No Organisation found", content = @Content(mediaType = "application/json")),
     })
     public ResponseEntity<String> updateOrganisation(@PathVariable long organisationId,
-                                                     @RequestBody UpdateGrantApplicantOrganisationProfileDto organisation) {
+                                                     @RequestBody @Valid UpdateGrantApplicantOrganisationProfileDto organisation) {
         GrantApplicantOrganisationProfile grantApplicantOrganisationProfile = grantApplicantOrganisationProfileService.getProfileById(organisationId);
         modelMapper.map(organisation, grantApplicantOrganisationProfile);
         grantApplicantOrganisationProfile.setId(organisationId);

@@ -20,7 +20,6 @@ public class JwtPayload {
     private String eventId;
     private String tokenUse;
     private String phoneNumber;
-    private int authTime;
     private int exp;
     private int iat;
     private String familyName;

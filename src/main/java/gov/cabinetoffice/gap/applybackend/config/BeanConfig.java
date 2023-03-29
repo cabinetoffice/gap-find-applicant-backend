@@ -1,9 +1,5 @@
 package gov.cabinetoffice.gap.applybackend.config;
 
-import com.amazonaws.auth.AWSStaticCredentialsProvider;
-import com.amazonaws.auth.BasicAWSCredentials;
-import com.amazonaws.services.cognitoidp.AWSCognitoIdentityProvider;
-import com.amazonaws.services.cognitoidp.AWSCognitoIdentityProviderClientBuilder;
 import com.google.i18n.phonenumbers.PhoneNumberUtil;
 import gov.cabinetoffice.gap.applybackend.config.properties.GovNotifyProperties;
 import lombok.RequiredArgsConstructor;
@@ -21,7 +17,6 @@ import java.time.Clock;
 @Configuration
 public class BeanConfig {
 
-    private final CognitoConfigProperties cognitoProps;
     private final GovNotifyProperties notifyProperties;
 
     @Bean
@@ -51,16 +46,6 @@ public class BeanConfig {
     @Bean
     public PhoneNumberUtil getPhoneNumberUtil() {
         return PhoneNumberUtil.getInstance();
-    }
-
-    @Bean
-    public AWSCognitoIdentityProvider getCognitoClientBuilder() {
-        final BasicAWSCredentials awsCredentials = new BasicAWSCredentials(cognitoProps.getAccessKey(), cognitoProps.getSecretKey());
-        return AWSCognitoIdentityProviderClientBuilder
-                .standard()
-                .withCredentials(new AWSStaticCredentialsProvider(awsCredentials))
-                .withRegion(cognitoProps.getRegion())
-                .build();
     }
 
     @Bean

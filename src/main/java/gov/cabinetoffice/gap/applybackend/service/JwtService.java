@@ -1,49 +1,45 @@
 package gov.cabinetoffice.gap.applybackend.service;
 
-import com.auth0.jwk.Jwk;
-import com.auth0.jwk.JwkException;
-import com.auth0.jwk.JwkProvider;
-import com.auth0.jwk.UrlJwkProvider;
 import com.auth0.jwt.JWT;
-import com.auth0.jwt.algorithms.Algorithm;
 import com.auth0.jwt.interfaces.DecodedJWT;
-import gov.cabinetoffice.gap.applybackend.config.CognitoConfigProperties;
+import gov.cabinetoffice.gap.applybackend.config.UserServiceConfig;
 import gov.cabinetoffice.gap.applybackend.dto.api.JwtPayload;
-import gov.cabinetoffice.gap.applybackend.exception.JwkNotValidTokenException;
+import static java.lang.Boolean.TRUE;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.codec.binary.StringUtils;
 import org.json.JSONObject;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.RestTemplate;
 
-import java.security.interfaces.RSAPublicKey;
 import java.util.Calendar;
 
+@Slf4j
 @RequiredArgsConstructor
 @Service
 public class JwtService {
-    private final CognitoConfigProperties cognitoProps;
+
+    private final UserServiceConfig userServiceConfig;
+    private final RestTemplate restTemplate;
 
     public DecodedJWT decodedJwt(String normalisedJWT) {
         return JWT.decode(normalisedJWT);
     }
 
-    public boolean verifyToken(DecodedJWT jwt) throws JwkException {
-        if (isTokenExpired(jwt)) {
-            return false;
-        }
+    public boolean verifyToken(final String jwt) {
+        final String url = userServiceConfig.getDomain() + "/is-user-logged-in";
+        final HttpHeaders requestHeaders = new HttpHeaders();
+        requestHeaders.add("Cookie", userServiceConfig.getCookieName() + "=" + jwt);
+        final HttpEntity<String> requestEntity = new HttpEntity<>(null, requestHeaders);
+        final ResponseEntity<Boolean> isJwtValid = restTemplate.exchange(url, HttpMethod.GET, requestEntity, Boolean.class);
+        log.info("is user logged in: " + isJwtValid);
 
-        boolean isExpectedIssuer = jwt.getIssuer().equals(cognitoProps.getDomain());
-        boolean isExpectedAud = jwt.getAudience().get(0).equals(cognitoProps.getAppClientId());
-        if (!isExpectedAud || !isExpectedIssuer) {
-            throw new JwkNotValidTokenException("Token is not valid");
-        }
-        JwkProvider provider = new UrlJwkProvider(cognitoProps.getDomain());
-        Jwk jwk = provider.get(jwt.getKeyId());
-        Algorithm algorithm = Algorithm.RSA256((RSAPublicKey) jwk.getPublicKey(), null);
-        algorithm.verify(jwt);
-
-        return true;
+        return TRUE.equals(isJwtValid.getBody());
     }
 
     public String decodeBase64ToJson(final String base64) {
@@ -68,7 +64,6 @@ public class JwtService {
         final String eventId = jsonObject.getString("event_id");
         final String tokenUse = jsonObject.getString("token_use");
         final String phoneNumber = jsonObject.getString("custom:phoneNumber");
-        final int authTime = jsonObject.getInt("auth_time");
         final int exp = jsonObject.getInt("exp");
         final int iat = jsonObject.getInt("iat");
         final String familyName = jsonObject.getString("family_name");
@@ -85,7 +80,6 @@ public class JwtService {
                 .eventId(eventId)
                 .tokenUse(tokenUse)
                 .phoneNumber(phoneNumber)
-                .authTime(authTime)
                 .exp(exp)
                 .iat(iat)
                 .familyName(familyName)

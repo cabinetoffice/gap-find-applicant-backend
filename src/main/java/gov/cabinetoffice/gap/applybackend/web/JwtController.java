@@ -8,9 +8,11 @@ import gov.cabinetoffice.gap.applybackend.dto.api.JwtPayload;
 import gov.cabinetoffice.gap.applybackend.exception.JwtTokenUndefinedException;
 import gov.cabinetoffice.gap.applybackend.service.JwtService;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+@Slf4j
 @RequiredArgsConstructor
 @RestController
 @RequestMapping("/jwt")
@@ -26,7 +28,8 @@ public class JwtController {
 
         final String normalisedJwt = jwtToken.split(" ")[1];
         final DecodedJWT jwt = jwtService.decodedJwt(normalisedJwt);
-        final boolean isValid = jwtService.verifyToken(jwt);
+        final boolean isValid = jwtService.verifyToken(normalisedJwt);
+        log.info("is token valid: " + isValid);
 
         return ResponseEntity.ok(
                 IsJwtValidResponse.builder()
@@ -59,7 +62,7 @@ public class JwtController {
 
         final String normalisedJwt = jwtToken.split(" ")[1];
         final DecodedJWT jwt = jwtService.decodedJwt(normalisedJwt);
-        final boolean isValid = jwtService.verifyToken(jwt);
+        final boolean isValid = jwtService.verifyToken(normalisedJwt);
         final JwtPayload payload = jwtService.decodeTheTokenPayloadInAReadableFormat(jwt);
 
         final boolean isAdministrator = payload.getFeatures().contains("user=administrator");
