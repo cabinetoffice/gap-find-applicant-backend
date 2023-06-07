@@ -756,6 +756,7 @@ class SubmissionControllerTest {
 
         verify(attachmentService).deleteAttachment(attachment, applicationId, SUBMISSION_ID, QUESTION_ID_1);
         verify(submissionService).deleteQuestionResponse(SUBMISSION_ID, QUESTION_ID_1);
+        verify(submissionService).handleSectionReview(SUBMISSION_ID, SECTION_ID_1, Boolean.FALSE);
     }
 
     @Test

@@ -277,6 +277,7 @@ public class SubmissionController {
         final GrantAttachment attachment = grantAttachmentService.getAttachment(attachmentId);
         attachmentService.deleteAttachment(attachment, applicationId, submissionId, questionId);
         submissionService.deleteQuestionResponse(submissionId, questionId);
+        submissionService.handleSectionReview(submissionId, sectionId, Boolean.FALSE);
 
         final GetNavigationParamsDto nextNav = GetNavigationParamsDto.builder()
                 .responseAccepted(Boolean.TRUE)
