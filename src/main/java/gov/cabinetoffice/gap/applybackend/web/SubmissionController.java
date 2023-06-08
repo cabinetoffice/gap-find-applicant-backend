@@ -15,6 +15,7 @@ import lombok.RequiredArgsConstructor;
 import org.apache.commons.io.FilenameUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
@@ -35,6 +36,8 @@ public class SubmissionController {
     private final GrantApplicantService grantApplicantService;
     private final GrantAttachmentService grantAttachmentService;
     private final GrantApplicationService grantApplicationService;
+
+    private final SecretAuthService secretAuthService;
     private final AttachmentService attachmentService;
     private final Logger logger = LoggerFactory.getLogger(SubmissionController.class);
     private final Clock clock;
@@ -198,7 +201,10 @@ public class SubmissionController {
     @PutMapping("/{submissionId}/question/{questionId}/attachment/scanresult")
     public ResponseEntity<String> updateAttachment(@PathVariable final UUID submissionId,
                                                    @PathVariable final String questionId,
-                                                   @RequestBody final UpdateAttachmentDto updateDetails) {
+                                                   @RequestBody final UpdateAttachmentDto updateDetails,
+                                                   @RequestHeader(HttpHeaders.AUTHORIZATION) final String authHeader) {
+        secretAuthService.authenticateSecret(authHeader);
+
         Submission submission = submissionService.getSubmissionFromDatabaseBySubmissionId(submissionId);
         GrantAttachment attachment = grantAttachmentService.getAttachmentBySubmissionAndQuestion(submission, questionId);
 
