@@ -1,6 +1,6 @@
 package gov.cabinetoffice.gap.applybackend.service;
 
-import com.amazonaws.services.cognitoidp.model.UnauthorizedException;
+import gov.cabinetoffice.gap.applybackend.exception.UnauthorizedException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;

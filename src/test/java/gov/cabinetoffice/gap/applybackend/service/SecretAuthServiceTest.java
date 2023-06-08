@@ -1,6 +1,6 @@
 package gov.cabinetoffice.gap.applybackend.service;
 
-import com.amazonaws.services.cognitoidp.model.UnauthorizedException;
+import gov.cabinetoffice.gap.applybackend.exception.UnauthorizedException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.InjectMocks;

@@ -1,6 +1,5 @@
 package gov.cabinetoffice.gap.applybackend.web;
 
-import com.amazonaws.services.cognitoidp.model.UnauthorizedException;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import gov.cabinetoffice.gap.applybackend.constants.APIConstants;
 import gov.cabinetoffice.gap.applybackend.dto.api.*;
@@ -8,10 +7,7 @@ import gov.cabinetoffice.gap.applybackend.enums.GrantAttachmentStatus;
 import gov.cabinetoffice.gap.applybackend.enums.SubmissionQuestionResponseType;
 import gov.cabinetoffice.gap.applybackend.enums.SubmissionSectionStatus;
 import gov.cabinetoffice.gap.applybackend.enums.SubmissionStatus;
-import gov.cabinetoffice.gap.applybackend.exception.AttachmentException;
-import gov.cabinetoffice.gap.applybackend.exception.GrantApplicationNotPublishedException;
-import gov.cabinetoffice.gap.applybackend.exception.NotFoundException;
-import gov.cabinetoffice.gap.applybackend.exception.SubmissionAlreadyCreatedException;
+import gov.cabinetoffice.gap.applybackend.exception.*;
 import gov.cabinetoffice.gap.applybackend.model.*;
 import gov.cabinetoffice.gap.applybackend.service.*;
 import org.junit.jupiter.api.BeforeEach;
