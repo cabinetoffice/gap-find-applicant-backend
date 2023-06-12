@@ -587,10 +587,9 @@ class SubmissionControllerTest {
     void updateAttachment_unauthenticatedError(UpdateAttachmentDto update) {
         doThrow(new UnauthorizedException("Unauthorized oh nooo")).when(secretAuthService).authenticateSecret(anyString());
 
-        UnauthorizedException result = assertThrows(UnauthorizedException.class,
-                () -> controllerUnderTest.updateAttachment(SUBMISSION_ID, QUESTION_ID_1, update, "topSecretKey"));
+        final ResponseEntity<String> methodResponse = controllerUnderTest.updateAttachment(SUBMISSION_ID, QUESTION_ID_1, update, "topSecretKey");
 
-        assertTrue(result.getMessage().contains("Unauthorized oh nooo"));
+        assertThat(methodResponse.getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
     }
 
     // it's frightening how simultaneously good and bad this test is

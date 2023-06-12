@@ -5,10 +5,7 @@ import gov.cabinetoffice.gap.applybackend.constants.APIConstants;
 import gov.cabinetoffice.gap.applybackend.dto.api.*;
 import gov.cabinetoffice.gap.applybackend.enums.GrantAttachmentStatus;
 import gov.cabinetoffice.gap.applybackend.enums.SubmissionSectionStatus;
-import gov.cabinetoffice.gap.applybackend.exception.AttachmentException;
-import gov.cabinetoffice.gap.applybackend.exception.GrantApplicationNotPublishedException;
-import gov.cabinetoffice.gap.applybackend.exception.NotFoundException;
-import gov.cabinetoffice.gap.applybackend.exception.SubmissionAlreadyCreatedException;
+import gov.cabinetoffice.gap.applybackend.exception.*;
 import gov.cabinetoffice.gap.applybackend.model.*;
 import gov.cabinetoffice.gap.applybackend.service.*;
 import lombok.RequiredArgsConstructor;
@@ -16,6 +13,7 @@ import org.apache.commons.io.FilenameUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
@@ -203,7 +201,11 @@ public class SubmissionController {
                                                    @PathVariable final String questionId,
                                                    @RequestBody final UpdateAttachmentDto updateDetails,
                                                    @RequestHeader(HttpHeaders.AUTHORIZATION) final String authHeader) {
-        secretAuthService.authenticateSecret(authHeader);
+        try {
+            secretAuthService.authenticateSecret(authHeader);
+        } catch(UnauthorizedException e){
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
 
         Submission submission = submissionService.getSubmissionFromDatabaseBySubmissionId(submissionId);
         GrantAttachment attachment = grantAttachmentService.getAttachmentBySubmissionAndQuestion(submission, questionId);
