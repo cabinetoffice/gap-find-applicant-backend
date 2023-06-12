@@ -201,11 +201,8 @@ public class SubmissionController {
                                                    @PathVariable final String questionId,
                                                    @RequestBody final UpdateAttachmentDto updateDetails,
                                                    @RequestHeader(HttpHeaders.AUTHORIZATION) final String authHeader) {
-        try {
-            secretAuthService.authenticateSecret(authHeader);
-        } catch(UnauthorizedException e){
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
-        }
+
+        secretAuthService.authenticateSecret(authHeader);
 
         Submission submission = submissionService.getSubmissionFromDatabaseBySubmissionId(submissionId);
         GrantAttachment attachment = grantAttachmentService.getAttachmentBySubmissionAndQuestion(submission, questionId);
