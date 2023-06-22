@@ -37,6 +37,9 @@ public class CreateGrantBeneficiaryDto {
     private Boolean ethnicGroup4;
     private Boolean ethnicGroup5;
     private Boolean ethnicGroupOther;
+    private Boolean organisationGroup1;
+    private Boolean organisationGroup2;
+    private Boolean organisationGroup3;
 
     @Size(max = 100, message = "Other ethnic group details can not be longer than 100 characters")
     private String ethnicOtherDetails;

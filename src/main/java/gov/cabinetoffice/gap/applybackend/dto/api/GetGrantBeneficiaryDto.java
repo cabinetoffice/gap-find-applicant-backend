@@ -37,6 +37,9 @@ public class GetGrantBeneficiaryDto {
     private Boolean ethnicGroupOther;
     private String ethnicOtherDetails;
     private Boolean ethnicGroupAll;
+    private Boolean organisationGroup1;
+    private Boolean organisationGroup2;
+    private Boolean organisationGroup3;
     private Boolean supportingDisabilities;
     private Boolean sexualOrientationGroup1;
     private Boolean sexualOrientationGroup2;
