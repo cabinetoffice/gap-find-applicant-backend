@@ -4,7 +4,7 @@ import com.auth0.jwt.JWT;
 import com.auth0.jwt.interfaces.DecodedJWT;
 import gov.cabinetoffice.gap.applybackend.config.UserServiceConfig;
 import gov.cabinetoffice.gap.applybackend.dto.api.JwtPayload;
-import gov.cabinetoffice.gap.applybackend.dto.api.JwtPayloadV2;
+
 import static java.lang.Boolean.TRUE;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -89,7 +89,7 @@ public class JwtService {
                 .build();
     }
 
-    public JwtPayloadV2 decodeTheTokenPayloadInAReadableFormatV2(DecodedJWT jwt) {
+    public JwtPayload decodeTheTokenPayloadInAReadableFormatV2(DecodedJWT jwt) {
         final String payloadJson = decodeBase64ToJson(jwt.getPayload());
         final JSONObject jsonObject = new JSONObject(payloadJson);
         final String sub = jwt.getSubject();
@@ -99,7 +99,7 @@ public class JwtService {
         final int exp = jsonObject.getInt("exp");
         final int iat = jsonObject.getInt("iat");
         final String email = jsonObject.getString("email");
-        return JwtPayloadV2.builder()
+        return JwtPayload.builder()
                 .sub(sub)
                 .roles(roles)
                 .iss(iss)

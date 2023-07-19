@@ -2,7 +2,6 @@ package gov.cabinetoffice.gap.applybackend.security;
 
 import com.auth0.jwt.interfaces.DecodedJWT;
 import gov.cabinetoffice.gap.applybackend.dto.api.JwtPayload;
-import gov.cabinetoffice.gap.applybackend.dto.api.JwtPayloadV2;
 import gov.cabinetoffice.gap.applybackend.exception.ForbiddenException;
 import gov.cabinetoffice.gap.applybackend.service.JwtService;
 import lombok.RequiredArgsConstructor;
@@ -51,7 +50,7 @@ public class JwtTokenFilterV2 extends OncePerRequestFilter {
 
         DecodedJWT decodedJWT = jwtService.decodedJwt(normalisedJwt);
         //set the Security context, so we can access it everywhere
-        JwtPayloadV2 jwtPayload = jwtService.decodeTheTokenPayloadInAReadableFormatV2(decodedJWT);
+        JwtPayload jwtPayload = jwtService.decodeTheTokenPayloadInAReadableFormatV2(decodedJWT);
 
         if (!jwtPayload.getRoles().contains("APPLICANT")) {
             throw new ForbiddenException("User is not an applicant");

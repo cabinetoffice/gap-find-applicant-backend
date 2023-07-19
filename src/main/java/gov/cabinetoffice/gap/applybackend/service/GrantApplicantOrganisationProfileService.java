@@ -29,7 +29,7 @@ public class GrantApplicantOrganisationProfileService {
                 .orElseThrow(() -> new NotFoundException(String.format("No Organisation Profile with ID %s was found", updatedProfile.getId())));
     }
 
-    public GrantApplicantOrganisationProfile createOrganisation(UUID applicantId, GrantApplicantOrganisationProfile profile) {
+    public GrantApplicantOrganisationProfile createOrganisation(String applicantId, GrantApplicantOrganisationProfile profile) {
         final GrantApplicant applicant = grantApplicantService.getApplicantById(applicantId);
         profile.setApplicant(applicant);
 

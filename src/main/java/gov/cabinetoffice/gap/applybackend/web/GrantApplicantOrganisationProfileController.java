@@ -58,9 +58,8 @@ public class GrantApplicantOrganisationProfileController {
     })
     public ResponseEntity<String> createOrganisation(@RequestBody CreateGrantApplicantOrganisationProfileDto organisation) {
         JwtPayload jwtPayload = (JwtPayload) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
-        final UUID userId = UUID.fromString(jwtPayload.getSub());
         GrantApplicantOrganisationProfile grantApplicantOrganisationProfile = modelMapper.map(organisation, GrantApplicantOrganisationProfile.class);
-        grantApplicantOrganisationProfileService.createOrganisation(userId, grantApplicantOrganisationProfile);
+        grantApplicantOrganisationProfileService.createOrganisation(jwtPayload.getSub(), grantApplicantOrganisationProfile);
         return new ResponseEntity<>(String.format("An organisation with the id %s has been created", grantApplicantOrganisationProfile.getId()), HttpStatus.CREATED);
     }
 }
