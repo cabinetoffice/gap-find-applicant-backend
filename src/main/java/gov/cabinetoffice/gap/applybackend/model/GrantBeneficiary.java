@@ -119,6 +119,15 @@ public class GrantBeneficiary {
     private Boolean ethnicGroupAll;
 
     @Column
+    private Boolean organisationGroup1;
+
+    @Column
+    private Boolean organisationGroup2;
+
+    @Column
+    private Boolean organisationGroup3;
+
+    @Column
     private Boolean supportingDisabilities;
 
     @Column

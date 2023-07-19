@@ -7,10 +7,7 @@ import gov.cabinetoffice.gap.applybackend.enums.GrantAttachmentStatus;
 import gov.cabinetoffice.gap.applybackend.enums.SubmissionQuestionResponseType;
 import gov.cabinetoffice.gap.applybackend.enums.SubmissionSectionStatus;
 import gov.cabinetoffice.gap.applybackend.enums.SubmissionStatus;
-import gov.cabinetoffice.gap.applybackend.exception.AttachmentException;
-import gov.cabinetoffice.gap.applybackend.exception.GrantApplicationNotPublishedException;
-import gov.cabinetoffice.gap.applybackend.exception.NotFoundException;
-import gov.cabinetoffice.gap.applybackend.exception.SubmissionAlreadyCreatedException;
+import gov.cabinetoffice.gap.applybackend.exception.*;
 import gov.cabinetoffice.gap.applybackend.model.*;
 import gov.cabinetoffice.gap.applybackend.service.*;
 import org.junit.jupiter.api.BeforeEach;
@@ -22,6 +19,7 @@ import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -43,6 +41,8 @@ import java.util.stream.Stream;
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @ExtendWith(MockitoExtension.class)
 class SubmissionControllerTest {
@@ -247,6 +247,9 @@ class SubmissionControllerTest {
     private GrantApplicationService grantApplicationService;
     @Mock
     private GrantAttachmentService grantAttachmentService;
+
+    @Mock
+    private SecretAuthService secretAuthService;
     @Mock
     private AttachmentService attachmentService;
 
@@ -257,7 +260,7 @@ class SubmissionControllerTest {
 
     @BeforeEach
     void setup() {
-        controllerUnderTest = new SubmissionController(submissionService, grantApplicantService, grantAttachmentService, grantApplicationService, attachmentService, clock);
+        controllerUnderTest = new SubmissionController(submissionService, grantApplicantService, grantAttachmentService, grantApplicationService, secretAuthService, attachmentService, clock);
     }
 
     @Test
@@ -568,7 +571,7 @@ class SubmissionControllerTest {
 
         final ArgumentCaptor<GrantAttachment> attachmentCaptor = ArgumentCaptor.forClass(GrantAttachment.class);
 
-        final ResponseEntity<String> methodResponse = controllerUnderTest.updateAttachment(SUBMISSION_ID, QUESTION_ID_1, update);
+        final ResponseEntity<String> methodResponse = controllerUnderTest.updateAttachment(SUBMISSION_ID, QUESTION_ID_1, update, "topSecretKey");
 
         assertThat(methodResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(methodResponse.getBody()).isEqualTo("Attachment Updated");
@@ -577,6 +580,14 @@ class SubmissionControllerTest {
         assertThat(attachmentCaptor.getValue().getStatus()).isEqualTo(status);
         assertThat(attachmentCaptor.getValue().getLastUpdated()).isEqualTo(Instant.now(clock));
         assertThat(attachmentCaptor.getValue().getLocation()).isEqualTo(update.getUri());
+    }
+
+    @ParameterizedTest
+    @MethodSource("provideGrantAttachmentUpdates")
+    void updateAttachment_unauthenticatedError(UpdateAttachmentDto update) {
+        doThrow(new UnauthorizedException("Unauthorized oh nooo")).when(secretAuthService).authenticateSecret(anyString());
+
+        assertThrows(UnauthorizedException.class, () -> controllerUnderTest.updateAttachment(SUBMISSION_ID, QUESTION_ID_1, update, "topSecretKey"));
     }
 
     // it's frightening how simultaneously good and bad this test is
