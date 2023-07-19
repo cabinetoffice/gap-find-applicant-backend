@@ -3,10 +3,8 @@ package gov.cabinetoffice.gap.applybackend.web;
 import com.auth0.jwk.JwkException;
 import com.auth0.jwt.interfaces.DecodedJWT;
 import gov.cabinetoffice.gap.applybackend.dto.api.IsAdminJwtResponse;
-import gov.cabinetoffice.gap.applybackend.dto.api.UserRolesJwtResponse;
 import gov.cabinetoffice.gap.applybackend.dto.api.IsJwtValidResponse;
 import gov.cabinetoffice.gap.applybackend.dto.api.JwtPayload;
-import gov.cabinetoffice.gap.applybackend.dto.api.JwtPayloadV2;
 import gov.cabinetoffice.gap.applybackend.exception.JwtTokenUndefinedException;
 import gov.cabinetoffice.gap.applybackend.service.JwtService;
 import lombok.RequiredArgsConstructor;
@@ -73,33 +71,6 @@ public class JwtController {
         final IsAdminJwtResponse response = IsAdminJwtResponse.builder()
                 .isValid(isValid)
                 .isAdmin(isAdministrator)
-                .isApplicant(isOrdinaryUser)
-                .build();
-
-        return ResponseEntity.ok(response);
-    }
-
-    @GetMapping("/userRoles")
-    public ResponseEntity<UserRolesJwtResponse> userRoles(@RequestHeader("Authorization") String jwtToken)
-            throws JwkException {
-
-        if (jwtToken.length() <= 0) {
-            throw new JwtTokenUndefinedException("No Jwt has been passed in the request");
-        }
-
-        final String normalisedJwt = jwtToken.split(" ")[1];
-        final DecodedJWT jwt = jwtService.decodedJwt(normalisedJwt);
-        final boolean isValid = jwtService.verifyToken(normalisedJwt);
-        final JwtPayloadV2 payload = jwtService.decodeTheTokenPayloadInAReadableFormatV2(jwt);
-
-        final boolean isSuperAdmin = payload.getRoles().contains("SUPER_ADMIN");
-        final boolean isAdmin = payload.getRoles().contains("ADMIN");
-        final boolean isOrdinaryUser = payload.getRoles().contains("APPLICANT");
-
-        final UserRolesJwtResponse response = UserRolesJwtResponse.builder()
-                .isValid(isValid)
-                .isSuperAdmin(isSuperAdmin)
-                .isAdmin(isAdmin)
                 .isApplicant(isOrdinaryUser)
                 .build();
 
