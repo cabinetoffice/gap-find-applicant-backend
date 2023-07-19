@@ -2,9 +2,10 @@ package gov.cabinetoffice.gap.applybackend.security;
 
 import com.auth0.jwt.interfaces.DecodedJWT;
 import gov.cabinetoffice.gap.applybackend.dto.api.JwtPayload;
+import gov.cabinetoffice.gap.applybackend.dto.api.JwtPayloadV2;
+import gov.cabinetoffice.gap.applybackend.exception.ForbiddenException;
 import gov.cabinetoffice.gap.applybackend.service.JwtService;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
@@ -25,7 +26,7 @@ import static org.springframework.util.ObjectUtils.isEmpty;
  * requests, regardless of whether they've been specifically ignored
  */
 @RequiredArgsConstructor
-public class JwtTokenFilter extends OncePerRequestFilter {
+public class JwtTokenFilterV2 extends OncePerRequestFilter {
 
     private final JwtService jwtService;
 
@@ -50,7 +51,11 @@ public class JwtTokenFilter extends OncePerRequestFilter {
 
         DecodedJWT decodedJWT = jwtService.decodedJwt(normalisedJwt);
         //set the Security context, so we can access it everywhere
-        JwtPayload jwtPayload = jwtService.decodeTheTokenPayloadInAReadableFormat(decodedJWT);
+        JwtPayloadV2 jwtPayload = jwtService.decodeTheTokenPayloadInAReadableFormatV2(decodedJWT);
+
+        if (!jwtPayload.getRoles().contains("APPLICANT")) {
+            throw new ForbiddenException("User is not an applicant");
+        }
 
         UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
                 jwtPayload,
