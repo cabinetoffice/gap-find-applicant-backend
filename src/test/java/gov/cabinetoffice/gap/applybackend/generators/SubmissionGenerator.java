@@ -32,6 +32,6 @@ public class SubmissionGenerator {
     private static GrantApplicant.GrantApplicantBuilder randomGrantApplicantGenerator() {
         return GrantApplicant.builder()
                 .id(1)
-                .userId(UUID.fromString("75ab5fbd-0682-4d3d-a467-01c7a447f07c"));
+                .userId("75ab5fbd-0682-4d3d-a467-01c7a447f07c");
     }
 }

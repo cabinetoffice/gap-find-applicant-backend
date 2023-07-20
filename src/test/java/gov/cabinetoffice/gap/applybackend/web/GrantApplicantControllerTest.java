@@ -33,7 +33,7 @@ import java.util.UUID;
 class GrantApplicantControllerTest {
     private final long APPLICANT_ID = 1;
     private final long PROFILE_ID = 1;
-    private final UUID APPLICANT_USER_ID = UUID.fromString("75ab5fbd-0682-4d3d-a467-01c7a447f07c");
+    private final String APPLICANT_USER_ID = "75ab5fbd-0682-4d3d-a467-01c7a447f07c";
     @Mock
     private Authentication authentication;
     @Mock

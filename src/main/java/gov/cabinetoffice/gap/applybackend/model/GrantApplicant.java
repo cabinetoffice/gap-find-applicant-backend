@@ -22,7 +22,7 @@ public class GrantApplicant {
     private long id;
 
     @Column
-    private UUID userId;
+    private String userId;
 
     @OneToOne(mappedBy = "applicant")
     @JsonIgnoreProperties

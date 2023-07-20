@@ -7,5 +7,5 @@ import java.util.Optional;
 import java.util.UUID;
 
 public interface GrantApplicantRepository extends JpaRepository<GrantApplicant, Long> {
-    Optional<GrantApplicant> findByUserId(UUID userid);
+    Optional<GrantApplicant> findByUserId(String userid);
 }

@@ -43,8 +43,7 @@ public class SubmissionController {
     @GetMapping
     public ResponseEntity<List<GetSubmissionDto>> getSubmissions() {
         JwtPayload jwtPayload = (JwtPayload) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
-        final UUID applicantId = UUID.fromString(jwtPayload.getSub());
-        GrantApplicant applicant = grantApplicantService.getApplicantById((applicantId));
+        GrantApplicant applicant = grantApplicantService.getApplicantById(jwtPayload.getSub());
         return ResponseEntity.ok(applicant.getSubmissions().stream()
                 .map(this::buildSubmissionDto)
                 .toList()
@@ -183,8 +182,7 @@ public class SubmissionController {
 
         final GrantApplication grantApplication = grantApplicationService.getGrantApplicationById(applicationId);
         JwtPayload jwtPayload = (JwtPayload) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
-        final UUID userId = UUID.fromString(jwtPayload.getSub());
-        final GrantApplicant grantApplicant = grantApplicantService.getApplicantById(userId);
+        final GrantApplicant grantApplicant = grantApplicantService.getApplicantById(jwtPayload.getSub());
 
         final boolean submissionExists = submissionService.doesSubmissionExist(grantApplicant, grantApplication);
         if (submissionExists) {
