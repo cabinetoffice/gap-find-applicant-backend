@@ -44,6 +44,7 @@ public class GrantApplicantController {
         final GrantApplicant applicant = grantApplicantService.getApplicantById(jwtPayload.getSub());
         GetGrantApplicantDto applicantDto = modelMapper.map(applicant, GetGrantApplicantDto.class);
         applicantDto.setFullName(WordUtils.capitalize(fullName));
+        applicantDto.setEmail(jwtPayload.getEmail());
 
         return ResponseEntity.ok(applicantDto);
     }
