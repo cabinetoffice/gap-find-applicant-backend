@@ -16,7 +16,7 @@ public class GrantApplicantService {
 
     private final GrantApplicantRepository grantApplicantRepository;
 
-    public GrantApplicant getApplicantById(UUID applicantId) {
+    public GrantApplicant getApplicantById(final UUID applicantId) {
         return grantApplicantRepository
                 .findByUserId(applicantId)
                 .orElseThrow(() -> new NotFoundException(String.format("No Grant Applicant with ID %s was found", applicantId.toString())));

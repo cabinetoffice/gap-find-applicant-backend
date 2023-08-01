@@ -2,6 +2,7 @@ package gov.cabinetoffice.gap.applybackend.validation.validators;
 
 import gov.cabinetoffice.gap.applybackend.constants.ValidationConstants;
 import gov.cabinetoffice.gap.applybackend.dto.api.CreateQuestionResponseDto;
+import gov.cabinetoffice.gap.applybackend.dto.api.JwtPayload;
 import gov.cabinetoffice.gap.applybackend.enums.SubmissionQuestionResponseType;
 import gov.cabinetoffice.gap.applybackend.model.SubmissionQuestion;
 import gov.cabinetoffice.gap.applybackend.model.SubmissionQuestionValidation;
@@ -11,12 +12,14 @@ import gov.cabinetoffice.gap.applybackend.validation.annotations.ValidQuestionRe
 import lombok.RequiredArgsConstructor;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.logging.log4j.util.Strings;
+import org.springframework.security.core.context.SecurityContextHolder;
 
 import javax.validation.ConstraintValidator;
 import javax.validation.ConstraintValidatorContext;
 import java.time.Month;
 import java.time.Year;
 import java.util.Map;
+import java.util.UUID;
 import java.util.stream.Stream;
 
 
@@ -28,6 +31,7 @@ public class QuestionResponseValidator implements ConstraintValidator<ValidQuest
 
     @Override
     public boolean isValid(Object value, ConstraintValidatorContext constraintValidatorContext) {
+        final JwtPayload jwtPayload = (JwtPayload) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
 
         constraintValidatorContext.disableDefaultConstraintViolation();
         CreateQuestionResponseDto submittedQuestion = (CreateQuestionResponseDto) value;
@@ -57,7 +61,9 @@ public class QuestionResponseValidator implements ConstraintValidator<ValidQuest
             throw new IllegalArgumentException("Question ID must not be null.");
         }
 
-        return submissionService.getQuestionByQuestionId(submittedQuestion.getSubmissionId(), submittedQuestion.getQuestionId());
+        final JwtPayload jwtPayload = (JwtPayload) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        final UUID applicantId = UUID.fromString(jwtPayload.getSub());
+        return submissionService.getQuestionByQuestionId(applicantId, submittedQuestion.getSubmissionId(), submittedQuestion.getQuestionId());
     }
 
     private ValidationResult validate(CreateQuestionResponseDto submittedQuestion, SubmissionQuestion question) {
