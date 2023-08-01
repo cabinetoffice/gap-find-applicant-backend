@@ -24,6 +24,8 @@ import java.time.Clock;
 import java.time.Instant;
 import java.util.*;
 
+import static gov.cabinetoffice.gap.applybackend.utils.SecurityContextHelper.getUserIdFromSecurityContext;
+
 // TODO This class could probably be broken up into a few smaller more targeted classes
 @RequiredArgsConstructor
 @RequestMapping("/submissions")
@@ -42,8 +44,7 @@ public class SubmissionController {
 
     @GetMapping
     public ResponseEntity<List<GetSubmissionDto>> getSubmissions() {
-        JwtPayload jwtPayload = (JwtPayload) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
-        final UUID applicantId = UUID.fromString(jwtPayload.getSub());
+        final UUID applicantId = getUserIdFromSecurityContext();
         GrantApplicant applicant = grantApplicantService.getApplicantById((applicantId));
         return ResponseEntity.ok(applicant.getSubmissions().stream()
                 .map(this::buildSubmissionDto)
@@ -53,22 +54,19 @@ public class SubmissionController {
 
     @GetMapping("/{submissionId}")
     public ResponseEntity<GetSubmissionDto> getSubmission(@PathVariable final UUID submissionId) {
-        final JwtPayload jwtPayload = (JwtPayload) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
-        final UUID applicantId = UUID.fromString(jwtPayload.getSub());
+        final UUID applicantId = getUserIdFromSecurityContext();
         return ResponseEntity.ok(buildSubmissionDto(submissionService.getSubmissionFromDatabaseBySubmissionId(applicantId, submissionId)));
     }
 
     @GetMapping("/{submissionId}/sections/{sectionId}")
     public ResponseEntity<SubmissionSection> getSection(@PathVariable final UUID submissionId, @PathVariable final String sectionId) {
-        final JwtPayload jwtPayload = (JwtPayload) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
-        final UUID applicantId = UUID.fromString(jwtPayload.getSub());
+        final UUID applicantId = getUserIdFromSecurityContext();
         return ResponseEntity.ok(submissionService.getSectionBySectionId(applicantId, submissionId, sectionId));
     }
 
     @PostMapping("/{submissionId}/sections/{sectionId}/review")
     public ResponseEntity<String> postSectionReview(@PathVariable final UUID submissionId, @PathVariable final String sectionId, final @RequestBody @Valid SubmissionReviewBodyDto body) {
-        final JwtPayload jwtPayload = (JwtPayload) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
-        final UUID applicantId = UUID.fromString(jwtPayload.getSub());
+        final UUID applicantId = getUserIdFromSecurityContext();
         final SubmissionSectionStatus sectionStatus = submissionService.handleSectionReview(applicantId, submissionId, sectionId, body.getIsComplete());
         return ResponseEntity.ok(String.format("Section with ID %s status has been updated to %s.", sectionId, sectionStatus.toString()));
     }
@@ -80,8 +78,7 @@ public class SubmissionController {
             @PathVariable final String sectionId,
             @PathVariable final String questionId) {
 
-        final JwtPayload jwtPayload = (JwtPayload) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
-        final UUID applicantId = UUID.fromString(jwtPayload.getSub());
+        final UUID applicantId = getUserIdFromSecurityContext();
 
         Submission submission = submissionService.getSubmissionFromDatabaseBySubmissionId(applicantId, submissionId);
         SubmissionSection section = submission
@@ -159,30 +156,27 @@ public class SubmissionController {
                                                        @PathVariable final String sectionId,
                                                        @PathVariable final String questionId,
                                                        @Valid @RequestBody CreateQuestionResponseDto questionResponse) {
-        final JwtPayload jwtPayload = (JwtPayload) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
-        final UUID applicantId = UUID.fromString(jwtPayload.getSub());
+        final UUID applicantId = getUserIdFromSecurityContext();
         submissionService.saveQuestionResponse(questionResponse, applicantId, submissionId, sectionId);
         return ResponseEntity.ok(submissionService.getNextNavigation(applicantId, submissionId, sectionId, questionId, false));
     }
 
     @GetMapping("/{submissionId}/ready")
     public ResponseEntity<Boolean> isSubmissionReadyToBeSubmitted(@PathVariable final UUID submissionId) {
-        final JwtPayload jwtPayload = (JwtPayload) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
-        final UUID applicantId = UUID.fromString(jwtPayload.getSub());
+        final UUID applicantId = getUserIdFromSecurityContext();
         return ResponseEntity.ok(submissionService.isSubmissionReadyToBeSubmitted(applicantId, submissionId));
     }
 
     @GetMapping("/{submissionId}/isSubmitted")
     public ResponseEntity<Boolean> isSubmissionSubmitted(@PathVariable final UUID submissionId) {
-        final JwtPayload jwtPayload = (JwtPayload) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
-        final UUID applicantId = UUID.fromString(jwtPayload.getSub());
+        final UUID applicantId = getUserIdFromSecurityContext();
         return ResponseEntity.ok(submissionService.hasSubmissionBeenSubmitted(applicantId, submissionId));
     }
 
     @PostMapping("/submit")
     public ResponseEntity<String> submitApplication(@RequestBody SubmitApplicationDto applicationSubmission) {
         final JwtPayload jwtPayload = (JwtPayload) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
-        final UUID applicantId = UUID.fromString(jwtPayload.getSub());
+        final UUID applicantId = getUserIdFromSecurityContext();
         final Submission submission = submissionService.getSubmissionFromDatabaseBySubmissionId(applicantId, applicationSubmission.getSubmissionId());
         submissionService.submit(submission, applicantId, jwtPayload.getEmail());
 
@@ -191,8 +185,7 @@ public class SubmissionController {
 
     @PostMapping("/createSubmission/{applicationId}")
     public ResponseEntity<CreateSubmissionResponseDto> createApplication(@PathVariable final int applicationId) throws JsonProcessingException {
-        final JwtPayload jwtPayload = (JwtPayload) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
-        final UUID applicantId = UUID.fromString(jwtPayload.getSub());
+        final UUID applicantId = getUserIdFromSecurityContext();
         final boolean isGrantApplicationPublished = grantApplicationService.isGrantApplicationPublished(applicationId);
         if (!isGrantApplicationPublished) {
             logger.debug("Grant Application {} is not been published yet.", applicationId);
@@ -217,8 +210,7 @@ public class SubmissionController {
                                                    @PathVariable final String questionId,
                                                    @RequestBody final UpdateAttachmentDto updateDetails,
                                                    @RequestHeader(HttpHeaders.AUTHORIZATION) final String authHeader) {
-        final JwtPayload jwtPayload = (JwtPayload) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
-        final UUID applicantId = UUID.fromString(jwtPayload.getSub());
+        final UUID applicantId = getUserIdFromSecurityContext();
 
         secretAuthService.authenticateSecret(authHeader);
 
@@ -242,8 +234,7 @@ public class SubmissionController {
                                                                  @PathVariable final String sectionId,
                                                                  @PathVariable final String questionId,
                                                                  @RequestBody final MultipartFile attachment) {
-        final JwtPayload jwtPayload = (JwtPayload) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
-        final UUID applicantId = UUID.fromString(jwtPayload.getSub());
+        final UUID applicantId = getUserIdFromSecurityContext();
         final GrantApplicant applicant = grantApplicantService.getApplicantFromPrincipal();
         final Submission submission = submissionService.getSubmissionFromDatabaseBySubmissionId(applicantId, submissionId);
         final GrantApplication application = submission.getApplication();
@@ -295,8 +286,7 @@ public class SubmissionController {
                                                                  @PathVariable final String sectionId,
                                                                  @PathVariable final String questionId,
                                                                  @PathVariable final UUID attachmentId) {
-        final JwtPayload jwtPayload = (JwtPayload) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
-        final UUID applicantId = UUID.fromString(jwtPayload.getSub());
+        final UUID applicantId = getUserIdFromSecurityContext();
         final Submission submission = submissionService.getSubmissionFromDatabaseBySubmissionId(applicantId, submissionId);
         final int applicationId = submission.getApplication().getId();
 
@@ -321,8 +311,7 @@ public class SubmissionController {
                                                                                @PathVariable final String sectionId,
                                                                                @PathVariable final String questionId,
                                                                                @RequestParam(required = false, defaultValue = "false") final boolean saveAndExit) {
-        final JwtPayload jwtPayload = (JwtPayload) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
-        final UUID applicantId = UUID.fromString(jwtPayload.getSub());
+        final UUID applicantId = getUserIdFromSecurityContext();
         return ResponseEntity.ok(submissionService.getNextNavigation(applicantId, submissionId, sectionId, questionId, saveAndExit));
     }
 }

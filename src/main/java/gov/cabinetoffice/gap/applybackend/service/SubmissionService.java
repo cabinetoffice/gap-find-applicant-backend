@@ -7,7 +7,6 @@ import gov.cabinetoffice.gap.applybackend.constants.APIConstants;
 import gov.cabinetoffice.gap.applybackend.dto.api.CreateQuestionResponseDto;
 import gov.cabinetoffice.gap.applybackend.dto.api.CreateSubmissionResponseDto;
 import gov.cabinetoffice.gap.applybackend.dto.api.GetNavigationParamsDto;
-import gov.cabinetoffice.gap.applybackend.dto.api.JwtPayload;
 import gov.cabinetoffice.gap.applybackend.enums.GrantApplicantStatus;
 import gov.cabinetoffice.gap.applybackend.enums.SubmissionSectionStatus;
 import gov.cabinetoffice.gap.applybackend.enums.SubmissionStatus;
@@ -15,7 +14,6 @@ import gov.cabinetoffice.gap.applybackend.exception.NotFoundException;
 import gov.cabinetoffice.gap.applybackend.exception.SubmissionAlreadySubmittedException;
 import gov.cabinetoffice.gap.applybackend.exception.SubmissionNotReadyException;
 import gov.cabinetoffice.gap.applybackend.model.*;
-import gov.cabinetoffice.gap.applybackend.provider.UuidProvider;
 import gov.cabinetoffice.gap.applybackend.repository.DiligenceCheckRepository;
 import gov.cabinetoffice.gap.applybackend.repository.GrantBeneficiaryRepository;
 import gov.cabinetoffice.gap.applybackend.repository.SubmissionRepository;
@@ -59,7 +57,7 @@ public class SubmissionService {
 
     public Submission getSubmissionFromDatabaseBySubmissionId(final UUID userId, final UUID submissionId) {
         Submission submission = submissionRepository
-                .findByIdAndApplicant_UserId(submissionId, userId)
+                .findByIdAndApplicantUserId(submissionId, userId)
                 .orElseThrow(() -> new NotFoundException(
                         String.format("No Submission with ID %s was found", submissionId)));
 
@@ -69,7 +67,7 @@ public class SubmissionService {
 
     public SubmissionSection getSectionBySectionId(final UUID userId, final UUID submissionId, String sectionId) {
         return submissionRepository
-                .findByIdAndApplicant_UserId(submissionId, userId)
+                .findByIdAndApplicantUserId(submissionId, userId)
                 .orElseThrow(() -> new NotFoundException(
                         String.format("No Submission with ID %s was found", submissionId)))
                 .getDefinition()

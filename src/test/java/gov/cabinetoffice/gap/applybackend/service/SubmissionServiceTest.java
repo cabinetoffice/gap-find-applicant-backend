@@ -14,7 +14,6 @@ import gov.cabinetoffice.gap.applybackend.exception.NotFoundException;
 import gov.cabinetoffice.gap.applybackend.exception.SubmissionAlreadySubmittedException;
 import gov.cabinetoffice.gap.applybackend.exception.SubmissionNotReadyException;
 import gov.cabinetoffice.gap.applybackend.model.*;
-import gov.cabinetoffice.gap.applybackend.provider.UuidProvider;
 import gov.cabinetoffice.gap.applybackend.repository.DiligenceCheckRepository;
 import gov.cabinetoffice.gap.applybackend.repository.GrantBeneficiaryRepository;
 import gov.cabinetoffice.gap.applybackend.repository.SubmissionRepository;
@@ -251,11 +250,11 @@ class SubmissionServiceTest {
 
     @Test
     void getSubmissionsByApplicantId_ReturnsExpectedResult() {
-        when(submissionRepository.findByIdAndApplicant_UserId(SUBMISSION_ID, userId)).thenReturn(Optional.of(submission));
+        when(submissionRepository.findByIdAndApplicantUserId(SUBMISSION_ID, userId)).thenReturn(Optional.of(submission));
 
         Submission methodResponse = serviceUnderTest.getSubmissionFromDatabaseBySubmissionId(userId, SUBMISSION_ID);
 
-        verify(submissionRepository).findByIdAndApplicant_UserId(SUBMISSION_ID, userId);
+        verify(submissionRepository).findByIdAndApplicantUserId(SUBMISSION_ID, userId);
         assertEquals(methodResponse, submission);
     }
 
@@ -310,42 +309,42 @@ class SubmissionServiceTest {
 
         submission.setDefinition(definition);
         submission.getApplicant().setOrganisationProfile(null);
-        when(submissionRepository.findByIdAndApplicant_UserId(SUBMISSION_ID, userId)).thenReturn(Optional.of(submission));
+        when(submissionRepository.findByIdAndApplicantUserId(SUBMISSION_ID, userId)).thenReturn(Optional.of(submission));
 
         Submission methodResponse = serviceUnderTest.getSubmissionFromDatabaseBySubmissionId(userId, SUBMISSION_ID);
 
-        verify(submissionRepository).findByIdAndApplicant_UserId(SUBMISSION_ID, userId);
+        verify(submissionRepository).findByIdAndApplicantUserId(SUBMISSION_ID, userId);
         assertEquals(methodResponse, submission);
     }
 
     @Test
     void getSubmissionsByApplicantId_SubmissionNotFound() {
-        when(submissionRepository.findByIdAndApplicant_UserId(SUBMISSION_ID, userId)).thenReturn(Optional.empty());
+        when(submissionRepository.findByIdAndApplicantUserId(SUBMISSION_ID, userId)).thenReturn(Optional.empty());
 
         Exception result = assertThrows(NotFoundException.class,
                 () -> serviceUnderTest.getSubmissionFromDatabaseBySubmissionId(userId, SUBMISSION_ID));
-        verify(submissionRepository).findByIdAndApplicant_UserId(SUBMISSION_ID, userId);
+        verify(submissionRepository).findByIdAndApplicantUserId(SUBMISSION_ID, userId);
         assertTrue(result.getMessage()
                 .contains(String.format("No Submission with ID %s was found", SUBMISSION_ID)));
     }
 
     @Test
     void getSectionBySectionId_ReturnsExpectedResult() {
-        when(submissionRepository.findByIdAndApplicant_UserId(SUBMISSION_ID, userId)).thenReturn(Optional.of(submission));
+        when(submissionRepository.findByIdAndApplicantUserId(SUBMISSION_ID, userId)).thenReturn(Optional.of(submission));
 
         SubmissionSection methodResponse = serviceUnderTest.getSectionBySectionId(userId, SUBMISSION_ID, SECTION_ID_1);
 
-        verify(submissionRepository).findByIdAndApplicant_UserId(SUBMISSION_ID, userId);
+        verify(submissionRepository).findByIdAndApplicantUserId(SUBMISSION_ID, userId);
         assertEquals(methodResponse, section);
     }
 
     @Test
     void getSectionBySectionId__SubmissionNotFound() {
-        when(submissionRepository.findByIdAndApplicant_UserId(SUBMISSION_ID, userId)).thenReturn(Optional.empty());
+        when(submissionRepository.findByIdAndApplicantUserId(SUBMISSION_ID, userId)).thenReturn(Optional.empty());
 
         Exception result = assertThrows(NotFoundException.class,
                 () -> serviceUnderTest.getSectionBySectionId(userId, SUBMISSION_ID, SECTION_ID_1));
-        verify(submissionRepository).findByIdAndApplicant_UserId(SUBMISSION_ID, userId);
+        verify(submissionRepository).findByIdAndApplicantUserId(SUBMISSION_ID, userId);
         assertTrue(result.getMessage()
                 .contains(String.format("No Submission with ID %s was found", SUBMISSION_ID)));
     }
@@ -353,11 +352,11 @@ class SubmissionServiceTest {
     @Test
     void getSectionBySectionId__SectionNotFound() {
         final String NO_SECTION_ID = "NONE";
-        when(submissionRepository.findByIdAndApplicant_UserId(SUBMISSION_ID, userId)).thenReturn(Optional.of(submission));
+        when(submissionRepository.findByIdAndApplicantUserId(SUBMISSION_ID, userId)).thenReturn(Optional.of(submission));
 
         Exception result = assertThrows(NotFoundException.class,
                 () -> serviceUnderTest.getSectionBySectionId(userId, SUBMISSION_ID, NO_SECTION_ID));
-        verify(submissionRepository).findByIdAndApplicant_UserId(SUBMISSION_ID, userId);
+        verify(submissionRepository).findByIdAndApplicantUserId(SUBMISSION_ID, userId);
         assertTrue(result.getMessage()
                 .contains(String.format("No Section with ID %s was found", NO_SECTION_ID)));
     }
@@ -396,7 +395,7 @@ class SubmissionServiceTest {
                 .id(submissionId)
                 .build();
 
-        when(submissionRepository.findByIdAndApplicant_UserId(submissionId, userId))
+        when(submissionRepository.findByIdAndApplicantUserId(submissionId, userId))
                 .thenReturn(Optional.of(submission));
 
         final GetNavigationParamsDto expected = GetNavigationParamsDto.builder()
@@ -425,7 +424,7 @@ class SubmissionServiceTest {
                 .id(submissionId)
                 .build();
 
-        when(submissionRepository.findByIdAndApplicant_UserId(submissionId, userId))
+        when(submissionRepository.findByIdAndApplicantUserId(submissionId, userId))
                 .thenReturn(Optional.of(submission));
 
         assertThrows(NotFoundException.class,
@@ -434,12 +433,12 @@ class SubmissionServiceTest {
 
     @Test
     void getQuestionByQuestionId_returnsExpectedQuestion() {
-        when(submissionRepository.findByIdAndApplicant_UserId(SUBMISSION_ID, userId)).thenReturn(Optional.of(submission));
+        when(submissionRepository.findByIdAndApplicantUserId(SUBMISSION_ID, userId)).thenReturn(Optional.of(submission));
 
         SubmissionQuestion methodResponse = serviceUnderTest.getQuestionByQuestionId(userId, SUBMISSION_ID,
                 QUESTION_ID);
 
-        verify(submissionRepository).findByIdAndApplicant_UserId(SUBMISSION_ID, userId);
+        verify(submissionRepository).findByIdAndApplicantUserId(SUBMISSION_ID, userId);
         assertEquals(methodResponse, question);
     }
 
