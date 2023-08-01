@@ -1,6 +1,7 @@
 package gov.cabinetoffice.gap.applybackend.validation.annotations;
 
 import gov.cabinetoffice.gap.applybackend.dto.api.CreateQuestionResponseDto;
+import gov.cabinetoffice.gap.applybackend.dto.api.JwtPayload;
 import gov.cabinetoffice.gap.applybackend.exception.NotFoundException;
 import gov.cabinetoffice.gap.applybackend.model.SubmissionQuestion;
 import gov.cabinetoffice.gap.applybackend.model.SubmissionQuestionValidation;
@@ -18,6 +19,9 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContext;
+import org.springframework.security.core.context.SecurityContextHolder;
 
 import javax.validation.ConstraintValidatorContext;
 import java.util.List;
@@ -32,7 +36,12 @@ import static org.mockito.Mockito.*;
 class QuestionResponseValidatorTest {
 
     @Mock
+    private Authentication authentication;
+    @Mock
     private SubmissionService submissionService;
+
+    @Mock
+    private SecurityContext securityContext;
 
     private ConstraintValidatorContext validatorContext;
     private ConstraintValidatorContext.ConstraintViolationBuilder builder;
@@ -42,6 +51,7 @@ class QuestionResponseValidatorTest {
 
     static final String questionId = "1";
     static final UUID submissionId = UUID.fromString("3a6cfe2d-bf58-440d-9e07-3579c7dcf205");
+    private final UUID USER_ID = UUID.randomUUID();
 
     @BeforeEach
     void setup() {
@@ -50,6 +60,11 @@ class QuestionResponseValidatorTest {
         validatorContext = mock(ConstraintValidatorContext.class);
 
         validatorUnderTest = new QuestionResponseValidator(submissionService);
+
+        when(securityContext.getAuthentication()).thenReturn(authentication);
+        SecurityContextHolder.setContext(securityContext);
+        JwtPayload jwtPayload = JwtPayload.builder().sub(String.valueOf(USER_ID)).build();
+        when(SecurityContextHolder.getContext().getAuthentication().getPrincipal()).thenReturn(jwtPayload);
     }
 
     private static Stream<Arguments> provideTestData() {
@@ -159,11 +174,11 @@ class QuestionResponseValidatorTest {
                 .thenReturn(nodeBuilder);
 
         doReturn(question)
-                .when(submissionService).getQuestionByQuestionId(submissionId, questionId);
+                .when(submissionService).getQuestionByQuestionId(USER_ID, submissionId, questionId);
 
         boolean isValid = validatorUnderTest.isValid(response, validatorContext);
 
-        verify(submissionService).getQuestionByQuestionId(submissionId, questionId);
+        verify(submissionService).getQuestionByQuestionId(USER_ID, submissionId, questionId);
         verify(validatorContext).buildConstraintViolationWithTemplate(message);
         assertThat(isValid).isFalse();
 
@@ -207,7 +222,7 @@ class QuestionResponseValidatorTest {
                 .thenReturn(nodeBuilder);
 
         doReturn(question)
-                .when(submissionService).getQuestionByQuestionId(submissionId, questionId);
+                .when(submissionService).getQuestionByQuestionId(USER_ID, submissionId, questionId);
 
         validatorUnderTest.isValid(response, validatorContext);
 
@@ -237,17 +252,16 @@ class QuestionResponseValidatorTest {
                 .build();
 
         doReturn(shortAnswerQuestion)
-                .when(submissionService).getQuestionByQuestionId(submissionId, questionId);
+                .when(submissionService).getQuestionByQuestionId(USER_ID, submissionId, questionId);
 
         boolean isValid = validatorUnderTest.isValid(response, validatorContext);
 
-        verify(submissionService).getQuestionByQuestionId(submissionId, questionId);
+        verify(submissionService).getQuestionByQuestionId(USER_ID, submissionId, questionId);
         assertThat(isValid).isTrue();
     }
 
     @Test
     void throwsIllegalArgumentException_IfQuestionIdIsNull() {
-
         final CreateQuestionResponseDto response = CreateQuestionResponseDto.builder()
                 .submissionId(submissionId)
                 .response("a valid question response")
@@ -276,7 +290,7 @@ class QuestionResponseValidatorTest {
                 .response("a valid question response")
                 .build();
 
-        when(submissionService.getQuestionByQuestionId(submissionId, questionId))
+        when(submissionService.getQuestionByQuestionId(USER_ID, submissionId, questionId))
                 .thenThrow(new NotFoundException(""));
 
         assertThrows(NotFoundException.class, () -> validatorUnderTest.isValid(response, validatorContext));
@@ -307,7 +321,7 @@ class QuestionResponseValidatorTest {
                 .build();
 
         doReturn(question)
-                .when(submissionService).getQuestionByQuestionId(submissionId, questionId);
+                .when(submissionService).getQuestionByQuestionId(USER_ID, submissionId, questionId);
 
         boolean isValid = validatorUnderTest.isValid(response, validatorContext);
 
@@ -358,7 +372,7 @@ class QuestionResponseValidatorTest {
                 .build();
 
         doReturn(question)
-                .when(submissionService).getQuestionByQuestionId(submissionId, questionId);
+                .when(submissionService).getQuestionByQuestionId(USER_ID, submissionId, questionId);
 
         when(validatorContext.buildConstraintViolationWithTemplate(Mockito.anyString()))
                 .thenReturn(builder);
@@ -392,7 +406,7 @@ class QuestionResponseValidatorTest {
                 .build();
 
         doReturn(question)
-                .when(submissionService).getQuestionByQuestionId(submissionId, questionId);
+                .when(submissionService).getQuestionByQuestionId(USER_ID, submissionId, questionId);
 
         boolean isValid = validatorUnderTest.isValid(response, validatorContext);
 
@@ -430,7 +444,7 @@ class QuestionResponseValidatorTest {
                 .build();
 
         doReturn(question)
-                .when(submissionService).getQuestionByQuestionId(submissionId, questionId);
+                .when(submissionService).getQuestionByQuestionId(USER_ID, submissionId, questionId);
 
         assertThrows(IllegalArgumentException.class, () -> validatorUnderTest.isValid(response, validatorContext));
     }
@@ -473,7 +487,7 @@ class QuestionResponseValidatorTest {
                 .build();
 
         doReturn(question)
-                .when(submissionService).getQuestionByQuestionId(submissionId, questionId);
+                .when(submissionService).getQuestionByQuestionId(USER_ID, submissionId, questionId);
 
         when(validatorContext.buildConstraintViolationWithTemplate(Mockito.anyString()))
                 .thenReturn(builder);
