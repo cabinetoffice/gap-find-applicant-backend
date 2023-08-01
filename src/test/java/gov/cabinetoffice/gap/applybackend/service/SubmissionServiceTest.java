@@ -51,9 +51,6 @@ class SubmissionServiceTest {
     private GrantBeneficiaryRepository grantBeneficiaryRepository;
 
     @Mock
-    private UuidProvider uuidProvider;
-
-    @Mock
     private GovNotifyClient notifyClient;
 
 
@@ -129,8 +126,7 @@ class SubmissionServiceTest {
                 .build();
 
         serviceUnderTest = Mockito.spy(new SubmissionService(submissionRepository, diligenceCheckRepository,
-                grantBeneficiaryRepository, notifyClient, clock,
-                uuidProvider, envProperties));
+                grantBeneficiaryRepository, notifyClient, clock, envProperties));
 
         question = SubmissionQuestion.builder()
                 .questionId(QUESTION_ID)
@@ -255,11 +251,11 @@ class SubmissionServiceTest {
 
     @Test
     void getSubmissionsByApplicantId_ReturnsExpectedResult() {
-        when(submissionRepository.findById(SUBMISSION_ID)).thenReturn(Optional.of(submission));
+        when(submissionRepository.findByIdAndApplicant_UserId(SUBMISSION_ID, userId)).thenReturn(Optional.of(submission));
 
-        Submission methodResponse = serviceUnderTest.getSubmissionFromDatabaseBySubmissionId(SUBMISSION_ID);
+        Submission methodResponse = serviceUnderTest.getSubmissionFromDatabaseBySubmissionId(userId, SUBMISSION_ID);
 
-        verify(submissionRepository).findById(SUBMISSION_ID);
+        verify(submissionRepository).findByIdAndApplicant_UserId(SUBMISSION_ID, userId);
         assertEquals(methodResponse, submission);
     }
 
@@ -314,42 +310,42 @@ class SubmissionServiceTest {
 
         submission.setDefinition(definition);
         submission.getApplicant().setOrganisationProfile(null);
-        when(submissionRepository.findById(SUBMISSION_ID)).thenReturn(Optional.of(submission));
+        when(submissionRepository.findByIdAndApplicant_UserId(SUBMISSION_ID, userId)).thenReturn(Optional.of(submission));
 
-        Submission methodResponse = serviceUnderTest.getSubmissionFromDatabaseBySubmissionId(SUBMISSION_ID);
+        Submission methodResponse = serviceUnderTest.getSubmissionFromDatabaseBySubmissionId(userId, SUBMISSION_ID);
 
-        verify(submissionRepository).findById(SUBMISSION_ID);
+        verify(submissionRepository).findByIdAndApplicant_UserId(SUBMISSION_ID, userId);
         assertEquals(methodResponse, submission);
     }
 
     @Test
     void getSubmissionsByApplicantId_SubmissionNotFound() {
-        when(submissionRepository.findById(SUBMISSION_ID)).thenReturn(Optional.empty());
+        when(submissionRepository.findByIdAndApplicant_UserId(SUBMISSION_ID, userId)).thenReturn(Optional.empty());
 
         Exception result = assertThrows(NotFoundException.class,
-                () -> serviceUnderTest.getSubmissionFromDatabaseBySubmissionId(SUBMISSION_ID));
-        verify(submissionRepository).findById(SUBMISSION_ID);
+                () -> serviceUnderTest.getSubmissionFromDatabaseBySubmissionId(userId, SUBMISSION_ID));
+        verify(submissionRepository).findByIdAndApplicant_UserId(SUBMISSION_ID, userId);
         assertTrue(result.getMessage()
                 .contains(String.format("No Submission with ID %s was found", SUBMISSION_ID)));
     }
 
     @Test
     void getSectionBySectionId_ReturnsExpectedResult() {
-        when(submissionRepository.findById(SUBMISSION_ID)).thenReturn(Optional.of(submission));
+        when(submissionRepository.findByIdAndApplicant_UserId(SUBMISSION_ID, userId)).thenReturn(Optional.of(submission));
 
-        SubmissionSection methodResponse = serviceUnderTest.getSectionBySectionId(SUBMISSION_ID, SECTION_ID_1);
+        SubmissionSection methodResponse = serviceUnderTest.getSectionBySectionId(userId, SUBMISSION_ID, SECTION_ID_1);
 
-        verify(submissionRepository).findById(SUBMISSION_ID);
+        verify(submissionRepository).findByIdAndApplicant_UserId(SUBMISSION_ID, userId);
         assertEquals(methodResponse, section);
     }
 
     @Test
     void getSectionBySectionId__SubmissionNotFound() {
-        when(submissionRepository.findById(SUBMISSION_ID)).thenReturn(Optional.empty());
+        when(submissionRepository.findByIdAndApplicant_UserId(SUBMISSION_ID, userId)).thenReturn(Optional.empty());
 
         Exception result = assertThrows(NotFoundException.class,
-                () -> serviceUnderTest.getSectionBySectionId(SUBMISSION_ID, SECTION_ID_1));
-        verify(submissionRepository).findById(SUBMISSION_ID);
+                () -> serviceUnderTest.getSectionBySectionId(userId, SUBMISSION_ID, SECTION_ID_1));
+        verify(submissionRepository).findByIdAndApplicant_UserId(SUBMISSION_ID, userId);
         assertTrue(result.getMessage()
                 .contains(String.format("No Submission with ID %s was found", SUBMISSION_ID)));
     }
@@ -357,11 +353,11 @@ class SubmissionServiceTest {
     @Test
     void getSectionBySectionId__SectionNotFound() {
         final String NO_SECTION_ID = "NONE";
-        when(submissionRepository.findById(SUBMISSION_ID)).thenReturn(Optional.of(submission));
+        when(submissionRepository.findByIdAndApplicant_UserId(SUBMISSION_ID, userId)).thenReturn(Optional.of(submission));
 
         Exception result = assertThrows(NotFoundException.class,
-                () -> serviceUnderTest.getSectionBySectionId(SUBMISSION_ID, NO_SECTION_ID));
-        verify(submissionRepository).findById(SUBMISSION_ID);
+                () -> serviceUnderTest.getSectionBySectionId(userId, SUBMISSION_ID, NO_SECTION_ID));
+        verify(submissionRepository).findByIdAndApplicant_UserId(SUBMISSION_ID, userId);
         assertTrue(result.getMessage()
                 .contains(String.format("No Section with ID %s was found", NO_SECTION_ID)));
     }
@@ -400,7 +396,7 @@ class SubmissionServiceTest {
                 .id(submissionId)
                 .build();
 
-        when(submissionRepository.findById(submissionId))
+        when(submissionRepository.findByIdAndApplicant_UserId(submissionId, userId))
                 .thenReturn(Optional.of(submission));
 
         final GetNavigationParamsDto expected = GetNavigationParamsDto.builder()
@@ -408,7 +404,7 @@ class SubmissionServiceTest {
                 .nextNavigation(expectedNextNavigation)
                 .build();
 
-        GetNavigationParamsDto methodResponse = serviceUnderTest.getNextNavigation(submissionId, sectionId,
+        GetNavigationParamsDto methodResponse = serviceUnderTest.getNextNavigation(userId, submissionId, sectionId,
                 questionId, saveAndExit);
         assertThat(methodResponse).isEqualTo(expected);
     }
@@ -429,21 +425,21 @@ class SubmissionServiceTest {
                 .id(submissionId)
                 .build();
 
-        when(submissionRepository.findById(submissionId))
+        when(submissionRepository.findByIdAndApplicant_UserId(submissionId, userId))
                 .thenReturn(Optional.of(submission));
 
         assertThrows(NotFoundException.class,
-                () -> serviceUnderTest.getNextNavigation(submissionId, sectionId, questionId, false));
+                () -> serviceUnderTest.getNextNavigation(userId, submissionId, sectionId, questionId, false));
     }
 
     @Test
     void getQuestionByQuestionId_returnsExpectedQuestion() {
-        when(submissionRepository.findById(SUBMISSION_ID)).thenReturn(Optional.of(submission));
+        when(submissionRepository.findByIdAndApplicant_UserId(SUBMISSION_ID, userId)).thenReturn(Optional.of(submission));
 
-        SubmissionQuestion methodResponse = serviceUnderTest.getQuestionByQuestionId(SUBMISSION_ID,
+        SubmissionQuestion methodResponse = serviceUnderTest.getQuestionByQuestionId(userId, SUBMISSION_ID,
                 QUESTION_ID);
 
-        verify(submissionRepository).findById(SUBMISSION_ID);
+        verify(submissionRepository).findByIdAndApplicant_UserId(SUBMISSION_ID, userId);
         assertEquals(methodResponse, question);
     }
 
@@ -457,11 +453,11 @@ class SubmissionServiceTest {
                 .build();
 
         doReturn(submission)
-                .when(serviceUnderTest).getSubmissionFromDatabaseBySubmissionId(SUBMISSION_ID);
+                .when(serviceUnderTest).getSubmissionFromDatabaseBySubmissionId(userId, SUBMISSION_ID);
 
         final ArgumentCaptor<Submission> submissionCaptor = ArgumentCaptor.forClass(Submission.class);
 
-        serviceUnderTest.saveQuestionResponse(organisationNameResponse, SUBMISSION_ID, SECTION_ID_1);
+        serviceUnderTest.saveQuestionResponse(organisationNameResponse, userId, SUBMISSION_ID, SECTION_ID_1);
 
         verify(submissionRepository).save(submissionCaptor.capture());
 
@@ -503,12 +499,12 @@ class SubmissionServiceTest {
                 .build();
 
         doReturn(submission)
-                .when(serviceUnderTest).getSubmissionFromDatabaseBySubmissionId(SUBMISSION_ID);
+                .when(serviceUnderTest).getSubmissionFromDatabaseBySubmissionId(userId, SUBMISSION_ID);
 
         final ArgumentCaptor<Submission> submissionCaptor = ArgumentCaptor.forClass(Submission.class);
 
 
-        serviceUnderTest.saveQuestionResponse(questionResponse, SUBMISSION_ID, "ELIGIBILITY");
+        serviceUnderTest.saveQuestionResponse(questionResponse, userId, SUBMISSION_ID, "ELIGIBILITY");
 
 
         verify(submissionRepository).save(submissionCaptor.capture());
@@ -555,11 +551,11 @@ class SubmissionServiceTest {
                 .build();
 
         doReturn(submission)
-                .when(serviceUnderTest).getSubmissionFromDatabaseBySubmissionId(SUBMISSION_ID);
+                .when(serviceUnderTest).getSubmissionFromDatabaseBySubmissionId(userId, SUBMISSION_ID);
 
         final ArgumentCaptor<Submission> submissionCaptor = ArgumentCaptor.forClass(Submission.class);
 
-        serviceUnderTest.saveQuestionResponse(questionResponse, SUBMISSION_ID, "ELIGIBILITY");
+        serviceUnderTest.saveQuestionResponse(questionResponse, userId, SUBMISSION_ID, "ELIGIBILITY");
 
         verify(submissionRepository).save(submissionCaptor.capture());
 
@@ -607,8 +603,8 @@ class SubmissionServiceTest {
                 .build();
 
         doReturn(submission)
-                .when(serviceUnderTest).getSubmissionFromDatabaseBySubmissionId(SUBMISSION_ID);
-        Throwable exception = assertThrows(NotFoundException.class, () -> serviceUnderTest.saveQuestionResponse(organisationNameResponse, SUBMISSION_ID, SECTION_ID_1));
+                .when(serviceUnderTest).getSubmissionFromDatabaseBySubmissionId(userId, SUBMISSION_ID);
+        Throwable exception = assertThrows(NotFoundException.class, () -> serviceUnderTest.saveQuestionResponse(organisationNameResponse, userId, SUBMISSION_ID, SECTION_ID_1));
         assertEquals("No question with ID AN-INVALID-QUESTION-ID was found", exception.getMessage());
     }
 
@@ -622,9 +618,9 @@ class SubmissionServiceTest {
                 .build();
 
         doReturn(submission)
-                .when(serviceUnderTest).getSubmissionFromDatabaseBySubmissionId(SUBMISSION_ID);
+                .when(serviceUnderTest).getSubmissionFromDatabaseBySubmissionId(userId, SUBMISSION_ID);
 
-        Throwable exception = assertThrows(NotFoundException.class, () -> serviceUnderTest.saveQuestionResponse(organisationNameResponse, SUBMISSION_ID, "invalid_section_id"));
+        Throwable exception = assertThrows(NotFoundException.class, () -> serviceUnderTest.saveQuestionResponse(organisationNameResponse, userId, SUBMISSION_ID, "invalid_section_id"));
         assertEquals("No section with ID invalid_section_id was found", exception.getMessage());
     }
 
@@ -635,8 +631,8 @@ class SubmissionServiceTest {
         submission.setApplication(grantApplication);
 
         doReturn(submission)
-                .when(serviceUnderTest).getSubmissionFromDatabaseBySubmissionId(SUBMISSION_ID);
-        Boolean isReadyToBeSubmitted = serviceUnderTest.isSubmissionReadyToBeSubmitted(submission.getId());
+                .when(serviceUnderTest).getSubmissionFromDatabaseBySubmissionId(userId, SUBMISSION_ID);
+        Boolean isReadyToBeSubmitted = serviceUnderTest.isSubmissionReadyToBeSubmitted(userId, submission.getId());
         assertThat(isReadyToBeSubmitted).isFalse();
     }
 
@@ -651,8 +647,8 @@ class SubmissionServiceTest {
         submission.setApplication(grantApplication);
 
         doReturn(submission)
-                .when(serviceUnderTest).getSubmissionFromDatabaseBySubmissionId(SUBMISSION_ID);
-        Boolean isReadyToBeSubmitted = serviceUnderTest.isSubmissionReadyToBeSubmitted(submission.getId());
+                .when(serviceUnderTest).getSubmissionFromDatabaseBySubmissionId(userId, SUBMISSION_ID);
+        Boolean isReadyToBeSubmitted = serviceUnderTest.isSubmissionReadyToBeSubmitted(userId, submission.getId());
         assertThat(isReadyToBeSubmitted).isTrue();
     }
 
@@ -669,8 +665,8 @@ class SubmissionServiceTest {
         submission.setApplication(grantApplication);
 
         doReturn(submission)
-                .when(serviceUnderTest).getSubmissionFromDatabaseBySubmissionId(SUBMISSION_ID);
-        Boolean isReadyToBeSubmitted = serviceUnderTest.isSubmissionReadyToBeSubmitted(submission.getId());
+                .when(serviceUnderTest).getSubmissionFromDatabaseBySubmissionId(userId, SUBMISSION_ID);
+        Boolean isReadyToBeSubmitted = serviceUnderTest.isSubmissionReadyToBeSubmitted(userId, submission.getId());
         assertThat(isReadyToBeSubmitted).isTrue();
     }
 
@@ -684,16 +680,16 @@ class SubmissionServiceTest {
         submission.setApplication(grantApplication);
 
         doReturn(submission)
-                .when(serviceUnderTest).getSubmissionFromDatabaseBySubmissionId(SUBMISSION_ID);
-        Boolean isReadyToBeSubmitted = serviceUnderTest.isSubmissionReadyToBeSubmitted(submission.getId());
+                .when(serviceUnderTest).getSubmissionFromDatabaseBySubmissionId(userId, SUBMISSION_ID);
+        Boolean isReadyToBeSubmitted = serviceUnderTest.isSubmissionReadyToBeSubmitted(userId, submission.getId());
         assertThat(isReadyToBeSubmitted).isFalse();
     }
 
     @Test
     void submit_ThrowsSubmissionNotReadyException_IfSubmissionCannotBeSubmitted() {
         final String emailAddress = "test@email.com";
-        doReturn(false).when(serviceUnderTest).isSubmissionReadyToBeSubmitted(SUBMISSION_ID);
-        assertThrows(SubmissionNotReadyException.class, () -> serviceUnderTest.submit(submission, emailAddress));
+        doReturn(false).when(serviceUnderTest).isSubmissionReadyToBeSubmitted(userId, SUBMISSION_ID);
+        assertThrows(SubmissionNotReadyException.class, () -> serviceUnderTest.submit(submission, userId, emailAddress));
     }
 
     @Test
@@ -704,10 +700,10 @@ class SubmissionServiceTest {
                 .id(SUBMISSION_ID)
                 .build();
 
-        doReturn(true).when(serviceUnderTest).isSubmissionReadyToBeSubmitted(SUBMISSION_ID);
+        doReturn(true).when(serviceUnderTest).isSubmissionReadyToBeSubmitted(userId, SUBMISSION_ID);
 
         assertThrows(SubmissionAlreadySubmittedException.class,
-                () -> serviceUnderTest.submit(alreadySubmittedSubmission, emailAddress));
+                () -> serviceUnderTest.submit(alreadySubmittedSubmission, userId, emailAddress));
     }
 
     @Test
@@ -715,9 +711,9 @@ class SubmissionServiceTest {
         final String emailAddress = "test@email.com";
         final ArgumentCaptor<Submission> submissionCaptor = ArgumentCaptor.forClass(Submission.class);
 
-        doReturn(true).when(serviceUnderTest).isSubmissionReadyToBeSubmitted(SUBMISSION_ID);
+        doReturn(true).when(serviceUnderTest).isSubmissionReadyToBeSubmitted(userId, SUBMISSION_ID);
 
-        serviceUnderTest.submit(submission, emailAddress);
+        serviceUnderTest.submit(submission, userId, emailAddress);
 
         verify(notifyClient).sendConfirmationEmail(emailAddress, submission);
         verify(submissionRepository).save(submissionCaptor.capture());
@@ -739,9 +735,9 @@ class SubmissionServiceTest {
         final ArgumentCaptor<DiligenceCheck> diligenceCheckCaptor = ArgumentCaptor
                 .forClass(DiligenceCheck.class);
 
-        doReturn(true).when(serviceUnderTest).isSubmissionReadyToBeSubmitted(SUBMISSION_ID);
+        doReturn(true).when(serviceUnderTest).isSubmissionReadyToBeSubmitted(userId, SUBMISSION_ID);
 
-        serviceUnderTest.submit(submission, emailAddress);
+        serviceUnderTest.submit(submission, userId, emailAddress);
         verify(diligenceCheckRepository).save(diligenceCheckCaptor.capture());
 
         final DiligenceCheck capturedCheck = diligenceCheckCaptor.getValue();
@@ -769,10 +765,10 @@ class SubmissionServiceTest {
                 .id(SUBMISSION_ID)
                 .build();
 
-        doReturn(true).when(serviceUnderTest).isSubmissionReadyToBeSubmitted(SUBMISSION_ID);
+        doReturn(true).when(serviceUnderTest).isSubmissionReadyToBeSubmitted(userId, SUBMISSION_ID);
 
         assertThrows(IllegalArgumentException.class,
-                () -> serviceUnderTest.submit(submissionWithoutEssentialSection, emailAddress));
+                () -> serviceUnderTest.submit(submissionWithoutEssentialSection, userId, emailAddress));
     }
 
     @ParameterizedTest
@@ -792,10 +788,10 @@ class SubmissionServiceTest {
                 .status(SubmissionStatus.IN_PROGRESS)
                 .build();
 
-        doReturn(true).when(serviceUnderTest).isSubmissionReadyToBeSubmitted(SUBMISSION_ID);
+        doReturn(true).when(serviceUnderTest).isSubmissionReadyToBeSubmitted(userId, SUBMISSION_ID);
 
         assertThrows(IllegalArgumentException.class,
-                () -> serviceUnderTest.submit(submissionWithoutEssentialSection, emailAddress));
+                () -> serviceUnderTest.submit(submissionWithoutEssentialSection, userId, emailAddress));
     }
 
     @Test
@@ -805,9 +801,9 @@ class SubmissionServiceTest {
         final ArgumentCaptor<GrantBeneficiary> grantBeneficiaryCaptor = ArgumentCaptor
                 .forClass(GrantBeneficiary.class);
 
-        doReturn(true).when(serviceUnderTest).isSubmissionReadyToBeSubmitted(SUBMISSION_ID);
+        doReturn(true).when(serviceUnderTest).isSubmissionReadyToBeSubmitted(userId, SUBMISSION_ID);
 
-        serviceUnderTest.submit(submission, emailAddress);
+        serviceUnderTest.submit(submission, userId, emailAddress);
 
         verify(grantBeneficiaryRepository).save(grantBeneficiaryCaptor.capture());
 
@@ -855,7 +851,7 @@ class SubmissionServiceTest {
                 .build();
 
         when(submissionRepository.save(submission)).thenReturn(submission);
-        CreateSubmissionResponseDto response = serviceUnderTest.createSubmissionFromApplication(grantApplicant,
+        CreateSubmissionResponseDto response = serviceUnderTest.createSubmissionFromApplication(userId, grantApplicant,
                 grantApplication);
         CreateSubmissionResponseDto expected = CreateSubmissionResponseDto.builder()
                 .submissionCreated(true)
@@ -885,18 +881,18 @@ class SubmissionServiceTest {
     @Test
     void handleSectionReview_returnSectionStatusInProgress() {
         doReturn(submission)
-                .when(serviceUnderTest).getSubmissionFromDatabaseBySubmissionId(SUBMISSION_ID);
+                .when(serviceUnderTest).getSubmissionFromDatabaseBySubmissionId(userId, SUBMISSION_ID);
         when(submissionRepository.save(submission)).thenReturn(submission);
-        final SubmissionSectionStatus response = serviceUnderTest.handleSectionReview(SUBMISSION_ID, SECTION_ID_1, false);
+        final SubmissionSectionStatus response = serviceUnderTest.handleSectionReview(userId, SUBMISSION_ID, SECTION_ID_1, false);
         assertEquals(SubmissionSectionStatus.IN_PROGRESS, response);
     }
 
     @Test
     void handleSectionReview_returnSectionStatusCompleted() {
         doReturn(submission)
-                .when(serviceUnderTest).getSubmissionFromDatabaseBySubmissionId(SUBMISSION_ID);
+                .when(serviceUnderTest).getSubmissionFromDatabaseBySubmissionId(userId, SUBMISSION_ID);
         when(submissionRepository.save(submission)).thenReturn(submission);
-        final SubmissionSectionStatus response = serviceUnderTest.handleSectionReview(SUBMISSION_ID, SECTION_ID_1, true);
+        final SubmissionSectionStatus response = serviceUnderTest.handleSectionReview(userId, SUBMISSION_ID, SECTION_ID_1, true);
         assertEquals(SubmissionSectionStatus.COMPLETED, response);
     }
 }
