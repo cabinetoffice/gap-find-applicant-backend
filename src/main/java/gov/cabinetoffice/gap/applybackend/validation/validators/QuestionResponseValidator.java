@@ -22,6 +22,8 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Stream;
 
+import static gov.cabinetoffice.gap.applybackend.utils.SecurityContextHelper.getUserIdFromSecurityContext;
+
 
 @RequiredArgsConstructor
 public class QuestionResponseValidator implements ConstraintValidator<ValidQuestionResponse, Object> {
@@ -61,8 +63,7 @@ public class QuestionResponseValidator implements ConstraintValidator<ValidQuest
             throw new IllegalArgumentException("Question ID must not be null.");
         }
 
-        final JwtPayload jwtPayload = (JwtPayload) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
-        final UUID applicantId = UUID.fromString(jwtPayload.getSub());
+        final String applicantId = getUserIdFromSecurityContext();
         return submissionService.getQuestionByQuestionId(applicantId, submittedQuestion.getSubmissionId(), submittedQuestion.getQuestionId());
     }
 

@@ -51,7 +51,7 @@ class QuestionResponseValidatorTest {
 
     static final String questionId = "1";
     static final UUID submissionId = UUID.fromString("3a6cfe2d-bf58-440d-9e07-3579c7dcf205");
-    private final UUID USER_ID = UUID.randomUUID();
+    private final String USER_ID = String.valueOf(UUID.randomUUID());
 
     @BeforeEach
     void setup() {

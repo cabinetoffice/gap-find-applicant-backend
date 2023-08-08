@@ -6,8 +6,8 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import java.util.UUID;
 
 public class SecurityContextHelper {
-    public static UUID getUserIdFromSecurityContext() {
+    public static String getUserIdFromSecurityContext() {
         final JwtPayload jwtPayload = (JwtPayload) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
-        return UUID.fromString(jwtPayload.getSub());
+        return jwtPayload.getSub();
     }
 }

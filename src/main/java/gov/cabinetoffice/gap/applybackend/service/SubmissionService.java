@@ -55,7 +55,7 @@ public class SubmissionService {
     private final Clock clock;
     private final EnvironmentProperties envProperties;
 
-    public Submission getSubmissionFromDatabaseBySubmissionId(final UUID userId, final UUID submissionId) {
+    public Submission getSubmissionFromDatabaseBySubmissionId(final String userId, final UUID submissionId) {
         Submission submission = submissionRepository
                 .findByIdAndApplicantUserId(submissionId, userId)
                 .orElseThrow(() -> new NotFoundException(
@@ -65,7 +65,7 @@ public class SubmissionService {
         return submission;
     }
 
-    public SubmissionSection getSectionBySectionId(final UUID userId, final UUID submissionId, String sectionId) {
+    public SubmissionSection getSectionBySectionId(final String userId, final UUID submissionId, String sectionId) {
         return submissionRepository
                 .findByIdAndApplicantUserId(submissionId, userId)
                 .orElseThrow(() -> new NotFoundException(
@@ -78,7 +78,7 @@ public class SubmissionService {
                         String.format("No Section with ID %s was found", sectionId)));
     }
 
-    public SubmissionQuestion getQuestionByQuestionId(final UUID userId, final UUID submissionId, String questionId) {
+    public SubmissionQuestion getQuestionByQuestionId(final String userId, final UUID submissionId, String questionId) {
         return this.getSubmissionFromDatabaseBySubmissionId(userId, submissionId)
                 .getDefinition()
                 .getSections()
@@ -94,7 +94,7 @@ public class SubmissionService {
         return this.submissionRepository.save(submission);
     }
 
-    public void saveQuestionResponse(final CreateQuestionResponseDto questionResponse, final UUID userId, final UUID submissionId, final String sectionId) {
+    public void saveQuestionResponse(final CreateQuestionResponseDto questionResponse, final String userId, final UUID submissionId, final String sectionId) {
 
         final Submission submission = this.getSubmissionFromDatabaseBySubmissionId(userId, submissionId);
         final SubmissionSection submissionSection = submission.getDefinition()
@@ -139,7 +139,7 @@ public class SubmissionService {
         submissionRepository.save(submission);
     }
 
-    public GetNavigationParamsDto getNextNavigation(final UUID userId, final UUID submissionId, final String sectionId, final String questionId, final boolean saveAndExit) {
+    public GetNavigationParamsDto getNextNavigation(final String userId, final UUID submissionId, final String sectionId, final String questionId, final boolean saveAndExit) {
 
         final SubmissionSection section = this.getSectionBySectionId(userId, submissionId, sectionId);
         final Map<String, Object> nextNavigation = this.buildNextNavigationMap(section, questionId, saveAndExit);
@@ -178,7 +178,7 @@ public class SubmissionService {
         return nextQuestionId;
     }
 
-    public boolean isSubmissionReadyToBeSubmitted(final UUID userId, final UUID submissionId) {
+    public boolean isSubmissionReadyToBeSubmitted(final String userId, final UUID submissionId) {
         final Submission submission = getSubmissionFromDatabaseBySubmissionId(userId, submissionId);
         GrantApplication grantApplication = submission.getApplication();
         if (!grantApplication.getApplicationStatus().equals(GrantApplicantStatus.PUBLISHED)) {
@@ -204,7 +204,7 @@ public class SubmissionService {
     }
 
     @Transactional
-    public void submit(final Submission submission, final UUID userId, final String emailAddress) {
+    public void submit(final Submission submission, final String userId, final String emailAddress) {
 
         if (!isSubmissionReadyToBeSubmitted(userId, submission.getId())) {
             throw new SubmissionNotReadyException(String
@@ -349,7 +349,7 @@ public class SubmissionService {
         return Arrays.asList(locations).contains(locationToFind);
     }
 
-    public boolean hasSubmissionBeenSubmitted(final UUID userId, final UUID submissionId) {
+    public boolean hasSubmissionBeenSubmitted(final String userId, final UUID submissionId) {
         return !this.getSubmissionFromDatabaseBySubmissionId(userId, submissionId)
                 .getStatus().equals(SubmissionStatus.IN_PROGRESS);
     }
@@ -362,7 +362,7 @@ public class SubmissionService {
     }
 
 
-    public CreateSubmissionResponseDto createSubmissionFromApplication(final UUID userId,
+    public CreateSubmissionResponseDto createSubmissionFromApplication(final String userId,
                                                                        final GrantApplicant grantApplicant,
                                                                        final GrantApplication grantApplication) throws JsonProcessingException {
         final GrantScheme grantScheme = grantApplication.getGrantScheme();
@@ -399,7 +399,7 @@ public class SubmissionService {
         return submissionResponseDto;
     }
 
-    private void populateEssentialInformation(final UUID userId, final Submission submission) {
+    private void populateEssentialInformation(final String userId, final Submission submission) {
         GrantApplicantOrganisationProfile grantApplicantOrgProfile = submission.getApplicant().getOrganisationProfile();
 
         if (grantApplicantOrgProfile != null) {
@@ -428,7 +428,7 @@ public class SubmissionService {
         }
     }
 
-    public void deleteQuestionResponse(final UUID userId, final UUID submissionId, final String questionId) {
+    public void deleteQuestionResponse(final String userId, final UUID submissionId, final String questionId) {
         final Submission submission = this.getSubmissionFromDatabaseBySubmissionId(userId, submissionId);
         submission.getDefinition()
                 .getSections()
@@ -468,7 +468,7 @@ public class SubmissionService {
     }
 
 
-    public SubmissionSectionStatus handleSectionReview(final UUID userId,
+    public SubmissionSectionStatus handleSectionReview(final String userId,
                                                        final UUID submissionId,
                                                        final String sectionId,
                                                        final boolean isComplete) {
