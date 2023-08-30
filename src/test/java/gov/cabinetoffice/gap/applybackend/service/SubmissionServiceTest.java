@@ -70,7 +70,7 @@ class SubmissionServiceTest {
     final String companiesHouseNo = "1234";
     final String charityNo = "1234";
     final String[] beneficiaryLocation = new String[]{"South West England", "Midlands", "Scotland"};
-    final UUID userId = UUID.fromString("75ab5fbd-0682-4d3d-a467-01c7a447f07c");
+    final String userId = "75ab5fbd-0682-4d3d-a467-01c7a447f07c";
 
     private SubmissionQuestion question;
     private SubmissionSection section;

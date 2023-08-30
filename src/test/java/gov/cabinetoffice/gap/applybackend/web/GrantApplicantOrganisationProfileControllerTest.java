@@ -27,9 +27,8 @@ import static org.mockito.Mockito.*;
 @ExtendWith(MockitoExtension.class)
 class GrantApplicantOrganisationProfileControllerTest {
 
-    private final long APPLICANT_ID = 1;
     private final long PROFILE_ID = 1;
-    private final UUID APPLICANT_USER_ID = UUID.fromString("75ab5fbd-0682-4d3d-a467-01c7a447f07c");
+    private final String APPLICANT_USER_ID = "75ab5fbd-0682-4d3d-a467-01c7a447f07c";
     @Mock
     private GrantApplicantOrganisationProfileService grantApplicantOrganisationProfileService;
     @Mock
@@ -104,8 +103,7 @@ class GrantApplicantOrganisationProfileControllerTest {
 
         when(securityContext.getAuthentication()).thenReturn(authentication);
         SecurityContextHolder.setContext(securityContext);
-        JwtPayload jwtPayload = JwtPayload.builder().sub(APPLICANT_USER_ID.toString()).build();
-        final UUID applicantId = UUID.fromString(jwtPayload.getSub());
+        JwtPayload jwtPayload = JwtPayload.builder().sub(APPLICANT_USER_ID).build();
         when(SecurityContextHolder.getContext().getAuthentication().getPrincipal()).thenReturn(jwtPayload);
         when(modelMapper.map(createGrantApplicantOrganisationProfileDto, GrantApplicantOrganisationProfile.class))
                 .thenReturn(grantApplicantOrganisationProfile);
@@ -115,7 +113,7 @@ class GrantApplicantOrganisationProfileControllerTest {
         ResponseEntity<String> response = controllerUnderTest
                 .createOrganisation(createGrantApplicantOrganisationProfileDto);
 
-        verify(grantApplicantOrganisationProfileService).createOrganisation(applicantId, grantApplicantOrganisationProfile);
+        verify(grantApplicantOrganisationProfileService).createOrganisation(jwtPayload.getSub(), grantApplicantOrganisationProfile);
         assertEquals(HttpStatus.CREATED, response.getStatusCode());
         assertEquals(response.getBody(), String.format("An organisation with the id %s has been created",
                 grantApplicantOrganisationProfile.getId()));

@@ -29,7 +29,7 @@ class GrantApplicantOrganisationProfileServiceTest {
     @InjectMocks
     private GrantApplicantOrganisationProfileService serviceUnderTest;
 
-    private final UUID APPLICANT_ID = UUID.fromString("75ab5fbd-0682-4d3d-a467-01c7a447f07c");
+    private final String APPLICANT_ID = "75ab5fbd-0682-4d3d-a467-01c7a447f07c";
 
     @Test
     void getOrganisationById_ReturnsCorrectOrganisation() {

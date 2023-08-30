@@ -12,5 +12,6 @@ import lombok.NoArgsConstructor;
 public class GetGrantApplicantDto {
     private long id;
     private String fullName;
+    private String email;
     private GetGrantApplicantOrganisationProfileDto organisation;
 }

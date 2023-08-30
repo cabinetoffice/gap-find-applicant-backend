@@ -162,7 +162,7 @@ class SubmissionControllerTest {
             .postcode("G2 1QQ")
             .county("Renfrewshire")
             .build();
-    private final UUID APPLICANT_USER_ID = UUID.fromString("75ab5fbd-0682-4d3d-a467-01c7a447f07c");
+    private final String APPLICANT_USER_ID ="75ab5fbd-0682-4d3d-a467-01c7a447f07c";
     final GrantApplicant grantApplicant = GrantApplicant.builder()
             .id(APPLICANT_ID)
             .userId(APPLICANT_USER_ID)
@@ -483,8 +483,8 @@ class SubmissionControllerTest {
                 .build();
         when(securityContext.getAuthentication()).thenReturn(authentication);
         SecurityContextHolder.setContext(securityContext);
-        JwtPayload jwtPayload = JwtPayload.builder().sub(APPLICANT_USER_ID.toString()).build();
-        final UUID applicantId = UUID.fromString(jwtPayload.getSub());
+        JwtPayload jwtPayload = JwtPayload.builder().sub(APPLICANT_USER_ID).build();
+        final String applicantId = jwtPayload.getSub();
         final GrantApplicant grantApplicant = GrantApplicant.builder().userId(applicantId).build();
         when(SecurityContextHolder.getContext().getAuthentication().getPrincipal()).thenReturn(jwtPayload);
 

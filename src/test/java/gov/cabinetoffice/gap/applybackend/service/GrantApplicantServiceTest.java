@@ -21,7 +21,7 @@ import static org.mockito.Mockito.when;
 @ExtendWith(MockitoExtension.class)
 class GrantApplicantServiceTest {
 
-    private final UUID APPLICANT_ID = UUID.fromString("75ab5fbd-0682-4d3d-a467-01c7a447f07c");
+    private final String APPLICANT_ID = "75ab5fbd-0682-4d3d-a467-01c7a447f07c";
     @Mock
     private GrantApplicantRepository grantApplicantRepository;
     @InjectMocks
@@ -56,8 +56,7 @@ class GrantApplicantServiceTest {
     void createApplicant() {
         final ArgumentCaptor<GrantApplicant> grantApplicantArgumentCaptor = ArgumentCaptor
                 .forClass(GrantApplicant.class);
-        UUID userId = UUID.randomUUID();
-        GrantApplicant grantApplicant = GrantApplicant.builder().id(1L).userId(userId).build();
+        GrantApplicant grantApplicant = GrantApplicant.builder().id(1L).userId("sdfghsdgs").build();
 
         serviceUnderTest.saveApplicant(grantApplicant);
 

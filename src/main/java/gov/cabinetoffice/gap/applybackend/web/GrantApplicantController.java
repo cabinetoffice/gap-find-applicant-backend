@@ -40,11 +40,11 @@ public class GrantApplicantController {
         final String familyName = jwtPayload.getFamilyName();
         final String givenName = jwtPayload.getGivenName();
         final String fullName = String.format("%s %s", givenName, familyName);
-        UUID applicantId = UUID.fromString(jwtPayload.getSub());
 
-        final GrantApplicant applicant = grantApplicantService.getApplicantById(applicantId);
+        final GrantApplicant applicant = grantApplicantService.getApplicantById(jwtPayload.getSub());
         GetGrantApplicantDto applicantDto = modelMapper.map(applicant, GetGrantApplicantDto.class);
         applicantDto.setFullName(WordUtils.capitalize(fullName));
+        applicantDto.setEmail(jwtPayload.getEmail());
 
         return ResponseEntity.ok(applicantDto);
     }
@@ -53,10 +53,9 @@ public class GrantApplicantController {
     @GetMapping("/does-exist")
     public ResponseEntity<Boolean> doesApplicantExist(){
         JwtPayload jwtPayload = (JwtPayload) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
-        UUID applicantId = UUID.fromString(jwtPayload.getSub());
          GrantApplicant applicant = null;
         try {
-            applicant = grantApplicantService.getApplicantById(applicantId);
+            applicant = grantApplicantService.getApplicantById(jwtPayload.getSub());
         }catch (NotFoundException ignored){
         }
         return ResponseEntity.ok(applicant != null);
@@ -65,9 +64,8 @@ public class GrantApplicantController {
     @PostMapping("/create")
     public ResponseEntity<String> createApplicant(){
         final JwtPayload jwtPayload = (JwtPayload) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
-        final UUID applicantId = UUID.fromString(jwtPayload.getSub());
         final GrantApplicant applicant = GrantApplicant.builder()
-                .userId(applicantId)
+                .userId(jwtPayload.getSub())
                 .build();
 
         grantApplicantService.saveApplicant(applicant);
@@ -75,7 +73,7 @@ public class GrantApplicantController {
         final GrantApplicantOrganisationProfile profile = GrantApplicantOrganisationProfile
                 .builder()
                 .build();
-        grantApplicantOrganisationProfileService.createOrganisation(applicantId, profile);
+        grantApplicantOrganisationProfileService.createOrganisation(jwtPayload.getSub(), profile);
 
         return ResponseEntity.ok("User has been created");
     }

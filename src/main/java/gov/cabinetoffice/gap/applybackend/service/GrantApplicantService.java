@@ -16,16 +16,15 @@ public class GrantApplicantService {
 
     private final GrantApplicantRepository grantApplicantRepository;
 
-    public GrantApplicant getApplicantById(final UUID applicantId) {
+    public GrantApplicant getApplicantById(final String applicantId) {
         return grantApplicantRepository
                 .findByUserId(applicantId)
-                .orElseThrow(() -> new NotFoundException(String.format("No Grant Applicant with ID %s was found", applicantId.toString())));
+                .orElseThrow(() -> new NotFoundException(String.format("No Grant Applicant with ID %s was found", applicantId)));
     }
 
     public GrantApplicant getApplicantFromPrincipal() {
         final JwtPayload jwtPayload = (JwtPayload) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
-        final UUID applicantId = UUID.fromString(jwtPayload.getSub());
-        return this.getApplicantById((applicantId));
+        return this.getApplicantById(jwtPayload.getSub());
     }
 
     public GrantApplicant saveApplicant(GrantApplicant applicant){
