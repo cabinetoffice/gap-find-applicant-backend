@@ -1,5 +1,6 @@
 package gov.cabinetoffice.gap.applybackend.service;
 
+import com.amazonaws.services.s3.model.Grant;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import gov.cabinetoffice.gap.applybackend.client.GovNotifyClient;
 import gov.cabinetoffice.gap.applybackend.config.properties.EnvironmentProperties;
@@ -687,13 +688,21 @@ class SubmissionServiceTest {
     @Test
     void submit_ThrowsSubmissionNotReadyException_IfSubmissionCannotBeSubmitted() {
         final String emailAddress = "test@email.com";
+        final GrantApplicant grantApplicant = GrantApplicant.builder()
+                .userId(userId)
+                .id(1)
+                .build();
         doReturn(false).when(serviceUnderTest).isSubmissionReadyToBeSubmitted(userId, SUBMISSION_ID);
-        assertThrows(SubmissionNotReadyException.class, () -> serviceUnderTest.submit(submission, userId, emailAddress));
+        assertThrows(SubmissionNotReadyException.class, () -> serviceUnderTest.submit(submission, grantApplicant, emailAddress));
     }
 
     @Test
     void submit_ThrowsSubmissionAlreadySubmittedException_IfSubmissionAlreadySubmitted() {
         final String emailAddress = "test@email.com";
+        final GrantApplicant grantApplicant = GrantApplicant.builder()
+                .userId(userId)
+                .id(1)
+                .build();
         final Submission alreadySubmittedSubmission = Submission.builder()
                 .status(SubmissionStatus.SUBMITTED)
                 .id(SUBMISSION_ID)
@@ -702,17 +711,21 @@ class SubmissionServiceTest {
         doReturn(true).when(serviceUnderTest).isSubmissionReadyToBeSubmitted(userId, SUBMISSION_ID);
 
         assertThrows(SubmissionAlreadySubmittedException.class,
-                () -> serviceUnderTest.submit(alreadySubmittedSubmission, userId, emailAddress));
+                () -> serviceUnderTest.submit(alreadySubmittedSubmission, grantApplicant, emailAddress));
     }
 
     @Test
     void submit_SubmitsTheApplicationForm() {
         final String emailAddress = "test@email.com";
         final ArgumentCaptor<Submission> submissionCaptor = ArgumentCaptor.forClass(Submission.class);
+        final GrantApplicant grantApplicant = GrantApplicant.builder()
+                .userId(userId)
+                .id(1)
+                .build();
 
         doReturn(true).when(serviceUnderTest).isSubmissionReadyToBeSubmitted(userId, SUBMISSION_ID);
 
-        serviceUnderTest.submit(submission, userId, emailAddress);
+        serviceUnderTest.submit(submission, grantApplicant, emailAddress);
 
         verify(notifyClient).sendConfirmationEmail(emailAddress, submission);
         verify(submissionRepository).save(submissionCaptor.capture());
@@ -729,14 +742,17 @@ class SubmissionServiceTest {
 
     @Test
     void submit_CreatesDiligenceCheck() {
-
+        final GrantApplicant grantApplicant = GrantApplicant.builder()
+                .userId(userId)
+                .id(1)
+                .build();
         final String emailAddress = "test@email.com";
         final ArgumentCaptor<DiligenceCheck> diligenceCheckCaptor = ArgumentCaptor
                 .forClass(DiligenceCheck.class);
 
         doReturn(true).when(serviceUnderTest).isSubmissionReadyToBeSubmitted(userId, SUBMISSION_ID);
 
-        serviceUnderTest.submit(submission, userId, emailAddress);
+        serviceUnderTest.submit(submission, grantApplicant, emailAddress);
         verify(diligenceCheckRepository).save(diligenceCheckCaptor.capture());
 
         final DiligenceCheck capturedCheck = diligenceCheckCaptor.getValue();
@@ -758,6 +774,10 @@ class SubmissionServiceTest {
         final SubmissionDefinition definitionWithNoEssentialSection = SubmissionDefinition.builder()
                 .sections(Collections.emptyList())
                 .build();
+        final GrantApplicant grantApplicant = GrantApplicant.builder()
+                .userId(userId)
+                .id(1)
+                .build();
         final Submission submissionWithoutEssentialSection = Submission.builder()
                 .definition(definitionWithNoEssentialSection)
                 .status(SubmissionStatus.IN_PROGRESS)
@@ -767,7 +787,7 @@ class SubmissionServiceTest {
         doReturn(true).when(serviceUnderTest).isSubmissionReadyToBeSubmitted(userId, SUBMISSION_ID);
 
         assertThrows(IllegalArgumentException.class,
-                () -> serviceUnderTest.submit(submissionWithoutEssentialSection, userId, emailAddress));
+                () -> serviceUnderTest.submit(submissionWithoutEssentialSection, grantApplicant, emailAddress));
     }
 
     @ParameterizedTest
@@ -777,6 +797,10 @@ class SubmissionServiceTest {
         final SubmissionSection essentialSection = SubmissionSection.builder()
                 .sectionId("ESSENTIAL")
                 .questions(questions)
+                .build();
+        final GrantApplicant grantApplicant = GrantApplicant.builder()
+                .userId(userId)
+                .id(1)
                 .build();
         final SubmissionDefinition definitionWithNoEssentialSection = SubmissionDefinition.builder()
                 .sections(List.of(essentialSection))
@@ -790,7 +814,7 @@ class SubmissionServiceTest {
         doReturn(true).when(serviceUnderTest).isSubmissionReadyToBeSubmitted(userId, SUBMISSION_ID);
 
         assertThrows(IllegalArgumentException.class,
-                () -> serviceUnderTest.submit(submissionWithoutEssentialSection, userId, emailAddress));
+                () -> serviceUnderTest.submit(submissionWithoutEssentialSection, grantApplicant, emailAddress));
     }
 
     @Test
@@ -800,9 +824,14 @@ class SubmissionServiceTest {
         final ArgumentCaptor<GrantBeneficiary> grantBeneficiaryCaptor = ArgumentCaptor
                 .forClass(GrantBeneficiary.class);
 
+        final GrantApplicant grantApplicant = GrantApplicant.builder()
+                .userId(userId)
+                .id(1)
+                .build();
+
         doReturn(true).when(serviceUnderTest).isSubmissionReadyToBeSubmitted(userId, SUBMISSION_ID);
 
-        serviceUnderTest.submit(submission, userId, emailAddress);
+        serviceUnderTest.submit(submission, grantApplicant, emailAddress);
 
         verify(grantBeneficiaryRepository).save(grantBeneficiaryCaptor.capture());
 
