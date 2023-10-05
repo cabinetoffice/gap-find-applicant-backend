@@ -204,9 +204,9 @@ public class SubmissionService {
     }
 
     @Transactional
-    public void submit(final Submission submission, final String userId, final String emailAddress) {
+    public void submit(final Submission submission, final GrantApplicant grantApplicant, final String emailAddress) {
 
-        if (!isSubmissionReadyToBeSubmitted(userId, submission.getId())) {
+        if (!isSubmissionReadyToBeSubmitted(grantApplicant.getUserId(), submission.getId())) {
             throw new SubmissionNotReadyException(String
                     .format("Submission %s is not ready to be submitted.", submission.getId()));
         }
@@ -216,7 +216,7 @@ public class SubmissionService {
                     String.format("Submission %s has already been submitted.", submission.getId()));
         }
 
-        submission.setGapId(generateGapId());
+        submission.setGapId(generateGapId(grantApplicant.getId()));
         submitApplication(submission);
         notifyClient.sendConfirmationEmail(emailAddress, submission);
         createDiligenceCheckFromSubmission(submission);
@@ -291,7 +291,7 @@ public class SubmissionService {
                 .getMultiResponse();
     }
 
-    private String generateGapId() {
+    private String generateGapId(final Long userId) {
         final String env = envProperties.getEnvironmentName();
         final LocalDate currentDate = LocalDate.now();
         final DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyyMMdd");
@@ -307,7 +307,10 @@ public class SubmissionService {
                 "-" +
                 diligenceCheckDate +
                 "-" +
-                diligenceRecordNumber;
+                diligenceRecordNumber +
+                "-" +
+                userId
+                ;
     }
 
     private void createGrantBeneficiary(final Submission submission) {
