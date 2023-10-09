@@ -407,6 +407,7 @@ class SubmissionControllerTest {
     void submitApplication_isSuccessfulAndReturnsExpectedResponse() {
 
         final String emailAddress = "test@email.com";
+        final GrantApplicant grantApplicant = GrantApplicant.builder().userId(APPLICANT_USER_ID).id(1).build();
         final SubmitApplicationDto submitApplication = SubmitApplicationDto.builder()
                 .submissionId(SUBMISSION_ID)
                 .build();
@@ -416,10 +417,12 @@ class SubmissionControllerTest {
         when(submissionService.getSubmissionFromDatabaseBySubmissionId(APPLICANT_USER_ID, SUBMISSION_ID))
                 .thenReturn(submission);
 
+        when(grantApplicantService.getApplicantFromPrincipal()).thenReturn(grantApplicant);
+
         ResponseEntity<String> response = controllerUnderTest.submitApplication(submitApplication);
 
         verify(submissionService).getSubmissionFromDatabaseBySubmissionId(APPLICANT_USER_ID, SUBMISSION_ID);
-        verify(submissionService).submit(submission, APPLICANT_USER_ID, emailAddress);
+        verify(submissionService).submit(submission, grantApplicant, emailAddress);
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(response.getBody()).isEqualTo("Submitted");
@@ -434,6 +437,8 @@ class SubmissionControllerTest {
 
         when(submissionService.getSubmissionFromDatabaseBySubmissionId(APPLICANT_USER_ID, SUBMISSION_ID))
                 .thenThrow(new NotFoundException(""));
+
+        when(grantApplicantService.getApplicantFromPrincipal()).thenReturn(GrantApplicant.builder().userId(APPLICANT_USER_ID).id(1).build());
 
         assertThrows(NotFoundException.class, () -> controllerUnderTest.submitApplication(submitApplication));
         verify(submissionService).getSubmissionFromDatabaseBySubmissionId(APPLICANT_USER_ID, SUBMISSION_ID);

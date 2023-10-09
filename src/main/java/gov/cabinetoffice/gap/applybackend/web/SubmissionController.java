@@ -175,9 +175,9 @@ public class SubmissionController {
     @PostMapping("/submit")
     public ResponseEntity<String> submitApplication(@RequestBody SubmitApplicationDto applicationSubmission) {
         final JwtPayload jwtPayload = (JwtPayload) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
-        final String applicantId = getUserIdFromSecurityContext();
-        final Submission submission = submissionService.getSubmissionFromDatabaseBySubmissionId(applicantId, applicationSubmission.getSubmissionId());
-        submissionService.submit(submission, applicantId, jwtPayload.getEmail());
+        final GrantApplicant grantApplicant = grantApplicantService.getApplicantFromPrincipal();
+        final Submission submission = submissionService.getSubmissionFromDatabaseBySubmissionId(grantApplicant.getUserId(), applicationSubmission.getSubmissionId());
+        submissionService.submit(submission, grantApplicant, jwtPayload.getEmail());
 
         return ResponseEntity.ok("Submitted");
     }
