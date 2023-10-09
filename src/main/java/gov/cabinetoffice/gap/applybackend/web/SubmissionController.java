@@ -13,7 +13,6 @@ import org.apache.commons.io.FilenameUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
@@ -42,7 +41,7 @@ public class SubmissionController {
     private final Logger logger = LoggerFactory.getLogger(SubmissionController.class);
     private final Clock clock;
 
-    private static final String SPECIAL_CHARACTER_REGEX = "[<>\"\\\\/|?*\\\\]";
+    private static final String SPECIAL_CHARACTER_REGEX = "[<>\"\\\\/|?*]";
 
     @GetMapping
     public ResponseEntity<List<GetSubmissionDto>> getSubmissions() {
@@ -235,7 +234,6 @@ public class SubmissionController {
                                                                  @PathVariable final String sectionId,
                                                                  @PathVariable final String questionId,
                                                                  @RequestBody final MultipartFile attachment) {
-        final String cleanedOriginalFilename = attachment.getOriginalFilename().replaceAll(SPECIAL_CHARACTER_REGEX, "_");
         final String applicantId = getUserIdFromSecurityContext();
         final GrantApplicant applicant = grantApplicantService.getApplicantFromPrincipal();
         final Submission submission = submissionService.getSubmissionFromDatabaseBySubmissionId(applicantId, submissionId);
@@ -254,6 +252,7 @@ public class SubmissionController {
             throw new AttachmentException("You can only select up to 1 file at the same time");
         }
 
+        final String cleanedOriginalFilename = attachment.getOriginalFilename().replaceAll(SPECIAL_CHARACTER_REGEX, "_");
         String extension = FilenameUtils.getExtension(attachment.getOriginalFilename()).toLowerCase();
         Arrays.stream(question.getValidation().getAllowedTypes())
                 .filter(item -> Objects.equals(item.toLowerCase(), extension))
