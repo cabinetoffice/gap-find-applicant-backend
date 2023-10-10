@@ -40,7 +40,6 @@ import java.util.stream.Stream;
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 
 @ExtendWith(MockitoExtension.class)
 class SubmissionControllerTest {
@@ -54,7 +53,7 @@ class SubmissionControllerTest {
     final String SECTION_ID_2 = "CUSTOM_SECTION_1";
     final String SECTION_TITLE_1 = "Eligibility";
     final String SECTION_TITLE_2 = "Project Status";
-    final String SPECIAL_CHARACTER_REGEX = "[<>\"\\\\/|?*:]";
+
     final GrantScheme scheme = GrantScheme.builder()
             .id(1)
             .version(1)
@@ -791,7 +790,7 @@ class SubmissionControllerTest {
 
         final MultipartFile file = new MockMultipartFile(
                 "file",
-                "<>/?|/:hello.txt",
+                "<>/?|/:@'*hello.txt",
                 MediaType.TEXT_PLAIN_VALUE,
                 "Hello, World!".getBytes()
         );
@@ -811,7 +810,7 @@ class SubmissionControllerTest {
 
         final ResponseEntity<GetNavigationParamsDto> methodResponse = controllerUnderTest.postAttachment(SUBMISSION_ID, SECTION_ID_2, questionId, file);
 
-        verify(attachmentService).attachmentFile(application.getId() + "/" + SUBMISSION_ID + "/" + questionId + "/" + file.getOriginalFilename().replaceAll(SPECIAL_CHARACTER_REGEX, "_"), file);
+        verify(attachmentService).attachmentFile(application.getId() + "/" + SUBMISSION_ID + "/" + questionId + "/" + "__________hello.txt", file);
         verify(grantAttachmentService).createAttachment(attachmentCaptor.capture());
         verify(submissionService).saveSubmission(submission);
 
