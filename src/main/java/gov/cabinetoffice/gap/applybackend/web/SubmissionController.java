@@ -41,7 +41,7 @@ public class SubmissionController {
     private final Logger logger = LoggerFactory.getLogger(SubmissionController.class);
     private final Clock clock;
 
-    private static final String SPECIAL_CHARACTER_REGEX = "[<>\"\\\\/|?*:]";
+    private static final String SPECIAL_CHARACTER_REGEX = "[^a-zA-Z0-9()_,.-]";
 
     @GetMapping
     public ResponseEntity<List<GetSubmissionDto>> getSubmissions() {
