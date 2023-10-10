@@ -16,11 +16,9 @@ import org.springframework.stereotype.Service;
 @Slf4j
 public class GrantAdvertService {
 
-    @Autowired
-    GrantAdvertRepository grantAdvertRepository;
+    private final GrantAdvertRepository grantAdvertRepository;
 
-    @Autowired
-    GrantApplicationService grantApplicationService;
+    private final GrantApplicationService grantApplicationService;
 
     protected static String getExternalSubmissionUrl(GrantAdvert advert) {
         return advert.getResponse().getSections().stream()

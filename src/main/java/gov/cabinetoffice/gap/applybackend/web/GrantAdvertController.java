@@ -21,8 +21,7 @@ import javax.validation.constraints.NotBlank;
 @RequestMapping("/grant-adverts")
 public class GrantAdvertController {
 
-    @Autowired
-    GrantAdvertService grantAdvertService;
+    private final GrantAdvertService grantAdvertService;
     @GetMapping
     @Operation(summary = "Get the grant advert with the given contentful slug")
     @ApiResponses(value = {
