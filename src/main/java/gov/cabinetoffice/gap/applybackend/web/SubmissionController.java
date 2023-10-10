@@ -13,7 +13,6 @@ import org.apache.commons.io.FilenameUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
@@ -41,6 +40,8 @@ public class SubmissionController {
     private final AttachmentService attachmentService;
     private final Logger logger = LoggerFactory.getLogger(SubmissionController.class);
     private final Clock clock;
+
+    private static final String SPECIAL_CHARACTER_REGEX = "[<>\"\\\\/|?*]";
 
     @GetMapping
     public ResponseEntity<List<GetSubmissionDto>> getSubmissions() {
@@ -251,6 +252,7 @@ public class SubmissionController {
             throw new AttachmentException("You can only select up to 1 file at the same time");
         }
 
+        final String cleanedOriginalFilename = attachment.getOriginalFilename().replaceAll(SPECIAL_CHARACTER_REGEX, "_");
         String extension = FilenameUtils.getExtension(attachment.getOriginalFilename()).toLowerCase();
         Arrays.stream(question.getValidation().getAllowedTypes())
                 .filter(item -> Objects.equals(item.toLowerCase(), extension))
@@ -258,11 +260,11 @@ public class SubmissionController {
                 .orElseThrow(() -> new AttachmentException("The selected file must be a .DOC, .DOCX, .ODT, .PDF, .XLS, XLSX or .ZIP"));
 
 
-        String fileObjKeyName = application.getId() + "/" + submissionId + "/" + questionId + "/" + attachment.getOriginalFilename();
+        String fileObjKeyName = application.getId() + "/" + submissionId + "/" + questionId + "/" + cleanedOriginalFilename;
         String s3Url = attachmentService.attachmentFile(fileObjKeyName, attachment);
 
         GrantAttachment grantAttachment = GrantAttachment.builder()
-                .filename(attachment.getOriginalFilename())
+                .filename(cleanedOriginalFilename)
                 .location(s3Url)
                 .questionId(questionId)
                 .createdBy(applicant)
@@ -274,7 +276,7 @@ public class SubmissionController {
         this.grantAttachmentService.createAttachment(grantAttachment);
 
         question.setAttachmentId(grantAttachment.getId());
-        question.setResponse(attachment.getOriginalFilename());
+        question.setResponse(cleanedOriginalFilename);
         this.submissionService.saveSubmission(submission);
 
         return ResponseEntity.ok(submissionService.getNextNavigation(applicantId, submissionId, sectionId, questionId, false));
