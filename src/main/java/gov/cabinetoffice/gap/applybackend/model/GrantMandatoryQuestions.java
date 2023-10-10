@@ -107,7 +107,7 @@ public class GrantMandatoryQuestions extends BaseEntity {
     private Instant lastUpdated;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "created_by", referencedColumnName = "id")
+    @JoinColumn(name = "last_updated_by", referencedColumnName = "id")
     private GrantApplicant lastUpdatedBy;
 
 
