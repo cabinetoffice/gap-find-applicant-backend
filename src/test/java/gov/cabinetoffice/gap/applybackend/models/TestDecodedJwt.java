@@ -2,7 +2,6 @@ package gov.cabinetoffice.gap.applybackend.models;
 
 import com.auth0.jwt.interfaces.Claim;
 import com.auth0.jwt.interfaces.DecodedJWT;
-import lombok.Setter;
 import lombok.ToString;
 
 import java.util.Date;

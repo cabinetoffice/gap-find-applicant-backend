@@ -4,8 +4,6 @@ import com.auth0.jwt.JWT;
 import com.auth0.jwt.interfaces.DecodedJWT;
 import gov.cabinetoffice.gap.applybackend.config.UserServiceConfig;
 import gov.cabinetoffice.gap.applybackend.dto.api.JwtPayload;
-
-import static java.lang.Boolean.TRUE;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.codec.binary.Base64;
@@ -19,6 +17,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
 import java.util.Calendar;
+
+import static java.lang.Boolean.TRUE;
 
 @Slf4j
 @RequiredArgsConstructor
