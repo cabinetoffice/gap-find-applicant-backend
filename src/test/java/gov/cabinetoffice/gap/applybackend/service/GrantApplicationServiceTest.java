@@ -1,6 +1,7 @@
 package gov.cabinetoffice.gap.applybackend.service;
 
 import gov.cabinetoffice.gap.applybackend.enums.GrantApplicantStatus;
+import gov.cabinetoffice.gap.applybackend.exception.NotFoundException;
 import gov.cabinetoffice.gap.applybackend.model.GrantApplication;
 import gov.cabinetoffice.gap.applybackend.model.GrantScheme;
 import gov.cabinetoffice.gap.applybackend.repository.GrantApplicationRepository;
@@ -13,10 +14,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNull;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -27,6 +25,26 @@ class GrantApplicationServiceTest {
     private GrantApplicationRepository grantApplicationRepository;
     @InjectMocks
     private GrantApplicationService serviceUnderTest;
+
+    @Test
+    void getGrantApplicationByGrantScheme__Success() {
+        final GrantApplication application = GrantApplication.builder()
+                .id(1)
+                .build();
+        when(grantApplicationRepository.getGrantApplicationByGrantSchemeId(1)).thenReturn(Optional.of(application));
+        GrantApplication methodResponse = serviceUnderTest.getGrantApplicationByGrantScheme(1);
+
+        verify(grantApplicationRepository).getGrantApplicationByGrantSchemeId(1);
+        assertEquals(methodResponse, application);
+    }
+
+    void getGrantApplicationByGrantScheme__NotFound() {
+        when(grantApplicationRepository.getGrantApplicationByGrantSchemeId(1)).thenReturn(Optional.empty());
+
+        verify(grantApplicationRepository).getGrantApplicationByGrantSchemeId(1);
+        assertThrows(NotFoundException.class, () -> serviceUnderTest.getGrantApplicationByGrantScheme(1));
+    }
+
 
     @Test
     void getGrantApplicationById__Success() {

@@ -8,6 +8,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import java.util.Optional;
 
 public interface GrantApplicationRepository extends JpaRepository<GrantApplication, Integer> {
+    Optional<GrantApplication> getGrantApplicationByGrantSchemeId(int schemeId);
 
     Optional<GrantApplication> findByGrantScheme(GrantScheme grantScheme);
 }
