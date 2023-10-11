@@ -3,8 +3,6 @@ package gov.cabinetoffice.gap.applybackend.model;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import gov.cabinetoffice.gap.applybackend.enums.SubmissionSectionStatus;
-import gov.cabinetoffice.gap.applybackend.enums.SubmissionStatus;
-import gov.cabinetoffice.gap.applybackend.exception.NotFoundException;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -12,7 +10,6 @@ import lombok.NoArgsConstructor;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 
 @Data
 @NoArgsConstructor

@@ -19,7 +19,6 @@ import javax.validation.ConstraintValidatorContext;
 import java.time.Month;
 import java.time.Year;
 import java.util.Map;
-import java.util.UUID;
 import java.util.stream.Stream;
 
 import static gov.cabinetoffice.gap.applybackend.utils.SecurityContextHelper.getUserIdFromSecurityContext;

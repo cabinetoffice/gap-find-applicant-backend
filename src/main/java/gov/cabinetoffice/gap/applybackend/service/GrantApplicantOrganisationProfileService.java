@@ -7,8 +7,6 @@ import gov.cabinetoffice.gap.applybackend.repository.GrantApplicantOrganisationP
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
-import java.util.UUID;
-
 @RequiredArgsConstructor
 @Service
 public class GrantApplicantOrganisationProfileService {
