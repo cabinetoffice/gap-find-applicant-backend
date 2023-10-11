@@ -18,6 +18,12 @@ public class GrantApplicationService {
                 .orElseThrow(() -> new NotFoundException(String.format("No Application with ID %s was found", applicationId)));
     }
 
+    public GrantApplication getGrantApplicationByGrantScheme(final int schemeId) {
+        return grantApplicationRepository
+                .getGrantApplicationByGrantSchemeId(schemeId)
+                .orElseThrow(() -> new NotFoundException(String.format("No Application with scheme ID %s was found", schemeId)));
+    }
+
     public boolean isGrantApplicationPublished(final int applicationId) {
         return getGrantApplicationById(applicationId).getApplicationStatus().equals(GrantApplicantStatus.PUBLISHED);
     }

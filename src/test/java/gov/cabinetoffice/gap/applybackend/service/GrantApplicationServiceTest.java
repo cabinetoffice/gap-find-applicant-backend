@@ -1,6 +1,7 @@
 package gov.cabinetoffice.gap.applybackend.service;
 
 import gov.cabinetoffice.gap.applybackend.enums.GrantApplicantStatus;
+import gov.cabinetoffice.gap.applybackend.exception.NotFoundException;
 import gov.cabinetoffice.gap.applybackend.model.GrantApplication;
 import gov.cabinetoffice.gap.applybackend.repository.GrantApplicationRepository;
 import org.junit.jupiter.api.Test;
@@ -24,6 +25,26 @@ class GrantApplicationServiceTest {
     private GrantApplicationRepository grantApplicationRepository;
     @InjectMocks
     private GrantApplicationService serviceUnderTest;
+
+    @Test
+    void getGrantApplicationByGrantScheme__Success() {
+        final GrantApplication application = GrantApplication.builder()
+                .id(1)
+                .build();
+        when(grantApplicationRepository.getGrantApplicationByGrantSchemeId(1)).thenReturn(Optional.of(application));
+        GrantApplication methodResponse = serviceUnderTest.getGrantApplicationByGrantScheme(1);
+
+        verify(grantApplicationRepository).getGrantApplicationByGrantSchemeId(1);
+        assertEquals(methodResponse, application);
+    }
+
+    void getGrantApplicationByGrantScheme__NotFound() {
+        when(grantApplicationRepository.getGrantApplicationByGrantSchemeId(1)).thenReturn(Optional.empty());
+
+        verify(grantApplicationRepository).getGrantApplicationByGrantSchemeId(1);
+        assertThrows(NotFoundException.class, () -> serviceUnderTest.getGrantApplicationByGrantScheme(1));
+    }
+
 
     @Test
     void getGrantApplicationById__Success() {
