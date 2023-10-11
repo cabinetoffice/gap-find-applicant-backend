@@ -7,6 +7,7 @@ import gov.cabinetoffice.gap.applybackend.model.GrantMandatoryQuestions;
 import gov.cabinetoffice.gap.applybackend.model.GrantScheme;
 import gov.cabinetoffice.gap.applybackend.repository.GrantMandatoryQuestionRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.util.Optional;
@@ -15,6 +16,7 @@ import static java.util.Optional.ofNullable;
 
 @RequiredArgsConstructor
 @Service
+@Slf4j
 public class GrantMandatoryQuestionService {
     private final GrantMandatoryQuestionRepository grantMandatoryQuestionRepository;
     private final GrantApplicantService grantApplicantService;
@@ -33,13 +35,22 @@ public class GrantMandatoryQuestionService {
     public GrantMandatoryQuestions createMandatoryQuestion(Integer schemeId, String applicantSub){
         final GrantApplicant applicant = grantApplicantService.getApplicantById(applicantSub);
         final GrantScheme scheme = grantSchemeService.getSchemeById(schemeId);
+
+        if(doesMandatoryQuestionAlreadyExist(schemeId, applicantSub)){
+            log.debug("Mandatory question for scheme {}, and applicant {} already exist", schemeId, applicantSub);
+            return grantMandatoryQuestionRepository.findByGrantSchemeIdAndCreatedBy(schemeId, applicantSub).get(0);
+        };
+
         final GrantMandatoryQuestions grantMandatoryQuestions = GrantMandatoryQuestions.builder()
                 .grantScheme(scheme)
                 .createdBy(applicant)
                 .build();
 
-        final GrantMandatoryQuestions savedMandatoryQuestion = grantMandatoryQuestionRepository.save(grantMandatoryQuestions);
-        return savedMandatoryQuestion;
+        return grantMandatoryQuestionRepository.save(grantMandatoryQuestions);
+    }
+
+    private boolean doesMandatoryQuestionAlreadyExist(Integer schemeId, String applicantSub) {
+        return  !grantMandatoryQuestionRepository.findByGrantSchemeIdAndCreatedBy(schemeId, applicantSub).isEmpty();
     }
 
     public GrantMandatoryQuestions updateMandatoryQuestion(GrantMandatoryQuestions grantMandatoryQuestions) {

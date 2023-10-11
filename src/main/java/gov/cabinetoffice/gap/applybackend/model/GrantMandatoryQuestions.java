@@ -38,7 +38,7 @@ import java.util.UUID;
 @AllArgsConstructor
 @Builder
 @Entity
-@Table(name= "grant_mandatory_question")
+@Table(name= "grant_mandatory_questions")
 public class GrantMandatoryQuestions extends BaseEntity {
 
     @Id
@@ -57,10 +57,10 @@ public class GrantMandatoryQuestions extends BaseEntity {
     @Column(name = "name")
     private String name;
 
-    @Column(name = "addressLine1")
+    @Column(name = "address_line1")
     private String addressLine1;
 
-    @Column(name = "addressLine2")
+    @Column(name = "address_line2")
     private String addressLine2;
 
     @Column(name = "city")
@@ -72,22 +72,23 @@ public class GrantMandatoryQuestions extends BaseEntity {
     @Column(name = "postcode")
     private String postcode;
 
-    @Column(name = "orgType")
+    @Column(name = "org_type")
     private String orgType;
 
-    @Column(name = "companiesHouseNumber")
+    @Column(name = "companies_house_number")
     private String companiesHouseNumber;
 
-    @Column(name = "charityCommissionNumber")
+    @Column(name = "charity_commission_number")
     private String charityCommissionNumber;
 
-    @Column(name = "fundingAmount")
+    @Column(name = "funding_amount")
     private String fundingAmount;
 
-    @Column(name = "fundingLocation")
+    @Column(name = "funding_location")
     private String fundingLocation;
 
     @Column(name = "status", nullable = false)
+    @Enumerated(EnumType.STRING)
     @Builder.Default
     private GrantMandatoryQuestionStatus status = GrantMandatoryQuestionStatus.NOT_STARTED;
 
@@ -103,7 +104,7 @@ public class GrantMandatoryQuestions extends BaseEntity {
     @JoinColumn(name = "created_by", referencedColumnName = "id")
     private GrantApplicant createdBy;
 
-    @Column(name = "last_updated", nullable = false)
+    @Column(name = "last_updated")
     private Instant lastUpdated;
 
     @ManyToOne(fetch = FetchType.LAZY)

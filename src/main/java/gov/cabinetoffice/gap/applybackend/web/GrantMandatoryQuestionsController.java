@@ -10,6 +10,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.modelmapper.ModelMapper;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -27,6 +28,7 @@ import javax.validation.Valid;
 @RequiredArgsConstructor
 @RestController
 @RequestMapping("/grant-mandatory-questions")
+@Slf4j
 public class GrantMandatoryQuestionsController {
     private final GrantMandatoryQuestionService grantMandatoryQuestionService;
     private final ModelMapper modelMapper;
@@ -39,6 +41,7 @@ public class GrantMandatoryQuestionsController {
     public ResponseEntity<Integer> createMandatoryQuestion(@RequestParam final Integer schemeId) {
         final JwtPayload jwtPayload = (JwtPayload) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
         final GrantMandatoryQuestions grantMandatoryQuestions = grantMandatoryQuestionService.createMandatoryQuestion(schemeId, jwtPayload.getSub());
+        log.debug("Mandatory question for scheme {}, and applicant {} created", schemeId, jwtPayload.getSub());
         return ResponseEntity.ok(grantMandatoryQuestions.getId());
     }
 
