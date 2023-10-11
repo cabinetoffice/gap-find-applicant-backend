@@ -68,7 +68,7 @@ public class UpdateGrantMandatoryQuestionDto {
     private String orgType;
 
     @NotBlank(message = "You must enter an answer")
-    @Pattern(regexp = "^[0-9]+[.][0-9]{1,2}$",message = "Funding amount must only numbers, and decimal(max 2) will need to be split with a dot")
+    @Pattern(regexp = "^[0-9]+[.][0-9]{1,2}$",message = "Funding amount must only contain numbers, and decimal(max 2) will need to be split with a dot")
     private String fundingAmount;
 
     @NotBlank(message = "You must select an answer")

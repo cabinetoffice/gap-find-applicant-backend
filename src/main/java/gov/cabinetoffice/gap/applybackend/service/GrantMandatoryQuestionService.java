@@ -11,6 +11,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.util.Optional;
+import java.util.UUID;
 
 import static java.util.Optional.ofNullable;
 
@@ -19,11 +20,8 @@ import static java.util.Optional.ofNullable;
 @Slf4j
 public class GrantMandatoryQuestionService {
     private final GrantMandatoryQuestionRepository grantMandatoryQuestionRepository;
-    private final GrantApplicantService grantApplicantService;
-    private final GrantSchemeService grantSchemeService;
 
-
-    public GrantMandatoryQuestions getGrantMandatoryQuestionById(Integer id, String applicantSub) {
+    public GrantMandatoryQuestions getGrantMandatoryQuestionById(UUID id, String applicantSub) {
         final Optional<GrantMandatoryQuestions> grantMandatoryQuestion = ofNullable(grantMandatoryQuestionRepository.findById(id)
                 .orElseThrow(() -> new NotFoundException(String.format("No Mandatory Question with ID %s was found", id))));
         if(!grantMandatoryQuestion.get().getCreatedBy().getUserId().equals(applicantSub)){
@@ -32,13 +30,11 @@ public class GrantMandatoryQuestionService {
         return grantMandatoryQuestion.get();
     }
 
-    public GrantMandatoryQuestions createMandatoryQuestion(Integer schemeId, String applicantSub){
-        final GrantApplicant applicant = grantApplicantService.getApplicantById(applicantSub);
-        final GrantScheme scheme = grantSchemeService.getSchemeById(schemeId);
+    public GrantMandatoryQuestions createMandatoryQuestion(GrantScheme scheme, GrantApplicant applicant){
 
-        if(doesMandatoryQuestionAlreadyExist(schemeId, applicant)){
-            log.debug("Mandatory question for scheme {}, and applicant {} already exist", schemeId, applicantSub);
-            return grantMandatoryQuestionRepository.findByGrantSchemeIdAndCreatedBy(schemeId, applicant).get(0);
+        if(doesMandatoryQuestionAlreadyExist(scheme, applicant)){
+            log.debug("Mandatory question for scheme {}, and applicant {} already exist", scheme.getId(), applicant.getId());
+            return grantMandatoryQuestionRepository.findByGrantSchemeAndCreatedBy(scheme, applicant).get(0);
         };
 
         final GrantMandatoryQuestions grantMandatoryQuestions = GrantMandatoryQuestions.builder()
@@ -49,8 +45,8 @@ public class GrantMandatoryQuestionService {
         return grantMandatoryQuestionRepository.save(grantMandatoryQuestions);
     }
 
-    private boolean doesMandatoryQuestionAlreadyExist(Integer schemeId, GrantApplicant applicant) {
-        return  !grantMandatoryQuestionRepository.findByGrantSchemeIdAndCreatedBy(schemeId, applicant).isEmpty();
+    private boolean doesMandatoryQuestionAlreadyExist(GrantScheme scheme, GrantApplicant applicant) {
+        return  !grantMandatoryQuestionRepository.findByGrantSchemeAndCreatedBy(scheme, applicant).isEmpty();
     }
 
     public GrantMandatoryQuestions updateMandatoryQuestion(GrantMandatoryQuestions grantMandatoryQuestions) {

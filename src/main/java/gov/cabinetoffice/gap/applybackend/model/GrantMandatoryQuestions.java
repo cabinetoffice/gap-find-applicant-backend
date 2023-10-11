@@ -42,9 +42,9 @@ import java.util.UUID;
 public class GrantMandatoryQuestions extends BaseEntity {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @GeneratedValue
     @Column(name = "id")
-    private Integer id;
+    private UUID id;
 
     @ManyToOne
     @JoinColumn(name = "grant_scheme_id")
@@ -57,10 +57,10 @@ public class GrantMandatoryQuestions extends BaseEntity {
     @Column(name = "name")
     private String name;
 
-    @Column(name = "address_line1")
+    @Column(name = "address_line_1")
     private String addressLine1;
 
-    @Column(name = "address_line2")
+    @Column(name = "address_line_2")
     private String addressLine2;
 
     @Column(name = "city")
