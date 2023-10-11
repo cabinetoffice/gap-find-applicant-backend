@@ -36,9 +36,9 @@ public class GrantMandatoryQuestionService {
         final GrantApplicant applicant = grantApplicantService.getApplicantById(applicantSub);
         final GrantScheme scheme = grantSchemeService.getSchemeById(schemeId);
 
-        if(doesMandatoryQuestionAlreadyExist(schemeId, applicantSub)){
+        if(doesMandatoryQuestionAlreadyExist(schemeId, applicant)){
             log.debug("Mandatory question for scheme {}, and applicant {} already exist", schemeId, applicantSub);
-            return grantMandatoryQuestionRepository.findByGrantSchemeIdAndCreatedBy(schemeId, applicantSub).get(0);
+            return grantMandatoryQuestionRepository.findByGrantSchemeIdAndCreatedBy(schemeId, applicant).get(0);
         };
 
         final GrantMandatoryQuestions grantMandatoryQuestions = GrantMandatoryQuestions.builder()
@@ -49,8 +49,8 @@ public class GrantMandatoryQuestionService {
         return grantMandatoryQuestionRepository.save(grantMandatoryQuestions);
     }
 
-    private boolean doesMandatoryQuestionAlreadyExist(Integer schemeId, String applicantSub) {
-        return  !grantMandatoryQuestionRepository.findByGrantSchemeIdAndCreatedBy(schemeId, applicantSub).isEmpty();
+    private boolean doesMandatoryQuestionAlreadyExist(Integer schemeId, GrantApplicant applicant) {
+        return  !grantMandatoryQuestionRepository.findByGrantSchemeIdAndCreatedBy(schemeId, applicant).isEmpty();
     }
 
     public GrantMandatoryQuestions updateMandatoryQuestion(GrantMandatoryQuestions grantMandatoryQuestions) {

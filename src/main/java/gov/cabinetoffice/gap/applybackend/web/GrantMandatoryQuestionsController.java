@@ -41,7 +41,6 @@ public class GrantMandatoryQuestionsController {
     public ResponseEntity<Integer> createMandatoryQuestion(@RequestParam final Integer schemeId) {
         final JwtPayload jwtPayload = (JwtPayload) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
         final GrantMandatoryQuestions grantMandatoryQuestions = grantMandatoryQuestionService.createMandatoryQuestion(schemeId, jwtPayload.getSub());
-        log.debug("Mandatory question for scheme {}, and applicant {} created", schemeId, jwtPayload.getSub());
         return ResponseEntity.ok(grantMandatoryQuestions.getId());
     }
 
