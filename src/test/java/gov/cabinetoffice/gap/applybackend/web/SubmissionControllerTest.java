@@ -88,6 +88,7 @@ class SubmissionControllerTest {
     final String SECTION_ID_2 = "CUSTOM_SECTION_1";
     final String SECTION_TITLE_1 = "Eligibility";
     final String SECTION_TITLE_2 = "Project Status";
+
     final GrantScheme scheme = GrantScheme.builder()
             .id(1)
             .version(1)
@@ -803,6 +804,53 @@ class SubmissionControllerTest {
         verify(attachmentService).deleteAttachment(attachment, applicationId, SUBMISSION_ID, QUESTION_ID_1);
         verify(submissionService).deleteQuestionResponse(APPLICANT_USER_ID, SUBMISSION_ID, QUESTION_ID_1);
         verify(submissionService).handleSectionReview(APPLICANT_USER_ID, SUBMISSION_ID, SECTION_ID_1, Boolean.FALSE);
+    }
+
+    @Test
+    void postAttachment_SavesTheDocumentCleansFilenameAndCreatesADatabaseEntry() {
+
+        final String questionId = UUID.randomUUID().toString();
+
+        final SubmissionQuestionValidation validation = SubmissionQuestionValidation.builder()
+                .mandatory(true)
+                .allowedTypes(new String[] {"txt"})
+                .build();
+
+        final SubmissionQuestion question = SubmissionQuestion.builder()
+                .questionId(questionId)
+                .validation(validation)
+                .build();
+
+        section2.setQuestions(List.of(question));
+
+        final MultipartFile file = new MockMultipartFile(
+                "file",
+                "<>/?|/:@'*hello.txt",
+                MediaType.TEXT_PLAIN_VALUE,
+                "Hello, World!".getBytes()
+        );
+
+        final GetNavigationParamsDto expectedNavigation = GetNavigationParamsDto.builder().build();
+
+        when(grantApplicantService.getApplicantFromPrincipal())
+                .thenReturn(grantApplicant);
+
+        when(submissionService.getSubmissionFromDatabaseBySubmissionId(APPLICANT_USER_ID, SUBMISSION_ID))
+                .thenReturn(submission);
+
+        when(submissionService.getNextNavigation(APPLICANT_USER_ID, SUBMISSION_ID, SECTION_ID_2, questionId, false))
+                .thenReturn(expectedNavigation);
+
+        final ArgumentCaptor<GrantAttachment> attachmentCaptor = ArgumentCaptor.forClass(GrantAttachment.class);
+
+        final ResponseEntity<GetNavigationParamsDto> methodResponse = controllerUnderTest.postAttachment(SUBMISSION_ID, SECTION_ID_2, questionId, file);
+
+        verify(attachmentService).attachmentFile(application.getId() + "/" + SUBMISSION_ID + "/" + questionId + "/" + "__________hello.txt", file);
+        verify(grantAttachmentService).createAttachment(attachmentCaptor.capture());
+        verify(submissionService).saveSubmission(submission);
+
+        assertThat(methodResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(methodResponse.getBody()).isEqualTo(expectedNavigation);
     }
 
     @Test
