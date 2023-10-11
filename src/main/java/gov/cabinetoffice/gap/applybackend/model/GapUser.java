@@ -15,21 +15,21 @@ import javax.persistence.Id;
 import javax.persistence.Table;
 
 @Entity
-@Table(name = "grant_funding_organisation")
+@Table(name = "gap_user")
 @Getter
 @Setter
 @ToString
 @AllArgsConstructor
 @NoArgsConstructor
 @Builder
-public class FundingOrganisation {
+public class GapUser {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "funder_id")
+    @Column(name = "gap_user_id")
     private Integer id;
 
-    @Column(name = "organisation_name", nullable = false)
-    private String name;
+    @Column(name = "user_sub")
+    private String userSub;
 
 }

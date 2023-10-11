@@ -2,6 +2,7 @@ package gov.cabinetoffice.gap.applybackend.service;
 
 import gov.cabinetoffice.gap.applybackend.enums.GrantApplicantStatus;
 import gov.cabinetoffice.gap.applybackend.model.GrantApplication;
+import gov.cabinetoffice.gap.applybackend.model.GrantScheme;
 import gov.cabinetoffice.gap.applybackend.repository.GrantApplicationRepository;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -10,16 +11,18 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.Optional;
-import java.util.UUID;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class GrantApplicationServiceTest {
 
-    private final UUID APPLICANT_ID = UUID.fromString("75ab5fbd-0682-4d3d-a467-01c7a447f07c");
     @Mock
     private GrantApplicationRepository grantApplicationRepository;
     @InjectMocks
@@ -33,7 +36,7 @@ class GrantApplicationServiceTest {
 
         when(grantApplicationRepository.findById(1)).thenReturn(Optional.of(application));
 
-        GrantApplication methodResponse = serviceUnderTest.getGrantApplicationById(1);
+       final GrantApplication methodResponse = serviceUnderTest.getGrantApplicationById(1);
 
         verify(grantApplicationRepository).findById(1);
         assertEquals(methodResponse, application);
@@ -49,7 +52,7 @@ class GrantApplicationServiceTest {
 
         when(grantApplicationRepository.findById(1)).thenReturn(Optional.of(application));
 
-        boolean response = serviceUnderTest.isGrantApplicationPublished(1);
+        final boolean response = serviceUnderTest.isGrantApplicationPublished(1);
 
         verify(grantApplicationRepository).findById(1);
         assertTrue(response);
@@ -64,9 +67,61 @@ class GrantApplicationServiceTest {
 
         when(grantApplicationRepository.findById(1)).thenReturn(Optional.of(application));
 
-        boolean response = serviceUnderTest.isGrantApplicationPublished(1);
+        final boolean response = serviceUnderTest.isGrantApplicationPublished(1);
 
         verify(grantApplicationRepository).findById(1);
         assertFalse(response);
+    }
+
+    @Test
+    void doesSchemeHaveApplication__True() {
+        final GrantScheme scheme = GrantScheme.builder().id(1).build();
+        final GrantApplication application = GrantApplication.builder().grantScheme(scheme)
+                .build();
+
+        when(grantApplicationRepository.findByGrantScheme(scheme)).thenReturn(Optional.of(application));
+
+        final boolean response = serviceUnderTest.doesSchemeHaveApplication(scheme);
+
+        verify(grantApplicationRepository).findByGrantScheme(scheme);
+        assertTrue(response);
+    }
+
+    @Test
+    void doesSchemeHaveApplication__False() {
+        final GrantScheme scheme = GrantScheme.builder().id(1).build();
+
+        when(grantApplicationRepository.findByGrantScheme(scheme)).thenReturn(Optional.empty());
+
+        final boolean response = serviceUnderTest.doesSchemeHaveApplication(scheme);
+
+        verify(grantApplicationRepository).findByGrantScheme(scheme);
+        assertFalse(response);
+    }
+
+    @Test
+    void getGrantApplicationId__returnsId() {
+        final GrantScheme scheme = GrantScheme.builder().id(1).build();
+        final GrantApplication application = GrantApplication.builder().id(1).grantScheme(scheme)
+                .build();
+
+        when(grantApplicationRepository.findByGrantScheme(scheme)).thenReturn(Optional.of(application));
+
+        final Integer response = serviceUnderTest.getGrantApplicationId(scheme);
+
+        verify(grantApplicationRepository).findByGrantScheme(scheme);
+        assertThat(response).isEqualTo(1);
+    }
+
+    @Test
+    void getGrantApplicationId__returnsNull() {
+        final GrantScheme scheme = GrantScheme.builder().id(1).build();
+
+        when(grantApplicationRepository.findByGrantScheme(scheme)).thenReturn(Optional.empty());
+
+        final Integer response = serviceUnderTest.getGrantApplicationId(scheme);
+
+        verify(grantApplicationRepository).findByGrantScheme(scheme);
+        assertNull(response);
     }
 }
