@@ -160,6 +160,15 @@ class GrantAdvertServiceTest {
         assertThat(methodResponse).isEmpty();
     }
 
+    @Test
+    void getAdvertByContentfulSlug_NoAdvertFound() {
+        when(grantAdvertRepository.findByContentfulSlug("slug")).thenReturn(Optional.empty());
+
+        final GetGrandAdvertDto methodResponse = grantAdvertService.getAdvertByContentfulSlug("slug");
+
+        assertThat(methodResponse.isAdvertOnlyInContentful()).isTrue();
+    }
+
     private static GrantAdvertResponse genereteResponseWithHowToApplySection() {
         final GrantAdvertQuestionResponse questionResponse = GrantAdvertQuestionResponse.builder()
                 .id("grantWebpageUrl")

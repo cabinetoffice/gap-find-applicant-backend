@@ -2,13 +2,14 @@ package gov.cabinetoffice.gap.applybackend.service;
 
 
 import gov.cabinetoffice.gap.applybackend.dto.api.GetGrandAdvertDto;
-import gov.cabinetoffice.gap.applybackend.exception.NotFoundException;
 import gov.cabinetoffice.gap.applybackend.model.GrantAdvert;
 import gov.cabinetoffice.gap.applybackend.model.GrantAdvertQuestionResponse;
 import gov.cabinetoffice.gap.applybackend.repository.GrantAdvertRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+
+import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
@@ -31,18 +32,24 @@ public class GrantAdvertService {
 
     public GetGrandAdvertDto getAdvertByContentfulSlug(String contentfulSlug) {
 
-        final GrantAdvert advert = grantAdvertRepository.findByContentfulSlug(contentfulSlug)
-                .orElseThrow(() -> new NotFoundException("Advert with slug " + contentfulSlug + " not found"));
+        final Optional<GrantAdvert> advert = grantAdvertRepository.findByContentfulSlug(contentfulSlug);
+        if(advert.isEmpty()){
+            log.debug("Advert with slug {} not found", contentfulSlug);
+            return GetGrandAdvertDto.builder()
+                    .isAdvertOnlyInContentful(true)
+                    .build();
+        }
         log.debug("Advert with slug {} found", contentfulSlug);
-        final boolean isInternal = grantApplicationService.doesSchemeHaveApplication(advert.getScheme());
-        final Integer grantApplicationId = grantApplicationService.getGrantApplicationId(advert.getScheme());
+        final boolean isInternal = grantApplicationService.doesSchemeHaveApplication(advert.get().getScheme());
+        final Integer grantApplicationId = grantApplicationService.getGrantApplicationId(advert.get().getScheme());
         return GetGrandAdvertDto.builder()
-                .id(advert.getId())
-                .version(advert.getVersion())
-                .externalSubmissionUrl(getExternalSubmissionUrl(advert))
+                .id(advert.get().getId())
+                .version(advert.get().getVersion())
+                .externalSubmissionUrl(getExternalSubmissionUrl(advert.get()))
                 .isInternal(isInternal)
                 .grantApplicationId(grantApplicationId)
-                .grantSchemeId(advert.getScheme().getId())
+                .grantSchemeId(advert.get().getScheme().getId())
+                .isAdvertOnlyInContentful(false)
                 .build();
     }
 
