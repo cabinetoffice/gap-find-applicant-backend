@@ -18,14 +18,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.modelmapper.ModelMapper;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PatchMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import javax.validation.Valid;
 import java.util.UUID;
@@ -50,6 +43,7 @@ public class GrantMandatoryQuestionsController {
         final JwtPayload jwtPayload = (JwtPayload) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
         final GrantApplicant applicant = grantApplicantService.getApplicantById(jwtPayload.getSub());
         final GrantScheme scheme = grantSchemeService.getSchemeById(schemeId);
+
         final GrantMandatoryQuestions grantMandatoryQuestions = grantMandatoryQuestionService.createMandatoryQuestion(scheme, applicant);
 
         return ResponseEntity.ok(grantMandatoryQuestions.getId());
@@ -64,9 +58,7 @@ public class GrantMandatoryQuestionsController {
     public ResponseEntity<GetGrantMandatoryQuestionDto> getGrantMandatoryQuestionsById(@PathVariable final UUID mandatoryQuestionId) {
         final JwtPayload jwtPayload = (JwtPayload) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
         final GrantMandatoryQuestions grantMandatoryQuestions = grantMandatoryQuestionService.getGrantMandatoryQuestionById(mandatoryQuestionId, jwtPayload.getSub());
-        final GetGrantMandatoryQuestionDto getGrantMandatoryQuestionDto = GetGrantMandatoryQuestionDto.builder().build();
-
-        modelMapper.map(grantMandatoryQuestions, getGrantMandatoryQuestionDto);
+        final GetGrantMandatoryQuestionDto getGrantMandatoryQuestionDto = modelMapper.map(grantMandatoryQuestions, GetGrantMandatoryQuestionDto.class);
 
         return ResponseEntity.ok(getGrantMandatoryQuestionDto);
     }
@@ -80,10 +72,13 @@ public class GrantMandatoryQuestionsController {
     public ResponseEntity<String> updateMandatoryQuestion(@PathVariable final UUID mandatoryQuestionId,
                                                      @RequestBody @Valid final UpdateGrantMandatoryQuestionDto mandatoryQuestionDto) {
         final JwtPayload jwtPayload = (JwtPayload) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
-        GrantMandatoryQuestions grantMandatoryQuestions = grantMandatoryQuestionService.getGrantMandatoryQuestionById(mandatoryQuestionId, jwtPayload.getSub());
+        final GrantMandatoryQuestions grantMandatoryQuestions = grantMandatoryQuestionService.getGrantMandatoryQuestionById(mandatoryQuestionId, jwtPayload.getSub());
+
         modelMapper.map(mandatoryQuestionDto, grantMandatoryQuestions);
         grantMandatoryQuestions.setId(mandatoryQuestionId);
+
         grantMandatoryQuestionService.updateMandatoryQuestion(grantMandatoryQuestions);
+
         return ResponseEntity.ok(String.format("Mandatory question with ID %s has been updated.", mandatoryQuestionId));
     }
 }
