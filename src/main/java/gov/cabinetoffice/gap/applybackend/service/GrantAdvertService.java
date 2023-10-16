@@ -40,7 +40,9 @@ public class GrantAdvertService {
 
         final GrantAdvert advert = grantAdvertRepository.findByContentfulSlug(contentfulSlug)
                 .orElseThrow(() -> new NotFoundException("Advert with slug " + contentfulSlug + " not found"));
+
         log.debug("Advert with slug {} found", contentfulSlug);
+
         final boolean isInternal = grantApplicationService.doesSchemeHaveApplication(advert.getScheme());
         final Integer grantApplicationId = grantApplicationService.getGrantApplicationId(advert.getScheme());
         return GetGrandAdvertDto.builder()
