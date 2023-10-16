@@ -46,6 +46,7 @@ class GrantAdvertControllerTest {
         assertThat(methodResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
 
         final GetContentfulAdvertExistsDto responseBody = methodResponse.getBody();
+
         assertThat(responseBody.isAdvertInContentful()).isTrue();
     }
 }
