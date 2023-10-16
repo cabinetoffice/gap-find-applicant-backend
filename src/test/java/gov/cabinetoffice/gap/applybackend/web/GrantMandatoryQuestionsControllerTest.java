@@ -3,6 +3,7 @@ package gov.cabinetoffice.gap.applybackend.web;
 import gov.cabinetoffice.gap.applybackend.dto.api.GetGrantMandatoryQuestionDto;
 import gov.cabinetoffice.gap.applybackend.dto.api.JwtPayload;
 import gov.cabinetoffice.gap.applybackend.dto.api.UpdateGrantMandatoryQuestionDto;
+import gov.cabinetoffice.gap.applybackend.enums.GrantMandatoryQuestionOrgType;
 import gov.cabinetoffice.gap.applybackend.model.GrantApplicant;
 import gov.cabinetoffice.gap.applybackend.model.GrantMandatoryQuestions;
 import gov.cabinetoffice.gap.applybackend.model.GrantScheme;
@@ -25,6 +26,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
 
+import java.math.BigDecimal;
 import java.util.UUID;
 
 
@@ -99,24 +101,24 @@ class GrantMandatoryQuestionsControllerTest {
                 .createdBy(applicant)
                 .grantScheme(scheme)
                 .name("AND Digital")
-                .fundingAmount("50000")
+                .fundingAmount(new BigDecimal("50000.00"))
                 .addressLine1("215 Bothwell Street")
                 .city("Glasgow")
                 .postcode("G2 7EZ")
                 .fundingLocation("Scotland")
                 .companiesHouseNumber("08761455")
-                .orgType("Private Company")
+                .orgType(GrantMandatoryQuestionOrgType.LIMITED_COMPANY)
                 .build();
 
         final GetGrantMandatoryQuestionDto mandatoryQuestionsDto = GetGrantMandatoryQuestionDto.builder()
                 .name("AND Digital")
-                .fundingAmount("50000")
+                .fundingAmount("50000.00")
                 .addressLine1("215 Bothwell Street")
                 .city("Glasgow")
                 .postcode("G2 7EZ")
                 .fundingLocation("Scotland")
                 .companiesHouseNumber("08761455")
-                .orgType("Private Company")
+                .orgType("Limited company")
                 .schemeId(scheme.getId())
                 .build();
 
@@ -147,13 +149,13 @@ class GrantMandatoryQuestionsControllerTest {
                 .createdBy(applicant)
                 .grantScheme(scheme)
                 .name("AND Digital")
-                .fundingAmount("50000")
+                .fundingAmount(new BigDecimal("50000.00"))
                 .addressLine1("215 Bothwell Street")
                 .city("Glasgow")
                 .postcode("G2 7EZ")
                 .fundingLocation("Scotland")
                 .companiesHouseNumber("08761455")
-                .orgType("Private Company")
+                .orgType(GrantMandatoryQuestionOrgType.LIMITED_COMPANY)
                 .build();
 
         when(grantMandatoryQuestionService.getGrantMandatoryQuestionById(mandatoryQuestionsId, jwtPayload.getSub()))
