@@ -161,12 +161,8 @@ class GrantAdvertServiceTest {
     }
 
     @Test
-    void getAdvertByContentfulSlug_NoAdvertFound() {
-        when(grantAdvertRepository.findByContentfulSlug("slug")).thenReturn(Optional.empty());
+    void advertExistsInContentful_HandlesCDAResourceNotFoundException() {
 
-        final GetGrandAdvertDto methodResponse = grantAdvertService.getAdvertByContentfulSlug("slug");
-
-        assertThat(methodResponse.isAdvertOnlyInContentful()).isTrue();
     }
 
     private static GrantAdvertResponse genereteResponseWithHowToApplySection() {

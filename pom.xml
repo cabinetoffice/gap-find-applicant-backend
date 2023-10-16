@@ -140,6 +140,11 @@
 			<artifactId>notifications-java-client</artifactId>
 			<version>3.17.3-RELEASE</version>
 		</dependency>
+		<dependency>
+			<groupId>com.contentful.java</groupId>
+			<artifactId>java-sdk</artifactId>
+			<version>10.5.16</version>
+		</dependency>
     </dependencies>
 
 	<build>
