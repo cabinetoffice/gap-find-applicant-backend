@@ -1,5 +1,6 @@
 package gov.cabinetoffice.gap.applybackend.service;
 
+import com.contentful.java.cda.*;
 import gov.cabinetoffice.gap.applybackend.dto.api.GetGrandAdvertDto;
 import gov.cabinetoffice.gap.applybackend.model.GrantAdvert;
 import gov.cabinetoffice.gap.applybackend.model.GrantAdvertPageResponse;
@@ -8,30 +9,46 @@ import gov.cabinetoffice.gap.applybackend.model.GrantAdvertResponse;
 import gov.cabinetoffice.gap.applybackend.model.GrantAdvertSectionResponse;
 import gov.cabinetoffice.gap.applybackend.model.GrantScheme;
 import gov.cabinetoffice.gap.applybackend.repository.GrantAdvertRepository;
+import net.bytebuddy.pool.TypePool;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.junit.Assert.assertThrows;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import java.util.List;
-import java.util.Optional;
-import java.util.UUID;
+import java.util.*;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.when;
+import org.mockito.stubbing.Answer;
 
 @ExtendWith(MockitoExtension.class)
 class GrantAdvertServiceTest {
 
     @Mock
-    GrantAdvertRepository grantAdvertRepository;
+    private GrantAdvertRepository grantAdvertRepository;
     @Mock
-    GrantApplicationService grantApplicationService;
+    private GrantApplicationService grantApplicationService;
+
+    @Mock
+    private CDAClient contentfulDeliveryClient;
 
     @InjectMocks
-    GrantAdvertService grantAdvertService;
+    private GrantAdvertService grantAdvertService;
+
     private final UUID ADVERT_ID = UUID.fromString("75ab5fbd-0682-4d3d-a467-01c7a447f07c");
+
+    @Mock
+    private CDAArray contentfulResults;
+
+    @Mock
+    private AbsQuery query;
+
+    @Mock
+    private FetchQuery fetchQuery;
+
 
     @Test
     void getAdvertByContentfulSlug_createDtoForInternalApplicationAndVersion1() {
@@ -158,6 +175,57 @@ class GrantAdvertServiceTest {
         final String methodResponse = GrantAdvertService.getExternalSubmissionUrl(advert);
 
         assertThat(methodResponse).isEmpty();
+    }
+
+    @Test
+    void advertExistsInContentful_HandlesCDAResourceNotFoundException() {
+        final String advertSlug = "chargepoint-grant-for-homeowners-1";
+
+        when(contentfulDeliveryClient.fetch(CDAEntry.class))
+                .thenThrow(CDAResourceNotFoundException.class);
+
+        final boolean methodResponse = grantAdvertService.advertExistsInContentful(advertSlug);
+
+        assertThat(methodResponse).isFalse();
+    }
+
+    @Test
+    void advertExistsInContentful_ThrowsAnyOtherKindOfException() {
+        final String advertSlug = "chargepoint-grant-for-homeowners-1";
+
+        when(contentfulDeliveryClient.fetch(CDAEntry.class))
+                .thenThrow(IllegalArgumentException.class);
+
+        assertThrows(IllegalArgumentException.class, () -> grantAdvertService.advertExistsInContentful(advertSlug));
+    }
+
+    @Test
+    void advertExistsInContentful_ReturnsTrue_IfResultsFoundInContentful() {
+        final String advertSlug = "chargepoint-grant-for-homeowners-1";
+
+        final CDAEntry entry = new CDAEntry();
+
+        final Map<String, CDAEntry> entries = new HashMap<>();
+        entries.put("entry", entry);
+
+        when(contentfulDeliveryClient.fetch(CDAEntry.class))
+                .thenReturn(fetchQuery);
+
+        when(fetchQuery.withContentType("grantDetails"))
+                .thenReturn(fetchQuery);
+
+        when(fetchQuery.where("fields.label", advertSlug))
+                .thenReturn(fetchQuery);
+
+        when(fetchQuery.all())
+                .thenReturn(contentfulResults);
+
+        when(contentfulResults.entries())
+                .thenReturn(entries);
+
+        final boolean methodResponse = grantAdvertService.advertExistsInContentful(advertSlug);
+
+        assertThat(methodResponse).isTrue();
     }
 
     private static GrantAdvertResponse genereteResponseWithHowToApplySection() {
