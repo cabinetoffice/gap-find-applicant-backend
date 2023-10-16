@@ -2,7 +2,9 @@ package gov.cabinetoffice.gap.applybackend.web;
 
 import gov.cabinetoffice.gap.applybackend.dto.GetContentfulAdvertExistsDto;
 import gov.cabinetoffice.gap.applybackend.dto.api.GetGrandAdvertDto;
+import gov.cabinetoffice.gap.applybackend.exception.NotFoundException;
 import gov.cabinetoffice.gap.applybackend.service.GrantAdvertService;
+import static org.junit.Assert.assertThrows;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -31,6 +33,31 @@ class GrantAdvertControllerTest {
         final GetGrandAdvertDto result = grantAdvertController.generateGetGrantAdvertDtoFromAdvertSlug("slug").getBody();
 
         assertThat(result).isEqualTo(getGrandAdvertDto);
+    }
+
+    @Test
+    void generateGetGrantAdvertDtoFromAdvertSlug_HandlesNotFoundException() {
+        final String contentfulSlug = "chargepoint-grant-for-homeowners-1";
+        final GetGrandAdvertDto getGrandAdvertDto = GetGrandAdvertDto.builder()
+                .isAdvertInDatabase(false)
+                .build();
+
+        when(grantAdvertService.getAdvertByContentfulSlug(contentfulSlug))
+                .thenThrow(NotFoundException.class);
+
+        final GetGrandAdvertDto result = grantAdvertController.generateGetGrantAdvertDtoFromAdvertSlug(contentfulSlug).getBody();
+
+        assertThat(result).isEqualTo(getGrandAdvertDto);
+    }
+
+    @Test
+    void generateGetGrantAdvertDtoFromAdvertSlug_ThrowsAnyOtherKindOfException() {
+        final String contentfulSlug = "chargepoint-grant-for-homeowners-1";
+
+        when(grantAdvertService.getAdvertByContentfulSlug(contentfulSlug))
+                .thenThrow(IllegalArgumentException.class);
+
+        assertThrows(IllegalArgumentException.class, () -> grantAdvertController.generateGetGrantAdvertDtoFromAdvertSlug(contentfulSlug));
     }
 
     @Test

@@ -13,14 +13,20 @@ import java.util.UUID;
 @Builder
 @Data
 public class GetGrandAdvertDto {
+
     private UUID id;
+
     private String externalSubmissionUrl;
+
     private int version;
-    //need jsonProperty because Jackson removes the 'is' from 'isInternal'
+
     @JsonProperty("isInternal")
     private boolean isInternal;
+
     private Integer grantApplicationId;
+
     private Integer grantSchemeId;
-    @JsonProperty("isAdvertOnlyInContentful")
-    private boolean isAdvertOnlyInContentful;
+
+    @JsonProperty("isAdvertInDatabase")
+    private boolean isAdvertInDatabase;
 }

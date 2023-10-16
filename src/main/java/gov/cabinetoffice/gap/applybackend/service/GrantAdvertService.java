@@ -52,6 +52,7 @@ public class GrantAdvertService {
                 .isInternal(isInternal)
                 .grantApplicationId(grantApplicationId)
                 .grantSchemeId(advert.getScheme().getId())
+                .isAdvertInDatabase(true)
                 .build();
     }
 
