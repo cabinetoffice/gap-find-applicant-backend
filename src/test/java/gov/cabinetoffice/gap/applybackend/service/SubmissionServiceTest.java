@@ -13,12 +13,20 @@ import gov.cabinetoffice.gap.applybackend.enums.SubmissionStatus;
 import gov.cabinetoffice.gap.applybackend.exception.NotFoundException;
 import gov.cabinetoffice.gap.applybackend.exception.SubmissionAlreadySubmittedException;
 import gov.cabinetoffice.gap.applybackend.exception.SubmissionNotReadyException;
-import gov.cabinetoffice.gap.applybackend.model.*;
+import gov.cabinetoffice.gap.applybackend.model.ApplicationDefinition;
+import gov.cabinetoffice.gap.applybackend.model.DiligenceCheck;
+import gov.cabinetoffice.gap.applybackend.model.GrantApplicant;
+import gov.cabinetoffice.gap.applybackend.model.GrantApplication;
+import gov.cabinetoffice.gap.applybackend.model.GrantBeneficiary;
+import gov.cabinetoffice.gap.applybackend.model.GrantScheme;
+import gov.cabinetoffice.gap.applybackend.model.Submission;
+import gov.cabinetoffice.gap.applybackend.model.SubmissionDefinition;
+import gov.cabinetoffice.gap.applybackend.model.SubmissionQuestion;
+import gov.cabinetoffice.gap.applybackend.model.SubmissionQuestionValidation;
+import gov.cabinetoffice.gap.applybackend.model.SubmissionSection;
 import gov.cabinetoffice.gap.applybackend.repository.DiligenceCheckRepository;
 import gov.cabinetoffice.gap.applybackend.repository.GrantBeneficiaryRepository;
 import gov.cabinetoffice.gap.applybackend.repository.SubmissionRepository;
-import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
-import static org.junit.jupiter.api.Assertions.*;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -28,12 +36,30 @@ import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.Mockito;
-import static org.mockito.Mockito.*;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import java.time.*;
-import java.util.*;
+import java.time.Clock;
+import java.time.Instant;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.UUID;
 import java.util.stream.Stream;
+
+import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
+import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class SubmissionServiceTest {
@@ -687,13 +713,21 @@ class SubmissionServiceTest {
     @Test
     void submit_ThrowsSubmissionNotReadyException_IfSubmissionCannotBeSubmitted() {
         final String emailAddress = "test@email.com";
+        final GrantApplicant grantApplicant = GrantApplicant.builder()
+                .userId(userId)
+                .id(1)
+                .build();
         doReturn(false).when(serviceUnderTest).isSubmissionReadyToBeSubmitted(userId, SUBMISSION_ID);
-        assertThrows(SubmissionNotReadyException.class, () -> serviceUnderTest.submit(submission, userId, emailAddress));
+        assertThrows(SubmissionNotReadyException.class, () -> serviceUnderTest.submit(submission, grantApplicant, emailAddress));
     }
 
     @Test
     void submit_ThrowsSubmissionAlreadySubmittedException_IfSubmissionAlreadySubmitted() {
         final String emailAddress = "test@email.com";
+        final GrantApplicant grantApplicant = GrantApplicant.builder()
+                .userId(userId)
+                .id(1)
+                .build();
         final Submission alreadySubmittedSubmission = Submission.builder()
                 .status(SubmissionStatus.SUBMITTED)
                 .id(SUBMISSION_ID)
@@ -702,17 +736,21 @@ class SubmissionServiceTest {
         doReturn(true).when(serviceUnderTest).isSubmissionReadyToBeSubmitted(userId, SUBMISSION_ID);
 
         assertThrows(SubmissionAlreadySubmittedException.class,
-                () -> serviceUnderTest.submit(alreadySubmittedSubmission, userId, emailAddress));
+                () -> serviceUnderTest.submit(alreadySubmittedSubmission, grantApplicant, emailAddress));
     }
 
     @Test
     void submit_SubmitsTheApplicationForm() {
         final String emailAddress = "test@email.com";
         final ArgumentCaptor<Submission> submissionCaptor = ArgumentCaptor.forClass(Submission.class);
+        final GrantApplicant grantApplicant = GrantApplicant.builder()
+                .userId(userId)
+                .id(1)
+                .build();
 
         doReturn(true).when(serviceUnderTest).isSubmissionReadyToBeSubmitted(userId, SUBMISSION_ID);
 
-        serviceUnderTest.submit(submission, userId, emailAddress);
+        serviceUnderTest.submit(submission, grantApplicant, emailAddress);
 
         verify(notifyClient).sendConfirmationEmail(emailAddress, submission);
         verify(submissionRepository).save(submissionCaptor.capture());
@@ -729,14 +767,17 @@ class SubmissionServiceTest {
 
     @Test
     void submit_CreatesDiligenceCheck() {
-
+        final GrantApplicant grantApplicant = GrantApplicant.builder()
+                .userId(userId)
+                .id(1)
+                .build();
         final String emailAddress = "test@email.com";
         final ArgumentCaptor<DiligenceCheck> diligenceCheckCaptor = ArgumentCaptor
                 .forClass(DiligenceCheck.class);
 
         doReturn(true).when(serviceUnderTest).isSubmissionReadyToBeSubmitted(userId, SUBMISSION_ID);
 
-        serviceUnderTest.submit(submission, userId, emailAddress);
+        serviceUnderTest.submit(submission, grantApplicant, emailAddress);
         verify(diligenceCheckRepository).save(diligenceCheckCaptor.capture());
 
         final DiligenceCheck capturedCheck = diligenceCheckCaptor.getValue();
@@ -758,6 +799,10 @@ class SubmissionServiceTest {
         final SubmissionDefinition definitionWithNoEssentialSection = SubmissionDefinition.builder()
                 .sections(Collections.emptyList())
                 .build();
+        final GrantApplicant grantApplicant = GrantApplicant.builder()
+                .userId(userId)
+                .id(1)
+                .build();
         final Submission submissionWithoutEssentialSection = Submission.builder()
                 .definition(definitionWithNoEssentialSection)
                 .status(SubmissionStatus.IN_PROGRESS)
@@ -767,7 +812,7 @@ class SubmissionServiceTest {
         doReturn(true).when(serviceUnderTest).isSubmissionReadyToBeSubmitted(userId, SUBMISSION_ID);
 
         assertThrows(IllegalArgumentException.class,
-                () -> serviceUnderTest.submit(submissionWithoutEssentialSection, userId, emailAddress));
+                () -> serviceUnderTest.submit(submissionWithoutEssentialSection, grantApplicant, emailAddress));
     }
 
     @ParameterizedTest
@@ -777,6 +822,10 @@ class SubmissionServiceTest {
         final SubmissionSection essentialSection = SubmissionSection.builder()
                 .sectionId("ESSENTIAL")
                 .questions(questions)
+                .build();
+        final GrantApplicant grantApplicant = GrantApplicant.builder()
+                .userId(userId)
+                .id(1)
                 .build();
         final SubmissionDefinition definitionWithNoEssentialSection = SubmissionDefinition.builder()
                 .sections(List.of(essentialSection))
@@ -790,7 +839,7 @@ class SubmissionServiceTest {
         doReturn(true).when(serviceUnderTest).isSubmissionReadyToBeSubmitted(userId, SUBMISSION_ID);
 
         assertThrows(IllegalArgumentException.class,
-                () -> serviceUnderTest.submit(submissionWithoutEssentialSection, userId, emailAddress));
+                () -> serviceUnderTest.submit(submissionWithoutEssentialSection, grantApplicant, emailAddress));
     }
 
     @Test
@@ -800,9 +849,14 @@ class SubmissionServiceTest {
         final ArgumentCaptor<GrantBeneficiary> grantBeneficiaryCaptor = ArgumentCaptor
                 .forClass(GrantBeneficiary.class);
 
+        final GrantApplicant grantApplicant = GrantApplicant.builder()
+                .userId(userId)
+                .id(1)
+                .build();
+
         doReturn(true).when(serviceUnderTest).isSubmissionReadyToBeSubmitted(userId, SUBMISSION_ID);
 
-        serviceUnderTest.submit(submission, userId, emailAddress);
+        serviceUnderTest.submit(submission, grantApplicant, emailAddress);
 
         verify(grantBeneficiaryRepository).save(grantBeneficiaryCaptor.capture());
 

@@ -8,12 +8,14 @@ on:
       - bug/**
       - GAP-**
       - feat/**
+      - TMI2-**
   pull_request:
     branches:
       - feature/**
       - AFG-**
       - bug/**
       - GAP-**
+      - TMI2-**
 
 jobs:
   build:

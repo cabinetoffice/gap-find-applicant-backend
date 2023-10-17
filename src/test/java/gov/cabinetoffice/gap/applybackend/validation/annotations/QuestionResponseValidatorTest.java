@@ -2,11 +2,11 @@ package gov.cabinetoffice.gap.applybackend.validation.annotations;
 
 import gov.cabinetoffice.gap.applybackend.dto.api.CreateQuestionResponseDto;
 import gov.cabinetoffice.gap.applybackend.dto.api.JwtPayload;
+import gov.cabinetoffice.gap.applybackend.enums.SubmissionQuestionResponseType;
 import gov.cabinetoffice.gap.applybackend.exception.NotFoundException;
 import gov.cabinetoffice.gap.applybackend.model.SubmissionQuestion;
 import gov.cabinetoffice.gap.applybackend.model.SubmissionQuestionValidation;
 import gov.cabinetoffice.gap.applybackend.service.SubmissionService;
-import gov.cabinetoffice.gap.applybackend.enums.SubmissionQuestionResponseType;
 import gov.cabinetoffice.gap.applybackend.validation.validators.QuestionResponseValidator;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -30,7 +30,11 @@ import java.util.stream.Stream;
 
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.atLeastOnce;
+import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class QuestionResponseValidatorTest {
