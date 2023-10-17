@@ -88,6 +88,13 @@ public class GrantMandatoryQuestionsController {
         final JwtPayload jwtPayload = (JwtPayload) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
         final GrantMandatoryQuestions grantMandatoryQuestions = grantMandatoryQuestionService.getGrantMandatoryQuestionById(mandatoryQuestionId, jwtPayload.getSub());
 
+        mapDtoToEntity(mandatoryQuestionDto, grantMandatoryQuestions);
+        grantMandatoryQuestionService.updateMandatoryQuestion(grantMandatoryQuestions);
+
+        return ResponseEntity.ok(String.format("Mandatory question with ID %s has been updated.", mandatoryQuestionId));
+    }
+
+    protected void mapDtoToEntity(UpdateGrantMandatoryQuestionDto mandatoryQuestionDto, GrantMandatoryQuestions grantMandatoryQuestions) {
         modelMapper.map(mandatoryQuestionDto, grantMandatoryQuestions);
         if (mandatoryQuestionDto.getOrgType() != null) {
             grantMandatoryQuestions.setOrgType(GrantMandatoryQuestionOrgType.valueOfName(mandatoryQuestionDto.getOrgType()));
@@ -95,21 +102,17 @@ public class GrantMandatoryQuestionsController {
         if (mandatoryQuestionDto.getFundingAmount() != null) {
             grantMandatoryQuestions.setFundingAmount(new BigDecimal(mandatoryQuestionDto.getFundingAmount()));
         }
-        if(mandatoryQuestionDto.getFundingLocation() != null){
+        if (mandatoryQuestionDto.getFundingLocation() != null) {
             List<String> locations = mandatoryQuestionDto.getFundingLocation();
             GrantMandatoryQuestionFundingLocation[] grantMandatoryQuestionFundingLocations = new GrantMandatoryQuestionFundingLocation[locations.size()];
-            for(int i = 0; i < locations.size(); i++){
+            for (int i = 0; i < locations.size(); i++) {
                 grantMandatoryQuestionFundingLocations[i] = GrantMandatoryQuestionFundingLocation.valueOfName(locations.get(i));
             }
             grantMandatoryQuestions.setFundingLocation(grantMandatoryQuestionFundingLocations);
         }
 
-        grantMandatoryQuestions.setId(mandatoryQuestionId);
-        if(grantMandatoryQuestions.getStatus().equals(GrantMandatoryQuestionStatus.NOT_STARTED)) {
+        if (grantMandatoryQuestions.getStatus().equals(GrantMandatoryQuestionStatus.NOT_STARTED)) {
             grantMandatoryQuestions.setStatus(GrantMandatoryQuestionStatus.IN_PROGRESS);
         }
-        grantMandatoryQuestionService.updateMandatoryQuestion(grantMandatoryQuestions);
-
-        return ResponseEntity.ok(String.format("Mandatory question with ID %s has been updated.", mandatoryQuestionId));
     }
 }
