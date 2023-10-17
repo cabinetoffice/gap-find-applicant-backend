@@ -3,11 +3,13 @@ package gov.cabinetoffice.gap.applybackend.web;
 import gov.cabinetoffice.gap.applybackend.dto.api.GetGrantMandatoryQuestionDto;
 import gov.cabinetoffice.gap.applybackend.dto.api.JwtPayload;
 import gov.cabinetoffice.gap.applybackend.dto.api.UpdateGrantMandatoryQuestionDto;
+import gov.cabinetoffice.gap.applybackend.enums.GrantMandatoryQuestionFundingLocation;
 import gov.cabinetoffice.gap.applybackend.enums.GrantMandatoryQuestionOrgType;
 import gov.cabinetoffice.gap.applybackend.enums.GrantMandatoryQuestionStatus;
 import gov.cabinetoffice.gap.applybackend.model.GrantApplicant;
 import gov.cabinetoffice.gap.applybackend.model.GrantMandatoryQuestions;
 import gov.cabinetoffice.gap.applybackend.model.GrantScheme;
+import gov.cabinetoffice.gap.applybackend.repository.GrantMandatoryQuestionRepository;
 import gov.cabinetoffice.gap.applybackend.service.GrantApplicantService;
 import gov.cabinetoffice.gap.applybackend.service.GrantMandatoryQuestionService;
 import gov.cabinetoffice.gap.applybackend.service.GrantSchemeService;
@@ -31,6 +33,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import javax.validation.Valid;
 import java.math.BigDecimal;
+import java.util.List;
 import java.util.UUID;
 
 @RequiredArgsConstructor
@@ -38,6 +41,7 @@ import java.util.UUID;
 @RequestMapping("/grant-mandatory-questions")
 @Slf4j
 public class GrantMandatoryQuestionsController {
+    private final GrantMandatoryQuestionRepository grantMandatoryQuestionRepository;
     private final GrantMandatoryQuestionService grantMandatoryQuestionService;
     private final GrantApplicantService grantApplicantService;
     private final GrantSchemeService grantSchemeService;
@@ -91,9 +95,19 @@ public class GrantMandatoryQuestionsController {
         if (mandatoryQuestionDto.getFundingAmount() != null) {
             grantMandatoryQuestions.setFundingAmount(new BigDecimal(mandatoryQuestionDto.getFundingAmount()));
         }
-        grantMandatoryQuestions.setId(mandatoryQuestionId);
-        grantMandatoryQuestions.setStatus(GrantMandatoryQuestionStatus.IN_PROGRESS);
+        if(mandatoryQuestionDto.getFundingLocation() != null){
+            List<String> locations = mandatoryQuestionDto.getFundingLocation();
+            GrantMandatoryQuestionFundingLocation[] grantMandatoryQuestionFundingLocations = new GrantMandatoryQuestionFundingLocation[locations.size()];
+            for(int i = 0; i < locations.size(); i++){
+                grantMandatoryQuestionFundingLocations[i] = GrantMandatoryQuestionFundingLocation.valueOfName(locations.get(i));
+            }
+            grantMandatoryQuestions.setFundingLocation(grantMandatoryQuestionFundingLocations);
+        }
 
+        grantMandatoryQuestions.setId(mandatoryQuestionId);
+        if(grantMandatoryQuestions.getStatus().equals(GrantMandatoryQuestionStatus.NOT_STARTED)) {
+            grantMandatoryQuestions.setStatus(GrantMandatoryQuestionStatus.IN_PROGRESS);
+        }
         grantMandatoryQuestionService.updateMandatoryQuestion(grantMandatoryQuestions);
 
         return ResponseEntity.ok(String.format("Mandatory question with ID %s has been updated.", mandatoryQuestionId));

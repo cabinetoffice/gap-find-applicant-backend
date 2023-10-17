@@ -5,9 +5,7 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import javax.validation.constraints.NotBlank;
-import javax.validation.constraints.Pattern;
-import javax.validation.constraints.Size;
+import java.util.List;
 import java.util.UUID;
 
 @Data
@@ -18,10 +16,10 @@ public class UpdateGrantMandatoryQuestionDto {
 
     private UUID submissionId;
 
-    @NotBlank(message = "You must enter an answer")
-    @Size(max = 250, message = "Organisation name must be 250 characters or less")
-    @Pattern(regexp = "^(?![\\s\\S])|^[a-zA-Z0-9\\s',-]+$",
-            message = "Organisation name must only use letters, numbers, and special characters such as hyphens, spaces and apostrophes")
+//    @NotBlank(message = "You must enter an answer")
+//    @Size(max = 250, message = "Organisation name must be 250 characters or less")
+//    @Pattern(regexp = "^(?![\\s\\S])|^[a-zA-Z0-9\\s',-]+$",
+//            message = "Organisation name must only use letters, numbers, and special characters such as hyphens, spaces and apostrophes")
     private String name;
 
 //    @NotBlank(message = "You must enter an answer for the address line 1")
@@ -70,5 +68,5 @@ public class UpdateGrantMandatoryQuestionDto {
     private String fundingAmount;
 
 //    @NotBlank(message = "You must select an answer")
-    private String fundingLocation;
+    private List<String> fundingLocation;
 }

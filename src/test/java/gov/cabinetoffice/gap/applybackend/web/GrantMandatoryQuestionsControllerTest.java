@@ -3,6 +3,7 @@ package gov.cabinetoffice.gap.applybackend.web;
 import gov.cabinetoffice.gap.applybackend.dto.api.GetGrantMandatoryQuestionDto;
 import gov.cabinetoffice.gap.applybackend.dto.api.JwtPayload;
 import gov.cabinetoffice.gap.applybackend.dto.api.UpdateGrantMandatoryQuestionDto;
+import gov.cabinetoffice.gap.applybackend.enums.GrantMandatoryQuestionFundingLocation;
 import gov.cabinetoffice.gap.applybackend.enums.GrantMandatoryQuestionOrgType;
 import gov.cabinetoffice.gap.applybackend.model.GrantApplicant;
 import gov.cabinetoffice.gap.applybackend.model.GrantMandatoryQuestions;
@@ -26,7 +27,9 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
 
+import java.lang.reflect.Array;
 import java.math.BigDecimal;
+import java.util.List;
 import java.util.UUID;
 
 
@@ -95,7 +98,8 @@ class GrantMandatoryQuestionsControllerTest {
     void getGrantMandatoryQuestionsById_ReturnsExpectedMandatoryQuestions() {
 
         final UUID mandatoryQuestionsId = UUID.randomUUID();
-
+        final GrantMandatoryQuestionFundingLocation fundingLocation = GrantMandatoryQuestionFundingLocation.SCOTLAND;
+        final GrantMandatoryQuestionFundingLocation[] fundingLocations = new GrantMandatoryQuestionFundingLocation[]{fundingLocation};
         final GrantMandatoryQuestions mandatoryQuestions = GrantMandatoryQuestions.builder()
                 .id(mandatoryQuestionsId)
                 .createdBy(applicant)
@@ -105,7 +109,7 @@ class GrantMandatoryQuestionsControllerTest {
                 .addressLine1("215 Bothwell Street")
                 .city("Glasgow")
                 .postcode("G2 7EZ")
-                .fundingLocation("Scotland")
+                .fundingLocation(fundingLocations)
                 .companiesHouseNumber("08761455")
                 .orgType(GrantMandatoryQuestionOrgType.LIMITED_COMPANY)
                 .build();
@@ -116,7 +120,7 @@ class GrantMandatoryQuestionsControllerTest {
                 .addressLine1("215 Bothwell Street")
                 .city("Glasgow")
                 .postcode("G2 7EZ")
-                .fundingLocation("Scotland")
+                .fundingLocation(List.of("Scotland"))
                 .companiesHouseNumber("08761455")
                 .orgType("Limited company")
                 .schemeId(scheme.getId())
@@ -136,7 +140,8 @@ class GrantMandatoryQuestionsControllerTest {
 
     @Test
     void updateMandatoryQuestion_UpdatesExpectedFields_AndSavesChanges() {
-
+        final GrantMandatoryQuestionFundingLocation fundingLocation = GrantMandatoryQuestionFundingLocation.SCOTLAND;
+        final GrantMandatoryQuestionFundingLocation[] fundingLocations = new GrantMandatoryQuestionFundingLocation[]{fundingLocation};
         final String updatedValue = "AND Digital updated";
         final UpdateGrantMandatoryQuestionDto updateDto = UpdateGrantMandatoryQuestionDto.builder()
                 .name(updatedValue)
@@ -153,7 +158,7 @@ class GrantMandatoryQuestionsControllerTest {
                 .addressLine1("215 Bothwell Street")
                 .city("Glasgow")
                 .postcode("G2 7EZ")
-                .fundingLocation("Scotland")
+                .fundingLocation(fundingLocations)
                 .companiesHouseNumber("08761455")
                 .orgType(GrantMandatoryQuestionOrgType.LIMITED_COMPANY)
                 .build();

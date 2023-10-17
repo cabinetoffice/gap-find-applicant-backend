@@ -1,5 +1,8 @@
 package gov.cabinetoffice.gap.applybackend.model;
 
+import com.vladmihalcea.hibernate.type.array.EnumArrayType;
+import com.vladmihalcea.hibernate.type.array.internal.AbstractArrayType;
+import gov.cabinetoffice.gap.applybackend.enums.GrantMandatoryQuestionFundingLocation;
 import gov.cabinetoffice.gap.applybackend.enums.GrantMandatoryQuestionOrgType;
 import gov.cabinetoffice.gap.applybackend.enums.GrantMandatoryQuestionStatus;
 import lombok.AllArgsConstructor;
@@ -7,6 +10,8 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.hibernate.annotations.ColumnTransformer;
+import org.hibernate.annotations.Parameter;
+import org.hibernate.annotations.TypeDef;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 import javax.persistence.Column;
@@ -31,6 +36,16 @@ import java.util.UUID;
 @Builder
 @Entity
 @Table(name = "grant_mandatory_questions")
+@TypeDef(
+        typeClass = EnumArrayType.class,
+        defaultForType = GrantMandatoryQuestionFundingLocation[].class,
+        parameters = {
+                @Parameter(
+                        name = AbstractArrayType.SQL_ARRAY_TYPE,
+                        value = "grant_mandatory_question_funding_location"
+                )
+        }
+)
 public class GrantMandatoryQuestions extends BaseEntity {
 
     @Id
@@ -79,7 +94,7 @@ public class GrantMandatoryQuestions extends BaseEntity {
     private BigDecimal fundingAmount;
 
     @Column(name = "funding_location")
-    private String fundingLocation;
+    private GrantMandatoryQuestionFundingLocation[] fundingLocation;
 
     @Column(name = "status", nullable = false)
     @Enumerated(EnumType.STRING)
