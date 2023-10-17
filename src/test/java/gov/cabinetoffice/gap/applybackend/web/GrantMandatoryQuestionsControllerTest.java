@@ -136,6 +136,8 @@ class GrantMandatoryQuestionsControllerTest {
                     .companiesHouseNumber("08761455")
                     .orgType("Limited company")
                     .schemeId(scheme.getId())
+                    .isPageAlreadyAnswered(true)
+                    .nextNotAnsweredPage("nextPageUrl")
                     .build();
 
             when(grantMandatoryQuestionService.getGrantMandatoryQuestionById(mandatoryQuestionsId, jwtPayload.getSub()))
@@ -144,7 +146,13 @@ class GrantMandatoryQuestionsControllerTest {
             when(modelMapper.map(mandatoryQuestions, GetGrantMandatoryQuestionDto.class))
                     .thenReturn(mandatoryQuestionsDto);
 
-            final ResponseEntity<GetGrantMandatoryQuestionDto> methodResponse = controllerUnderTest.getGrantMandatoryQuestionsById(mandatoryQuestionsId);
+            when(grantMandatoryQuestionService.isPageAlreadyAnswered("url",mandatoryQuestionsDto))
+                    .thenReturn(true);
+
+            when(grantMandatoryQuestionService.generateNextPageUrl(mandatoryQuestions))
+                    .thenReturn("nextPageUrl");
+
+            final ResponseEntity<GetGrantMandatoryQuestionDto> methodResponse = controllerUnderTest.getGrantMandatoryQuestionsById(mandatoryQuestionsId, "url");
 
             assertThat(methodResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
             assertThat(methodResponse.getBody()).isEqualTo(mandatoryQuestionsDto);
@@ -177,14 +185,15 @@ class GrantMandatoryQuestionsControllerTest {
 
             when(grantMandatoryQuestionService.getGrantMandatoryQuestionById(mandatoryQuestionsId, jwtPayload.getSub()))
                     .thenReturn(mandatoryQuestions);
-
+            when(grantMandatoryQuestionService.generateNextPageUrl(mandatoryQuestions))
+                    .thenReturn("nextPageUrl");
             final ResponseEntity<String> methodResponse = controllerUnderTest.updateMandatoryQuestion(mandatoryQuestionsId, updateDto);
 
             verify(modelMapper).map(updateDto, mandatoryQuestions);
             verify(grantMandatoryQuestionService).updateMandatoryQuestion(mandatoryQuestions);
 
             assertThat(methodResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
-            assertThat(methodResponse.getBody()).isEqualTo(String.format("Mandatory question with ID %s has been updated.", mandatoryQuestionsId));
+            assertThat(methodResponse.getBody()).isEqualTo("nextPageUrl");
 
         }
     }
