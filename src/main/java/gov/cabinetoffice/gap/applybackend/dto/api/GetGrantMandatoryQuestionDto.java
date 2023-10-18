@@ -1,5 +1,6 @@
 package gov.cabinetoffice.gap.applybackend.dto.api;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -38,4 +39,9 @@ public class GetGrantMandatoryQuestionDto {
     private String fundingAmount;
 
     private List<String> fundingLocation;
+
+    private String nextNotAnsweredPage;
+
+    @JsonProperty("isPageAlreadyAnswered")
+    private boolean isPageAlreadyAnswered;
 }

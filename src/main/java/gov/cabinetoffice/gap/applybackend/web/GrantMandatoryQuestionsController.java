@@ -59,7 +59,7 @@ public class GrantMandatoryQuestionsController {
         final GrantScheme scheme = grantSchemeService.getSchemeById(schemeId);
 
         final GrantMandatoryQuestions grantMandatoryQuestions = grantMandatoryQuestionService.createMandatoryQuestion(scheme, applicant);
-
+        log.info("Mandatory question with ID {} has been created.", grantMandatoryQuestions.getId());
         return ResponseEntity.ok(grantMandatoryQuestions.getId());
     }
 
@@ -69,10 +69,17 @@ public class GrantMandatoryQuestionsController {
             @ApiResponse(responseCode = "403", description = "User cannot access this mandatory question", content = @Content(mediaType = "application/json")),
             @ApiResponse(responseCode = "404", description = "No Grant Mandatory question found", content = @Content(mediaType = "application/json")),
     })
-    public ResponseEntity<GetGrantMandatoryQuestionDto> getGrantMandatoryQuestionsById(@PathVariable final UUID mandatoryQuestionId) {
+    public ResponseEntity<GetGrantMandatoryQuestionDto> getGrantMandatoryQuestionsById(@PathVariable final UUID mandatoryQuestionId, @RequestParam final String url) {
         final JwtPayload jwtPayload = (JwtPayload) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
         final GrantMandatoryQuestions grantMandatoryQuestions = grantMandatoryQuestionService.getGrantMandatoryQuestionById(mandatoryQuestionId, jwtPayload.getSub());
+        log.info("Mandatory question with ID {} has been grabbed.", grantMandatoryQuestions.getId());
+
         final GetGrantMandatoryQuestionDto getGrantMandatoryQuestionDto = modelMapper.map(grantMandatoryQuestions, GetGrantMandatoryQuestionDto.class);
+        final boolean isPageAlreadyAnswered = grantMandatoryQuestionService.isPageAlreadyAnswered(url, getGrantMandatoryQuestionDto);
+        final String nextNotAnsweredPage = grantMandatoryQuestionService.generateNextPageUrl(grantMandatoryQuestions);
+
+        getGrantMandatoryQuestionDto.setNextNotAnsweredPage(nextNotAnsweredPage);
+        getGrantMandatoryQuestionDto.setPageAlreadyAnswered(isPageAlreadyAnswered);
 
         return ResponseEntity.ok(getGrantMandatoryQuestionDto);
     }
@@ -90,8 +97,9 @@ public class GrantMandatoryQuestionsController {
 
         mapDtoToEntity(mandatoryQuestionDto, grantMandatoryQuestions);
         grantMandatoryQuestionService.updateMandatoryQuestion(grantMandatoryQuestions);
+        log.info("Mandatory question with ID {} has been updated.", mandatoryQuestionId);
 
-        return ResponseEntity.ok(String.format("Mandatory question with ID %s has been updated.", mandatoryQuestionId));
+        return ResponseEntity.ok(grantMandatoryQuestionService.generateNextPageUrl(grantMandatoryQuestions));
     }
 
     protected void mapDtoToEntity(UpdateGrantMandatoryQuestionDto mandatoryQuestionDto, GrantMandatoryQuestions grantMandatoryQuestions) {
@@ -103,7 +111,7 @@ public class GrantMandatoryQuestionsController {
             grantMandatoryQuestions.setFundingAmount(new BigDecimal(mandatoryQuestionDto.getFundingAmount()));
         }
         if (mandatoryQuestionDto.getFundingLocation() != null) {
-            List<String> locations = mandatoryQuestionDto.getFundingLocation();
+            final List<String> locations = mandatoryQuestionDto.getFundingLocation();
             GrantMandatoryQuestionFundingLocation[] grantMandatoryQuestionFundingLocations = new GrantMandatoryQuestionFundingLocation[locations.size()];
             for (int i = 0; i < locations.size(); i++) {
                 grantMandatoryQuestionFundingLocations[i] = GrantMandatoryQuestionFundingLocation.valueOfName(locations.get(i));
