@@ -146,7 +146,7 @@ class GrantMandatoryQuestionsControllerTest {
             when(modelMapper.map(mandatoryQuestions, GetGrantMandatoryQuestionDto.class))
                     .thenReturn(mandatoryQuestionsDto);
 
-            when(grantMandatoryQuestionService.isPageAlreadyAnswered("url",mandatoryQuestionsDto))
+            when(grantMandatoryQuestionService.isPageAlreadyAnswered("url", mandatoryQuestionsDto))
                     .thenReturn(true);
 
             when(grantMandatoryQuestionService.generateNextPageUrl(mandatoryQuestions))
@@ -189,7 +189,6 @@ class GrantMandatoryQuestionsControllerTest {
                     .thenReturn("nextPageUrl");
             final ResponseEntity<String> methodResponse = controllerUnderTest.updateMandatoryQuestion(mandatoryQuestionsId, updateDto);
 
-            verify(modelMapper).map(updateDto, mandatoryQuestions);
             verify(grantMandatoryQuestionService).updateMandatoryQuestion(mandatoryQuestions);
 
             assertThat(methodResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
@@ -207,7 +206,6 @@ class GrantMandatoryQuestionsControllerTest {
 
             controllerUnderTest.mapDtoToEntity(dto, entity);
 
-            verify(modelMapper).map(dto, entity);
             assertThat(entity.getOrgType()).isEqualTo(GrantMandatoryQuestionOrgType.LIMITED_COMPANY);
         }
 
@@ -218,7 +216,6 @@ class GrantMandatoryQuestionsControllerTest {
 
             controllerUnderTest.mapDtoToEntity(dto, entity);
 
-            verify(modelMapper).map(dto, entity);
             assertThat(entity.getFundingAmount()).isEqualTo(new BigDecimal("1000.00"));
         }
 
@@ -229,7 +226,6 @@ class GrantMandatoryQuestionsControllerTest {
 
             controllerUnderTest.mapDtoToEntity(dto, entity);
 
-            verify(modelMapper).map(dto, entity);
             assertThat(entity.getFundingLocation()).isEqualTo(new GrantMandatoryQuestionFundingLocation[]{SCOTLAND, WALES});
         }
 
@@ -241,9 +237,91 @@ class GrantMandatoryQuestionsControllerTest {
 
             controllerUnderTest.mapDtoToEntity(dto, entity);
 
-            verify(modelMapper).map(dto, entity);
             assertThat(entity.getStatus()).isEqualTo(IN_PROGRESS);
         }
 
+        @Test
+        public void testMapDtoToEntityWithAddressLine1() {
+            final UpdateGrantMandatoryQuestionDto dto = UpdateGrantMandatoryQuestionDto.builder()
+                    .addressLine1("123 Main Street")
+                    .build();
+            final GrantMandatoryQuestions entity = new GrantMandatoryQuestions();
+
+            controllerUnderTest.mapDtoToEntity(dto, entity);
+
+            assertThat(entity.getAddressLine1()).isEqualTo("123 Main Street");
+        }
+
+        @Test
+        public void testMapDtoToEntityWithAddressLine2() {
+            final UpdateGrantMandatoryQuestionDto dto = UpdateGrantMandatoryQuestionDto.builder()
+                    .addressLine2("Apt 4B")
+                    .build();
+            final GrantMandatoryQuestions entity = new GrantMandatoryQuestions();
+
+            controllerUnderTest.mapDtoToEntity(dto, entity);
+
+            assertThat(entity.getAddressLine2()).isEqualTo("Apt 4B");
+        }
+
+        @Test
+        public void testMapDtoToEntityWithCity() {
+            final UpdateGrantMandatoryQuestionDto dto = UpdateGrantMandatoryQuestionDto.builder()
+                    .city("New York")
+                    .build();
+            final GrantMandatoryQuestions entity = new GrantMandatoryQuestions();
+
+            controllerUnderTest.mapDtoToEntity(dto, entity);
+
+            assertThat(entity.getCity()).isEqualTo("New York");
+        }
+
+        @Test
+        public void testMapDtoToEntityWithCounty() {
+            final UpdateGrantMandatoryQuestionDto dto = UpdateGrantMandatoryQuestionDto.builder()
+                    .county("Suffolk")
+                    .build();
+            final GrantMandatoryQuestions entity = new GrantMandatoryQuestions();
+
+            controllerUnderTest.mapDtoToEntity(dto, entity);
+
+            assertThat(entity.getCounty()).isEqualTo("Suffolk");
+        }
+
+        @Test
+        public void testMapDtoToEntityWithPostcode() {
+            final UpdateGrantMandatoryQuestionDto dto = UpdateGrantMandatoryQuestionDto.builder()
+                    .postcode("12345")
+                    .build();
+            final GrantMandatoryQuestions entity = new GrantMandatoryQuestions();
+
+            controllerUnderTest.mapDtoToEntity(dto, entity);
+
+            assertThat(entity.getPostcode()).isEqualTo("12345");
+        }
+
+        @Test
+        public void testMapDtoToEntityWithCompaniesHouseNumber() {
+            final UpdateGrantMandatoryQuestionDto dto = UpdateGrantMandatoryQuestionDto.builder()
+                    .companiesHouseNumber("AB12345")
+                    .build();
+            final GrantMandatoryQuestions entity = new GrantMandatoryQuestions();
+
+            controllerUnderTest.mapDtoToEntity(dto, entity);
+
+            assertThat(entity.getCompaniesHouseNumber()).isEqualTo("AB12345");
+        }
+
+        @Test
+        public void testMapDtoToEntityWithCharityCommissionNumber() {
+            final UpdateGrantMandatoryQuestionDto dto = UpdateGrantMandatoryQuestionDto.builder()
+                    .charityCommissionNumber("123456")
+                    .build();
+            final GrantMandatoryQuestions entity = new GrantMandatoryQuestions();
+
+            controllerUnderTest.mapDtoToEntity(dto, entity);
+
+            assertThat(entity.getCharityCommissionNumber()).isEqualTo("123456");
+        }
     }
 }

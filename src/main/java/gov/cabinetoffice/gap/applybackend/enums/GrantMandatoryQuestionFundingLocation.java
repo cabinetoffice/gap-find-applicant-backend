@@ -6,7 +6,7 @@ public enum GrantMandatoryQuestionFundingLocation {
     NORTH_EAST_ENGLAND("North East England"),
     NORTH_WEST_ENGLAND("North West England"),
     YORKSHIRE_AND_THE_HUMBER("Yorkshire and the Humber"),
-    EAST_MIDLANDS_ENGLAND("East Midlands England"),
+    EAST_MIDLANDS_ENGLAND("East Midlands (England)"),
     WEST_MIDLANDS("West Midlands"),
     EAST_ENGLAND("East England"),
     LONDON("London"),
@@ -38,6 +38,10 @@ public enum GrantMandatoryQuestionFundingLocation {
 
         return valueOfName(name);
 
+    }
+
+    public String getName() {
+        return name;
     }
 
 }
