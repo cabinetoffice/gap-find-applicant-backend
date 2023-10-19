@@ -2,6 +2,7 @@ package gov.cabinetoffice.gap.applybackend.mapper;
 
 import gov.cabinetoffice.gap.applybackend.dto.api.GetGrantMandatoryQuestionDto;
 import gov.cabinetoffice.gap.applybackend.enums.GrantApplicantOrganisationType;
+import gov.cabinetoffice.gap.applybackend.enums.GrantMandatoryQuestionFundingLocation;
 import gov.cabinetoffice.gap.applybackend.enums.GrantMandatoryQuestionOrgType;
 import gov.cabinetoffice.gap.applybackend.model.GrantMandatoryQuestions;
 import org.mapstruct.Mapper;
@@ -17,7 +18,7 @@ public interface GrantMandatoryQuestionMapper {
 
 
     @Mapping(source = "orgType", target = "orgType", qualifiedByName = "mapEntityOrgTypeToDtoOrgType")
-//    @Mapping(source = "fundingLocation", target = "fundingLocation", qualifiedByName = "mapEntityFundingLocationToDtoFundingLocation")
+    @Mapping(source = "fundingLocation", target = "fundingLocation", qualifiedByName = "mapEntityFundingLocationToDtoFundingLocation")
     GetGrantMandatoryQuestionDto mapGrantMandatoryQuestionToGetGrantMandatoryQuestionDTO(GrantMandatoryQuestions source);
 
     @Named("mapEntityOrgTypeToDtoOrgType")
@@ -26,13 +27,13 @@ public interface GrantMandatoryQuestionMapper {
     }
 
     @Named("mapEntityFundingLocationToDtoFundingLocation")
-    default List<String> mapEntityFundingLocationToDtoFundingLocation(GrantApplicantOrganisationType[] type) {
+    default List<String> mapEntityFundingLocationToDtoFundingLocation(GrantMandatoryQuestionFundingLocation[] type) {
         List<String> fundingLocation = new ArrayList<>();
-        if (type != null) {
-            for (GrantApplicantOrganisationType t : type) {
-                fundingLocation.add(t.name());
-            }
-        }
+       if(type != null){
+              for (GrantMandatoryQuestionFundingLocation fundingLocationType : type) {
+                fundingLocation.add(fundingLocationType.name());
+              }
+       }
         return fundingLocation;
     }
 

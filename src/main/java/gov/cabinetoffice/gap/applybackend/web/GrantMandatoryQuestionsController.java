@@ -80,8 +80,6 @@ public class GrantMandatoryQuestionsController {
         log.info("Mandatory question with ID {} has been grabbed.", grantMandatoryQuestions.getId());
 
         final GetGrantMandatoryQuestionDto getGrantMandatoryQuestionDto = modelMapper.map(grantMandatoryQuestions, GetGrantMandatoryQuestionDto.class);
-        getGrantMandatoryQuestionDto.setNextPageUrl(grantMandatoryQuestionService.generateNextPageUrl(request.getRequestURL().toString(), grantMandatoryQuestions));
-
         return ResponseEntity.ok(getGrantMandatoryQuestionDto);
     }
 
@@ -93,14 +91,14 @@ public class GrantMandatoryQuestionsController {
             @ApiResponse(responseCode = "404", description = "No Grant Mandatory question found", content = @Content(mediaType = "application/json")),
     })
     public ResponseEntity<String> updateMandatoryQuestion(@PathVariable final UUID mandatoryQuestionId,
-                                                          @RequestBody @Valid final UpdateGrantMandatoryQuestionDto mandatoryQuestionDto) {
+                                                          @RequestBody @Valid final UpdateGrantMandatoryQuestionDto mandatoryQuestionDto, @RequestParam final String url){
         final JwtPayload jwtPayload = (JwtPayload) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
         final GrantMandatoryQuestions grantMandatoryQuestions = grantMandatoryQuestionService.getGrantMandatoryQuestionById(mandatoryQuestionId, jwtPayload.getSub());
 
         mapDtoToEntity(mandatoryQuestionDto, grantMandatoryQuestions);
         grantMandatoryQuestionService.updateMandatoryQuestion(grantMandatoryQuestions);
-
-        return ResponseEntity.ok("Mandatory question with ID %d has been updated." + mandatoryQuestionId);
+        log.info("Mandatory question with ID {} has been updated.", grantMandatoryQuestions.getId());
+        return ResponseEntity.ok(grantMandatoryQuestionService.generateNextPageUrl(url, grantMandatoryQuestions));
     }
 
 

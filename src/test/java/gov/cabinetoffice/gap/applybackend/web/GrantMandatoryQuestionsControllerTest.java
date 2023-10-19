@@ -187,8 +187,11 @@ class GrantMandatoryQuestionsControllerTest {
 
             when(grantMandatoryQuestionService.getGrantMandatoryQuestionById(mandatoryQuestionsId, jwtPayload.getSub()))
                     .thenReturn(mandatoryQuestions);
+            when(request.getRequestURL().toString()).thenReturn("url");
+            when(grantMandatoryQuestionService.generateNextPageUrl("url", mandatoryQuestions))
+                    .thenReturn("nextPageUrl");
 
-            final ResponseEntity<String> methodResponse = controllerUnderTest.updateMandatoryQuestion(mandatoryQuestionsId, updateDto);
+            final ResponseEntity<String> methodResponse = controllerUnderTest.updateMandatoryQuestion(mandatoryQuestionsId, updateDto, request);
 
             verify(modelMapper).map(updateDto, mandatoryQuestions);
             verify(grantMandatoryQuestionService).updateMandatoryQuestion(mandatoryQuestions);

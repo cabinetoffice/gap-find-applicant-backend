@@ -69,13 +69,13 @@ public class GrantMandatoryQuestionService {
 
     public String generateNextPageUrl(String url, GrantMandatoryQuestions mandatoryQuestion) {
         final Map<String, String> mapper = new HashMap<>();
-        mapper.put("organisation-name", "mandatoryQuestions/" + mandatoryQuestion.getId() + "/organisation-address");
-        mapper.put("organisation-address", "mandatoryQuestions/" + mandatoryQuestion.getId() + "/organisation-type");
-        mapper.put("organisation-type", "mandatoryQuestions/" + mandatoryQuestion.getId() + "/organisation-companies-house-number");
-        mapper.put("organisation-companies-house-number", "mandatoryQuestions/" + mandatoryQuestion.getId() + "/organisation-charity-commission-number");
-        mapper.put("organisation-charity-commission-number", "mandatoryQuestions/" + mandatoryQuestion.getId() + "/organisation-funding-amount");
-        mapper.put("organisation-funding-amount", "mandatoryQuestions/" + mandatoryQuestion.getId() + "/organisation-funding-location");
-        mapper.put("organisation-funding-location", "mandatoryQuestions/" + mandatoryQuestion.getId() + "/organisation-summary");
+        mapper.put("organisation-name", "/mandatory-questions/" + mandatoryQuestion.getId() + "/organisation-address");
+        mapper.put("organisation-address", "/mandatory-questions/" + mandatoryQuestion.getId() + "/organisation-type");
+        mapper.put("organisation-type", "/mandatory-questions/" + mandatoryQuestion.getId() + "/organisation-companies-house-number");
+        mapper.put("organisation-companies-house-number", "/mandatory-questions/" + mandatoryQuestion.getId() + "/organisation-charity-commission-number");
+        mapper.put("organisation-charity-commission-number", "/mandatory-questions/" + mandatoryQuestion.getId() + "/organisation-funding-amount");
+        mapper.put("organisation-funding-amount", "/mandatory-questions/" + mandatoryQuestion.getId() + "/organisation-funding-location");
+        mapper.put("organisation-funding-location", "/mandatory-questions/" + mandatoryQuestion.getId() + "/organisation-summary");
 
         final String[] urlParts = url.split("/");
         //takes the last part of the url and strips it of eventual queryParams
