@@ -14,6 +14,7 @@ import java.util.UUID;
 @AllArgsConstructor
 @Builder
 public class GetGrantMandatoryQuestionDto {
+    private UUID id;
     private int schemeId;
 
     private UUID submissionId;
@@ -40,8 +41,5 @@ public class GetGrantMandatoryQuestionDto {
 
     private List<String> fundingLocation;
 
-    private String nextNotAnsweredPage;
-
-    @JsonProperty("isPageAlreadyAnswered")
-    private boolean isPageAlreadyAnswered;
+    private String nextPageUrl;
 }

@@ -25,6 +25,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
 
+import javax.servlet.http.HttpServletRequest;
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.UUID;
@@ -53,7 +54,8 @@ class GrantMandatoryQuestionsControllerTest {
     private final GrantScheme scheme = GrantScheme.builder()
             .id(schemeId)
             .build();
-
+    @Mock
+    HttpServletRequest request;
     @Mock
     private GrantMandatoryQuestionService grantMandatoryQuestionService;
     @Mock
@@ -62,7 +64,6 @@ class GrantMandatoryQuestionsControllerTest {
     private GrantSchemeService grantSchemeService;
     @Mock
     private ModelMapper modelMapper;
-
     @Mock
     private Authentication authentication;
     @Mock
@@ -72,21 +73,24 @@ class GrantMandatoryQuestionsControllerTest {
 
     private JwtPayload jwtPayload;
 
+    @BeforeEach
+    void setup() {
+        when(securityContext.getAuthentication()).thenReturn(authentication);
+        SecurityContextHolder.setContext(securityContext);
+        jwtPayload = JwtPayload.builder().sub(applicantUserId).build();
+        when(SecurityContextHolder.getContext().getAuthentication().getPrincipal()).thenReturn(jwtPayload);
+    }
+
     @Nested
     class controllerTests {
-        @BeforeEach
-        void setup() {
-            when(securityContext.getAuthentication()).thenReturn(authentication);
-            SecurityContextHolder.setContext(securityContext);
-            jwtPayload = JwtPayload.builder().sub(applicantUserId).build();
-            when(SecurityContextHolder.getContext().getAuthentication().getPrincipal()).thenReturn(jwtPayload);
-        }
-
         @Test
         void createMandatoryQuestion_CreatesMandatoryQuestionEntry_AndReturnsItsID() {
 
             final UUID mandatoryQuestionsId = UUID.randomUUID();
             final GrantMandatoryQuestions emptyMandatoryQuestions = GrantMandatoryQuestions.builder()
+                    .id(mandatoryQuestionsId)
+                    .build();
+            final GetGrantMandatoryQuestionDto emptyMandatoryQuestionsDto = GetGrantMandatoryQuestionDto.builder()
                     .id(mandatoryQuestionsId)
                     .build();
 
@@ -99,10 +103,10 @@ class GrantMandatoryQuestionsControllerTest {
             when(grantMandatoryQuestionService.createMandatoryQuestion(scheme, applicant))
                     .thenReturn(emptyMandatoryQuestions);
 
-            final ResponseEntity<UUID> methodResponse = controllerUnderTest.createMandatoryQuestion(schemeId);
+            final ResponseEntity<GetGrantMandatoryQuestionDto> methodResponse = controllerUnderTest.createMandatoryQuestion(schemeId);
 
             assertThat(methodResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
-            assertThat(methodResponse.getBody()).isEqualTo(emptyMandatoryQuestions.getId());
+            assertThat(methodResponse.getBody()).isEqualTo(emptyMandatoryQuestionsDto);
 
         }
 
@@ -136,8 +140,7 @@ class GrantMandatoryQuestionsControllerTest {
                     .companiesHouseNumber("08761455")
                     .orgType("Limited company")
                     .schemeId(scheme.getId())
-                    .isPageAlreadyAnswered(true)
-                    .nextNotAnsweredPage("nextPageUrl")
+                    .nextPageUrl("nextPageUrl")
                     .build();
 
             when(grantMandatoryQuestionService.getGrantMandatoryQuestionById(mandatoryQuestionsId, jwtPayload.getSub()))
@@ -146,13 +149,12 @@ class GrantMandatoryQuestionsControllerTest {
             when(modelMapper.map(mandatoryQuestions, GetGrantMandatoryQuestionDto.class))
                     .thenReturn(mandatoryQuestionsDto);
 
-            when(grantMandatoryQuestionService.isPageAlreadyAnswered("url",mandatoryQuestionsDto))
-                    .thenReturn(true);
-
-            when(grantMandatoryQuestionService.generateNextPageUrl(mandatoryQuestions))
+            when(grantMandatoryQuestionService.generateNextPageUrl("url", mandatoryQuestions))
                     .thenReturn("nextPageUrl");
 
-            final ResponseEntity<GetGrantMandatoryQuestionDto> methodResponse = controllerUnderTest.getGrantMandatoryQuestionsById(mandatoryQuestionsId, "url");
+            when(request.getRequestURL().toString()).thenReturn("url");
+
+            final ResponseEntity<GetGrantMandatoryQuestionDto> methodResponse = controllerUnderTest.getGrantMandatoryQuestionsById(mandatoryQuestionsId, request);
 
             assertThat(methodResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
             assertThat(methodResponse.getBody()).isEqualTo(mandatoryQuestionsDto);
@@ -185,8 +187,7 @@ class GrantMandatoryQuestionsControllerTest {
 
             when(grantMandatoryQuestionService.getGrantMandatoryQuestionById(mandatoryQuestionsId, jwtPayload.getSub()))
                     .thenReturn(mandatoryQuestions);
-            when(grantMandatoryQuestionService.generateNextPageUrl(mandatoryQuestions))
-                    .thenReturn("nextPageUrl");
+
             final ResponseEntity<String> methodResponse = controllerUnderTest.updateMandatoryQuestion(mandatoryQuestionsId, updateDto);
 
             verify(modelMapper).map(updateDto, mandatoryQuestions);

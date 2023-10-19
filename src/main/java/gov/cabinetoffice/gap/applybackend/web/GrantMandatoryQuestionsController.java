@@ -6,6 +6,7 @@ import gov.cabinetoffice.gap.applybackend.dto.api.UpdateGrantMandatoryQuestionDt
 import gov.cabinetoffice.gap.applybackend.enums.GrantMandatoryQuestionFundingLocation;
 import gov.cabinetoffice.gap.applybackend.enums.GrantMandatoryQuestionOrgType;
 import gov.cabinetoffice.gap.applybackend.enums.GrantMandatoryQuestionStatus;
+import gov.cabinetoffice.gap.applybackend.mapper.GrantMandatoryQuestionMapper;
 import gov.cabinetoffice.gap.applybackend.model.GrantApplicant;
 import gov.cabinetoffice.gap.applybackend.model.GrantMandatoryQuestions;
 import gov.cabinetoffice.gap.applybackend.model.GrantScheme;
@@ -31,6 +32,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import javax.servlet.http.HttpServletRequest;
 import javax.validation.Valid;
 import java.math.BigDecimal;
 import java.util.List;
@@ -47,21 +49,24 @@ public class GrantMandatoryQuestionsController {
     private final GrantSchemeService grantSchemeService;
     //change to mapstruct
     private final ModelMapper modelMapper;
+    private final GrantMandatoryQuestionMapper grantMandatoryQuestionMapper;
 
     @PostMapping()
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Grant Mandatory question created", content = @Content(mediaType = "application/json", schema = @Schema(implementation = GrantMandatoryQuestions.class))),
             @ApiResponse(responseCode = "404", description = "No Grant Mandatory question found", content = @Content(mediaType = "application/json")),
     })
-    public ResponseEntity<UUID> createMandatoryQuestion(@RequestParam final Integer schemeId) {
+    public ResponseEntity<GetGrantMandatoryQuestionDto> createMandatoryQuestion(@RequestParam final Integer schemeId) {
         final JwtPayload jwtPayload = (JwtPayload) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
         final GrantApplicant applicant = grantApplicantService.getApplicantById(jwtPayload.getSub());
         final GrantScheme scheme = grantSchemeService.getSchemeById(schemeId);
 
         final GrantMandatoryQuestions grantMandatoryQuestions = grantMandatoryQuestionService.createMandatoryQuestion(scheme, applicant);
         log.info("Mandatory question with ID {} has been created.", grantMandatoryQuestions.getId());
-        return ResponseEntity.ok(grantMandatoryQuestions.getId());
+        final GetGrantMandatoryQuestionDto getGrantMandatoryQuestionDto = grantMandatoryQuestionMapper.mapGrantMandatoryQuestionToGetGrantMandatoryQuestionDTO(grantMandatoryQuestions);
+        return ResponseEntity.ok(getGrantMandatoryQuestionDto);
     }
+
 
     @GetMapping("/{mandatoryQuestionId}")
     @ApiResponses(value = {
@@ -69,20 +74,17 @@ public class GrantMandatoryQuestionsController {
             @ApiResponse(responseCode = "403", description = "User cannot access this mandatory question", content = @Content(mediaType = "application/json")),
             @ApiResponse(responseCode = "404", description = "No Grant Mandatory question found", content = @Content(mediaType = "application/json")),
     })
-    public ResponseEntity<GetGrantMandatoryQuestionDto> getGrantMandatoryQuestionsById(@PathVariable final UUID mandatoryQuestionId, @RequestParam final String url) {
+    public ResponseEntity<GetGrantMandatoryQuestionDto> getGrantMandatoryQuestionsById(@PathVariable final UUID mandatoryQuestionId, HttpServletRequest request) {
         final JwtPayload jwtPayload = (JwtPayload) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
         final GrantMandatoryQuestions grantMandatoryQuestions = grantMandatoryQuestionService.getGrantMandatoryQuestionById(mandatoryQuestionId, jwtPayload.getSub());
         log.info("Mandatory question with ID {} has been grabbed.", grantMandatoryQuestions.getId());
 
         final GetGrantMandatoryQuestionDto getGrantMandatoryQuestionDto = modelMapper.map(grantMandatoryQuestions, GetGrantMandatoryQuestionDto.class);
-        final boolean isPageAlreadyAnswered = grantMandatoryQuestionService.isPageAlreadyAnswered(url, getGrantMandatoryQuestionDto);
-        final String nextNotAnsweredPage = grantMandatoryQuestionService.generateNextPageUrl(grantMandatoryQuestions);
-
-        getGrantMandatoryQuestionDto.setNextNotAnsweredPage(nextNotAnsweredPage);
-        getGrantMandatoryQuestionDto.setPageAlreadyAnswered(isPageAlreadyAnswered);
+        getGrantMandatoryQuestionDto.setNextPageUrl(grantMandatoryQuestionService.generateNextPageUrl(request.getRequestURL().toString(), grantMandatoryQuestions));
 
         return ResponseEntity.ok(getGrantMandatoryQuestionDto);
     }
+
 
     @PatchMapping("/{mandatoryQuestionId}")
     @ApiResponses(value = {
@@ -97,10 +99,10 @@ public class GrantMandatoryQuestionsController {
 
         mapDtoToEntity(mandatoryQuestionDto, grantMandatoryQuestions);
         grantMandatoryQuestionService.updateMandatoryQuestion(grantMandatoryQuestions);
-        log.info("Mandatory question with ID {} has been updated.", mandatoryQuestionId);
 
-        return ResponseEntity.ok(grantMandatoryQuestionService.generateNextPageUrl(grantMandatoryQuestions));
+        return ResponseEntity.ok("Mandatory question with ID %d has been updated." + mandatoryQuestionId);
     }
+
 
     protected void mapDtoToEntity(UpdateGrantMandatoryQuestionDto mandatoryQuestionDto, GrantMandatoryQuestions grantMandatoryQuestions) {
         modelMapper.map(mandatoryQuestionDto, grantMandatoryQuestions);
