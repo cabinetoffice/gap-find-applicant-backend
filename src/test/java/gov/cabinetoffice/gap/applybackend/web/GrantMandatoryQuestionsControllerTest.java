@@ -140,7 +140,6 @@ class GrantMandatoryQuestionsControllerTest {
                     .companiesHouseNumber("08761455")
                     .orgType("Limited company")
                     .schemeId(scheme.getId())
-                    .nextPageUrl("nextPageUrl")
                     .build();
 
             when(grantMandatoryQuestionService.getGrantMandatoryQuestionById(mandatoryQuestionsId, jwtPayload.getSub()))
@@ -149,7 +148,7 @@ class GrantMandatoryQuestionsControllerTest {
             when(modelMapper.map(mandatoryQuestions, GetGrantMandatoryQuestionDto.class))
                     .thenReturn(mandatoryQuestionsDto);
 
-            when(grantMandatoryQuestionService.generateNextPageUrl("url", mandatoryQuestions))
+            when(grantMandatoryQuestionService.generateNextPageUrl("url", mandatoryQuestionsId))
                     .thenReturn("nextPageUrl");
 
             when(request.getRequestURL().toString()).thenReturn("url");
@@ -188,10 +187,10 @@ class GrantMandatoryQuestionsControllerTest {
             when(grantMandatoryQuestionService.getGrantMandatoryQuestionById(mandatoryQuestionsId, jwtPayload.getSub()))
                     .thenReturn(mandatoryQuestions);
             when(request.getRequestURL().toString()).thenReturn("url");
-            when(grantMandatoryQuestionService.generateNextPageUrl("url", mandatoryQuestions))
+            when(grantMandatoryQuestionService.generateNextPageUrl("url", mandatoryQuestionsId))
                     .thenReturn("nextPageUrl");
 
-            final ResponseEntity<String> methodResponse = controllerUnderTest.updateMandatoryQuestion(mandatoryQuestionsId, updateDto, request);
+            final ResponseEntity<String> methodResponse = controllerUnderTest.updateMandatoryQuestion(mandatoryQuestionsId, updateDto, "url");
 
             verify(modelMapper).map(updateDto, mandatoryQuestions);
             verify(grantMandatoryQuestionService).updateMandatoryQuestion(mandatoryQuestions);

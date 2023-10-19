@@ -1,5 +1,6 @@
 package gov.cabinetoffice.gap.applybackend.service;
 
+import gov.cabinetoffice.gap.applybackend.enums.GrantMandatoryQuestionStatus;
 import gov.cabinetoffice.gap.applybackend.exception.ForbiddenException;
 import gov.cabinetoffice.gap.applybackend.exception.NotFoundException;
 import gov.cabinetoffice.gap.applybackend.mapper.GrantApplicantOrganisationProfileMapper;
@@ -67,15 +68,15 @@ public class GrantMandatoryQuestionService {
     }
 
 
-    public String generateNextPageUrl(String url, GrantMandatoryQuestions mandatoryQuestion) {
+    public String generateNextPageUrl(String url, UUID mandatoryQuestionId) {
         final Map<String, String> mapper = new HashMap<>();
-        mapper.put("organisation-name", "/mandatory-questions/" + mandatoryQuestion.getId() + "/organisation-address");
-        mapper.put("organisation-address", "/mandatory-questions/" + mandatoryQuestion.getId() + "/organisation-type");
-        mapper.put("organisation-type", "/mandatory-questions/" + mandatoryQuestion.getId() + "/organisation-companies-house-number");
-        mapper.put("organisation-companies-house-number", "/mandatory-questions/" + mandatoryQuestion.getId() + "/organisation-charity-commission-number");
-        mapper.put("organisation-charity-commission-number", "/mandatory-questions/" + mandatoryQuestion.getId() + "/organisation-funding-amount");
-        mapper.put("organisation-funding-amount", "/mandatory-questions/" + mandatoryQuestion.getId() + "/organisation-funding-location");
-        mapper.put("organisation-funding-location", "/mandatory-questions/" + mandatoryQuestion.getId() + "/organisation-summary");
+        mapper.put("organisation-name", "/mandatory-questions/" + mandatoryQuestionId + "/organisation-address");
+        mapper.put("organisation-address", "/mandatory-questions/" + mandatoryQuestionId + "/organisation-type");
+        mapper.put("organisation-type", "/mandatory-questions/" + mandatoryQuestionId + "/organisation-companies-house-number");
+        mapper.put("organisation-companies-house-number", "/mandatory-questions/" + mandatoryQuestionId + "/organisation-charity-commission-number");
+        mapper.put("organisation-charity-commission-number", "/mandatory-questions/" + mandatoryQuestionId + "/organisation-funding-amount");
+        mapper.put("organisation-funding-amount", "/mandatory-questions/" + mandatoryQuestionId + "/organisation-funding-location");
+        mapper.put("organisation-funding-location", "/mandatory-questions/" + mandatoryQuestionId + "/organisation-summary");
 
         final String[] urlParts = url.split("/");
         //takes the last part of the url and strips it of eventual queryParams

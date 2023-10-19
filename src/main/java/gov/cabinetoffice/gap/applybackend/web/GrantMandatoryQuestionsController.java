@@ -35,6 +35,7 @@ import org.springframework.web.bind.annotation.RestController;
 import javax.servlet.http.HttpServletRequest;
 import javax.validation.Valid;
 import java.math.BigDecimal;
+import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 
@@ -92,13 +93,25 @@ public class GrantMandatoryQuestionsController {
     })
     public ResponseEntity<String> updateMandatoryQuestion(@PathVariable final UUID mandatoryQuestionId,
                                                           @RequestBody @Valid final UpdateGrantMandatoryQuestionDto mandatoryQuestionDto, @RequestParam final String url){
+
         final JwtPayload jwtPayload = (JwtPayload) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        final GrantApplicant applicant = grantApplicantService.getApplicantById(jwtPayload.getSub());
         final GrantMandatoryQuestions grantMandatoryQuestions = grantMandatoryQuestionService.getGrantMandatoryQuestionById(mandatoryQuestionId, jwtPayload.getSub());
 
-        mapDtoToEntity(mandatoryQuestionDto, grantMandatoryQuestions);
+        grantMandatoryQuestionMapper.mapUpdateGrantMandatoryQuestionDtoToGrantMandatoryQuestion( mandatoryQuestionDto,grantMandatoryQuestions);
+
+        if (grantMandatoryQuestions.getStatus().equals(GrantMandatoryQuestionStatus.NOT_STARTED)) {
+            grantMandatoryQuestions.setStatus(GrantMandatoryQuestionStatus.IN_PROGRESS);
+        }
+        grantMandatoryQuestions.setLastUpdatedBy(applicant);
+        grantMandatoryQuestions.setLastUpdated(Instant.now());
+
+
         grantMandatoryQuestionService.updateMandatoryQuestion(grantMandatoryQuestions);
+
         log.info("Mandatory question with ID {} has been updated.", grantMandatoryQuestions.getId());
-        return ResponseEntity.ok(grantMandatoryQuestionService.generateNextPageUrl(url, grantMandatoryQuestions));
+
+        return ResponseEntity.ok(grantMandatoryQuestionService.generateNextPageUrl(url, mandatoryQuestionId));
     }
 
 
@@ -119,8 +132,6 @@ public class GrantMandatoryQuestionsController {
             grantMandatoryQuestions.setFundingLocation(grantMandatoryQuestionFundingLocations);
         }
 
-        if (grantMandatoryQuestions.getStatus().equals(GrantMandatoryQuestionStatus.NOT_STARTED)) {
-            grantMandatoryQuestions.setStatus(GrantMandatoryQuestionStatus.IN_PROGRESS);
-        }
+
     }
 }
