@@ -43,7 +43,7 @@ public interface GrantMandatoryQuestionMapper {
         }
         final List<String> fundingLocation = new ArrayList<>();
         for (GrantMandatoryQuestionFundingLocation fundingLocationType : type) {
-            fundingLocation.add(fundingLocationType.name());
+            fundingLocation.add(fundingLocationType.getName());
         }
         return fundingLocation;
     }

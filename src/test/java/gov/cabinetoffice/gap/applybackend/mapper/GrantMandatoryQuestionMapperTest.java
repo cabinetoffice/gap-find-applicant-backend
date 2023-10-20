@@ -47,7 +47,7 @@ class GrantMandatoryQuestionMapperTest {
             assertThat(result.getCompaniesHouseNumber()).isEqualTo(grantMandatoryQuestions.getCompaniesHouseNumber());
             assertThat(result.getCharityCommissionNumber()).isEqualTo(grantMandatoryQuestions.getCharityCommissionNumber());
             assertThat(result.getFundingAmount()).isEqualTo(grantMandatoryQuestions.getFundingAmount().toString());
-            assertThat(result.getFundingLocation()).isEqualTo(List.of(grantMandatoryQuestions.getFundingLocation()[0].name()));
+            assertThat(result.getFundingLocation()).isEqualTo(List.of(grantMandatoryQuestions.getFundingLocation()[0].getName()));
         }
 
         @Test
