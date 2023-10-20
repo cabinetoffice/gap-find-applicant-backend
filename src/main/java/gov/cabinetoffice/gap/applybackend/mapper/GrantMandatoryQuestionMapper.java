@@ -28,7 +28,7 @@ public interface GrantMandatoryQuestionMapper {
 
     @Named("mapEntityOrgTypeToDtoOrgType")
     default String mapEntityOrgTypeToDtoOrgType(GrantMandatoryQuestionOrgType type) {
-        return type.name();
+        return type.toString();
     }
 
     @Named("mapEntityFundingAmountToDtoFundingAmount")
