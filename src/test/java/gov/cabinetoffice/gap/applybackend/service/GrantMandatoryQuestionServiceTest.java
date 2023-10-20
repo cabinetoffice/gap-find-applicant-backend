@@ -2,7 +2,9 @@ package gov.cabinetoffice.gap.applybackend.service;
 
 import gov.cabinetoffice.gap.applybackend.exception.ForbiddenException;
 import gov.cabinetoffice.gap.applybackend.exception.NotFoundException;
+import gov.cabinetoffice.gap.applybackend.mapper.GrantApplicantOrganisationProfileMapper;
 import gov.cabinetoffice.gap.applybackend.model.GrantApplicant;
+import gov.cabinetoffice.gap.applybackend.model.GrantApplicantOrganisationProfile;
 import gov.cabinetoffice.gap.applybackend.model.GrantMandatoryQuestions;
 import gov.cabinetoffice.gap.applybackend.model.GrantScheme;
 import gov.cabinetoffice.gap.applybackend.repository.GrantMandatoryQuestionRepository;
@@ -33,8 +35,20 @@ class GrantMandatoryQuestionServiceTest {
     final ArgumentCaptor<GrantMandatoryQuestions> captor = ArgumentCaptor.forClass(GrantMandatoryQuestions.class);
     private final String applicantUserId = "75ab5fbd-0682-4d3d-a467-01c7a447f07c";
     private final UUID MANDATORY_QUESTION_ID = UUID.fromString("8e33d655-556e-49d5-bc46-3cfa4fdfa00f");
+
+    private final GrantApplicantOrganisationProfile organisationProfile = GrantApplicantOrganisationProfile
+            .builder()
+            .id(1)
+            .legalName("legalName")
+            .addressLine1("addressLine1")
+            .town("town")
+            .postcode("postcode")
+            .build();
     @Mock
     private GrantMandatoryQuestionRepository grantMandatoryQuestionRepository;
+    @Mock
+    private GrantApplicantOrganisationProfileMapper organisationProfileMapper;
+
     @InjectMocks
     private GrantMandatoryQuestionService serviceUnderTest;
 
@@ -136,11 +150,16 @@ class GrantMandatoryQuestionServiceTest {
             final GrantApplicant applicant = GrantApplicant
                     .builder()
                     .userId(applicantUserId)
+                    .organisationProfile(organisationProfile)
                     .build();
 
             final GrantMandatoryQuestions grantMandatoryQuestions = GrantMandatoryQuestions.builder()
                     .grantScheme(scheme)
                     .createdBy(applicant)
+                    .city(organisationProfile.getTown())
+                    .name(organisationProfile.getLegalName())
+                    .postcode(organisationProfile.getPostcode())
+                    .addressLine1(organisationProfile.getAddressLine1())
                     .build();
 
             when(grantMandatoryQuestionRepository.findByGrantSchemeAndCreatedBy(scheme, applicant))
@@ -149,8 +168,12 @@ class GrantMandatoryQuestionServiceTest {
             when(grantMandatoryQuestionRepository.save(Mockito.any()))
                     .thenReturn(grantMandatoryQuestions);
 
+            when(organisationProfileMapper.mapOrgProfileToGrantMandatoryQuestion(organisationProfile))
+                    .thenReturn(grantMandatoryQuestions);
+
             final GrantMandatoryQuestions methodResponse = serviceUnderTest.createMandatoryQuestion(scheme, applicant);
 
+            verify(organisationProfileMapper).mapOrgProfileToGrantMandatoryQuestion(organisationProfile);
             verify(grantMandatoryQuestionRepository).save(any());
             assertThat(methodResponse).isEqualTo(grantMandatoryQuestions);
         }
@@ -196,5 +219,17 @@ class GrantMandatoryQuestionServiceTest {
         }
     }
 
+    @Nested
+    class generateNextPageUrl {
+        @Test
+        public void testGenerateNextPageUrl() {
+            final String url = "/any/url/organisation-address?some-param=some-value";
+            final String expectedNextPageUrl = "/mandatory-questions/" + MANDATORY_QUESTION_ID + "/organisation-type";
+
+            final String nextPageUrl = serviceUnderTest.generateNextPageUrl(url, MANDATORY_QUESTION_ID);
+
+            assertThat(nextPageUrl).isEqualTo(expectedNextPageUrl);
+        }
+    }
 
 }

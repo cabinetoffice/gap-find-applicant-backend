@@ -17,75 +17,62 @@ import java.util.ArrayList;
 import java.util.List;
 
 
-@Mapper(componentModel = "spring")
+@Mapper(componentModel = "spring", nullValueCheckStrategy = NullValueCheckStrategy.ALWAYS, nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
 public interface GrantMandatoryQuestionMapper {
 
 
     @Mapping(source = "orgType", target = "orgType", qualifiedByName = "mapEntityOrgTypeToDtoOrgType")
+    @Mapping(source = "fundingAmount", target = "fundingAmount", qualifiedByName = "mapEntityFundingAmountToDtoFundingAmount")
     @Mapping(source = "fundingLocation", target = "fundingLocation", qualifiedByName = "mapEntityFundingLocationToDtoFundingLocation")
     GetGrantMandatoryQuestionDto mapGrantMandatoryQuestionToGetGrantMandatoryQuestionDTO(GrantMandatoryQuestions source);
 
     @Named("mapEntityOrgTypeToDtoOrgType")
     default String mapEntityOrgTypeToDtoOrgType(GrantMandatoryQuestionOrgType type) {
-        if (type != null) {
-            return type.name();
-        }
-        return null;
+        return type.name();
+    }
+
+    @Named("mapEntityFundingAmountToDtoFundingAmount")
+    default String mapEntityFundingAmountToDtoFundingAmount(BigDecimal fundingAmount) {
+        return fundingAmount.toString();
     }
 
     @Named("mapEntityFundingLocationToDtoFundingLocation")
     default List<String> mapEntityFundingLocationToDtoFundingLocation(GrantMandatoryQuestionFundingLocation[] type) {
-        List<String> fundingLocation = new ArrayList<>();
-        if (type != null) {
-            for (GrantMandatoryQuestionFundingLocation fundingLocationType : type) {
-                fundingLocation.add(fundingLocationType.name());
-            }
+        if (type == null) {
+            return null;
+        }
+        final List<String> fundingLocation = new ArrayList<>();
+        for (GrantMandatoryQuestionFundingLocation fundingLocationType : type) {
+            fundingLocation.add(fundingLocationType.name());
         }
         return fundingLocation;
     }
 
-    //nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE
-    //it will copy the value from the dto to the entity, only if the Dto property is not null
-    @Mapping(source = "name", target = "name", nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
-    @Mapping(source = "addressLine1", target = "addressLine1", nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
-    @Mapping(source = "addressLine2", target = "addressLine2", nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
-    @Mapping(source = "county", target = "county", nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
-    @Mapping(source = "city", target = "city", nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
-    @Mapping(source = "postcode", target = "postcode", nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
-    @Mapping(source = "charityCommissionNumber", target = "charityCommissionNumber", nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
-    @Mapping(source = "companiesHouseNumber", target = "companiesHouseNumber", nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
-    @Mapping(source = "orgType", target = "orgType", qualifiedByName = "mapDtoOrgTypeToEntityOrgType", nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
-    @Mapping(source = "fundingAmount", target = "fundingAmount", qualifiedByName = "mapDtoFundingAmountToEntityFundingAmount", nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
-    @Mapping(source = "fundingLocation", target = "fundingLocation", qualifiedByName = "mapDtoFundingLocationToEntityFundingLocation", nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
+    @Mapping(source = "orgType", target = "orgType", qualifiedByName = "mapDtoOrgTypeToEntityOrgType")
+    @Mapping(source = "fundingAmount", target = "fundingAmount", qualifiedByName = "mapDtoFundingAmountToEntityFundingAmount")
+    @Mapping(source = "fundingLocation", target = "fundingLocation", qualifiedByName = "mapDtoFundingLocationToEntityFundingLocation")
     GrantMandatoryQuestions mapUpdateGrantMandatoryQuestionDtoToGrantMandatoryQuestion(UpdateGrantMandatoryQuestionDto dto, @MappingTarget GrantMandatoryQuestions entity);
 
     @Named("mapDtoOrgTypeToEntityOrgType")
     default GrantMandatoryQuestionOrgType mapDtoOrgTypeToEntityOrgType(String orgType) {
-        if (orgType != null) {
-            return GrantMandatoryQuestionOrgType.valueOfName(orgType);
-        }
-        return null;
+        return GrantMandatoryQuestionOrgType.valueOfName(orgType);
     }
 
     @Named("mapDtoFundingAmountToEntityFundingAmount")
     default BigDecimal mapDtoFundingAmountToEntityFundingAmount(String fundingAmount) {
-        if (fundingAmount != null) {
-            return new BigDecimal(fundingAmount);
-        }
-        return null;
+        return new BigDecimal(fundingAmount);
     }
 
     @Named("mapDtoFundingLocationToEntityFundingLocation")
     default GrantMandatoryQuestionFundingLocation[] mapDtoFundingLocationToEntityFundingLocation(List<String> fundingLocations) {
-
-        if (fundingLocations != null) {
-            GrantMandatoryQuestionFundingLocation[] grantMandatoryQuestionFundingLocations = new GrantMandatoryQuestionFundingLocation[fundingLocations.size()];
-            for (int i = 0; i < fundingLocations.size(); i++) {
-                grantMandatoryQuestionFundingLocations[i] = GrantMandatoryQuestionFundingLocation.valueOfName(fundingLocations.get(i));
-            }
-            return grantMandatoryQuestionFundingLocations;
+        if (fundingLocations == null) {
+            return null;
         }
-        return null;
+        final GrantMandatoryQuestionFundingLocation[] grantMandatoryQuestionFundingLocations = new GrantMandatoryQuestionFundingLocation[fundingLocations.size()];
+        for (int i = 0; i < fundingLocations.size(); i++) {
+            grantMandatoryQuestionFundingLocations[i] = GrantMandatoryQuestionFundingLocation.valueOfName(fundingLocations.get(i));
+        }
+        return grantMandatoryQuestionFundingLocations;
     }
 }
 
