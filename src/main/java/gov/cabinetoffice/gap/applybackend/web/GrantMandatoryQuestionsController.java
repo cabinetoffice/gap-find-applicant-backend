@@ -33,6 +33,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import javax.validation.Valid;
 import java.math.BigDecimal;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
@@ -80,7 +81,15 @@ public class GrantMandatoryQuestionsController {
 
         getGrantMandatoryQuestionDto.setNextNotAnsweredPage(nextNotAnsweredPage);
         getGrantMandatoryQuestionDto.setPageAlreadyAnswered(isPageAlreadyAnswered);
-
+        //TODO: set mapstruct to do this
+        if (grantMandatoryQuestions.getFundingLocation() != null) {
+            List<String> locations = new ArrayList<>();
+            for (int i = 0; i < grantMandatoryQuestions.getFundingLocation().length; i++) {
+                String location = grantMandatoryQuestions.getFundingLocation()[i].getName();
+                locations.add(location);
+            }
+            getGrantMandatoryQuestionDto.setFundingLocation(locations);
+        }
         return ResponseEntity.ok(getGrantMandatoryQuestionDto);
     }
 
@@ -102,25 +111,49 @@ public class GrantMandatoryQuestionsController {
         return ResponseEntity.ok(grantMandatoryQuestionService.generateNextPageUrl(grantMandatoryQuestions));
     }
 
+    //TODO: change it to mapstruct when turning the validation on
     protected void mapDtoToEntity(UpdateGrantMandatoryQuestionDto mandatoryQuestionDto, GrantMandatoryQuestions grantMandatoryQuestions) {
-        modelMapper.map(mandatoryQuestionDto, grantMandatoryQuestions);
+        if (mandatoryQuestionDto.getName() != null) {
+            grantMandatoryQuestions.setName(mandatoryQuestionDto.getName());
+        }
+        if (mandatoryQuestionDto.getAddressLine1() != null) {
+            grantMandatoryQuestions.setAddressLine1(mandatoryQuestionDto.getAddressLine1());
+        }
+        if (mandatoryQuestionDto.getAddressLine2() != null) {
+            grantMandatoryQuestions.setAddressLine2(mandatoryQuestionDto.getAddressLine2());
+        }
+        if (mandatoryQuestionDto.getCity() != null) {
+            grantMandatoryQuestions.setCity(mandatoryQuestionDto.getCity());
+        }
+        if (mandatoryQuestionDto.getCounty() != null) {
+            grantMandatoryQuestions.setCounty(mandatoryQuestionDto.getCounty());
+        }
+        if (mandatoryQuestionDto.getPostcode() != null) {
+            grantMandatoryQuestions.setPostcode(mandatoryQuestionDto.getPostcode());
+        }
         if (mandatoryQuestionDto.getOrgType() != null) {
             grantMandatoryQuestions.setOrgType(GrantMandatoryQuestionOrgType.valueOfName(mandatoryQuestionDto.getOrgType()));
+        }
+        if (mandatoryQuestionDto.getCompaniesHouseNumber() != null) {
+            grantMandatoryQuestions.setCompaniesHouseNumber(mandatoryQuestionDto.getCompaniesHouseNumber());
+        }
+        if (mandatoryQuestionDto.getCharityCommissionNumber() != null) {
+            grantMandatoryQuestions.setCharityCommissionNumber(mandatoryQuestionDto.getCharityCommissionNumber());
         }
         if (mandatoryQuestionDto.getFundingAmount() != null) {
             grantMandatoryQuestions.setFundingAmount(new BigDecimal(mandatoryQuestionDto.getFundingAmount()));
         }
         if (mandatoryQuestionDto.getFundingLocation() != null) {
-            final List<String> locations = mandatoryQuestionDto.getFundingLocation();
+            List<String> locations = mandatoryQuestionDto.getFundingLocation();
             GrantMandatoryQuestionFundingLocation[] grantMandatoryQuestionFundingLocations = new GrantMandatoryQuestionFundingLocation[locations.size()];
             for (int i = 0; i < locations.size(); i++) {
                 grantMandatoryQuestionFundingLocations[i] = GrantMandatoryQuestionFundingLocation.valueOfName(locations.get(i));
             }
             grantMandatoryQuestions.setFundingLocation(grantMandatoryQuestionFundingLocations);
         }
-
         if (grantMandatoryQuestions.getStatus().equals(GrantMandatoryQuestionStatus.NOT_STARTED)) {
             grantMandatoryQuestions.setStatus(GrantMandatoryQuestionStatus.IN_PROGRESS);
         }
     }
+
 }
