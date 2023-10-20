@@ -69,13 +69,14 @@ public class GrantMandatoryQuestionService {
 
     public String generateNextPageUrl(String url, UUID mandatoryQuestionId) {
         final Map<String, String> mapper = new HashMap<>();
-        mapper.put("organisation-name", "/mandatory-questions/" + mandatoryQuestionId + "/organisation-address");
-        mapper.put("organisation-address", "/mandatory-questions/" + mandatoryQuestionId + "/organisation-type");
-        mapper.put("organisation-type", "/mandatory-questions/" + mandatoryQuestionId + "/organisation-companies-house-number");
-        mapper.put("organisation-companies-house-number", "/mandatory-questions/" + mandatoryQuestionId + "/organisation-charity-commission-number");
-        mapper.put("organisation-charity-commission-number", "/mandatory-questions/" + mandatoryQuestionId + "/organisation-funding-amount");
-        mapper.put("organisation-funding-amount", "/mandatory-questions/" + mandatoryQuestionId + "/organisation-funding-location");
-        mapper.put("organisation-funding-location", "/mandatory-questions/" + mandatoryQuestionId + "/organisation-summary");
+        String mandatoryQuestionsUrlStart = "/mandatory-questions/" + mandatoryQuestionId;
+        mapper.put("organisation-name", mandatoryQuestionsUrlStart  + "/organisation-address");
+        mapper.put("organisation-address", mandatoryQuestionsUrlStart + "/organisation-type");
+        mapper.put("organisation-type", mandatoryQuestionsUrlStart + "/organisation-companies-house-number");
+        mapper.put("organisation-companies-house-number", mandatoryQuestionsUrlStart + "/organisation-charity-commission-number");
+        mapper.put("organisation-charity-commission-number", mandatoryQuestionsUrlStart + "/organisation-funding-amount");
+        mapper.put("organisation-funding-amount", mandatoryQuestionsUrlStart + "/organisation-funding-location");
+        mapper.put("organisation-funding-location", mandatoryQuestionsUrlStart + "/organisation-summary");
 
         final String[] urlParts = url.split("/");
         //takes the last part of the url and strips it of eventual queryParams
