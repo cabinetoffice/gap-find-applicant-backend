@@ -5,20 +5,20 @@ import gov.cabinetoffice.gap.applybackend.dto.api.JwtPayload;
 import gov.cabinetoffice.gap.applybackend.dto.api.UpdateGrantMandatoryQuestionDto;
 import gov.cabinetoffice.gap.applybackend.enums.GrantMandatoryQuestionFundingLocation;
 import gov.cabinetoffice.gap.applybackend.enums.GrantMandatoryQuestionOrgType;
+import gov.cabinetoffice.gap.applybackend.mapper.GrantMandatoryQuestionMapper;
 import gov.cabinetoffice.gap.applybackend.model.GrantApplicant;
+import gov.cabinetoffice.gap.applybackend.model.GrantApplicantOrganisationProfile;
 import gov.cabinetoffice.gap.applybackend.model.GrantMandatoryQuestions;
 import gov.cabinetoffice.gap.applybackend.model.GrantScheme;
 import gov.cabinetoffice.gap.applybackend.service.GrantApplicantService;
 import gov.cabinetoffice.gap.applybackend.service.GrantMandatoryQuestionService;
 import gov.cabinetoffice.gap.applybackend.service.GrantSchemeService;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.modelmapper.ModelMapper;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
@@ -30,9 +30,6 @@ import java.util.List;
 import java.util.UUID;
 
 import static gov.cabinetoffice.gap.applybackend.enums.GrantMandatoryQuestionFundingLocation.SCOTLAND;
-import static gov.cabinetoffice.gap.applybackend.enums.GrantMandatoryQuestionFundingLocation.WALES;
-import static gov.cabinetoffice.gap.applybackend.enums.GrantMandatoryQuestionStatus.IN_PROGRESS;
-import static gov.cabinetoffice.gap.applybackend.enums.GrantMandatoryQuestionStatus.NOT_STARTED;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -42,10 +39,13 @@ import static org.mockito.Mockito.when;
 class GrantMandatoryQuestionsControllerTest {
 
     private final String applicantUserId = "75ab5fbd-0682-4d3d-a467-01c7a447f07c";
-
+    private final GrantApplicantOrganisationProfile applicantOrganisationProfile = GrantApplicantOrganisationProfile.builder()
+            .id(1)
+            .build();
     private final GrantApplicant applicant = GrantApplicant.builder()
             .id(1)
             .userId(applicantUserId)
+            .organisationProfile(applicantOrganisationProfile)
             .build();
 
     private final int schemeId = 123;
@@ -54,15 +54,16 @@ class GrantMandatoryQuestionsControllerTest {
             .id(schemeId)
             .build();
 
+    private final UUID MANDATORY_QUESTION_ID = UUID.fromString("8e33d655-556e-49d5-bc46-3cfa4fdfa00f");
+
     @Mock
     private GrantMandatoryQuestionService grantMandatoryQuestionService;
+    @Mock
+    private GrantMandatoryQuestionMapper grantMandatoryQuestionMapper;
     @Mock
     private GrantApplicantService grantApplicantService;
     @Mock
     private GrantSchemeService grantSchemeService;
-    @Mock
-    private ModelMapper modelMapper;
-
     @Mock
     private Authentication authentication;
     @Mock
@@ -72,256 +73,134 @@ class GrantMandatoryQuestionsControllerTest {
 
     private JwtPayload jwtPayload;
 
-    @Nested
-    class controllerTests {
-        @BeforeEach
-        void setup() {
-            when(securityContext.getAuthentication()).thenReturn(authentication);
-            SecurityContextHolder.setContext(securityContext);
-            jwtPayload = JwtPayload.builder().sub(applicantUserId).build();
-            when(SecurityContextHolder.getContext().getAuthentication().getPrincipal()).thenReturn(jwtPayload);
-        }
-
-        @Test
-        void createMandatoryQuestion_CreatesMandatoryQuestionEntry_AndReturnsItsID() {
-
-            final UUID mandatoryQuestionsId = UUID.randomUUID();
-            final GrantMandatoryQuestions emptyMandatoryQuestions = GrantMandatoryQuestions.builder()
-                    .id(mandatoryQuestionsId)
-                    .build();
-
-            when(grantApplicantService.getApplicantById(applicantUserId))
-                    .thenReturn(applicant);
-
-            when(grantSchemeService.getSchemeById(schemeId))
-                    .thenReturn(scheme);
-
-            when(grantMandatoryQuestionService.createMandatoryQuestion(scheme, applicant))
-                    .thenReturn(emptyMandatoryQuestions);
-
-            final ResponseEntity<UUID> methodResponse = controllerUnderTest.createMandatoryQuestion(schemeId);
-
-            assertThat(methodResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
-            assertThat(methodResponse.getBody()).isEqualTo(emptyMandatoryQuestions.getId());
-
-        }
-
-        @Test
-        void getGrantMandatoryQuestionsById_ReturnsExpectedMandatoryQuestions() {
-
-            final UUID mandatoryQuestionsId = UUID.randomUUID();
-            final GrantMandatoryQuestionFundingLocation fundingLocation = SCOTLAND;
-            final GrantMandatoryQuestionFundingLocation[] fundingLocations = new GrantMandatoryQuestionFundingLocation[]{fundingLocation};
-            final GrantMandatoryQuestions mandatoryQuestions = GrantMandatoryQuestions.builder()
-                    .id(mandatoryQuestionsId)
-                    .createdBy(applicant)
-                    .grantScheme(scheme)
-                    .name("AND Digital")
-                    .fundingAmount(new BigDecimal("50000.00"))
-                    .addressLine1("215 Bothwell Street")
-                    .city("Glasgow")
-                    .postcode("G2 7EZ")
-                    .fundingLocation(fundingLocations)
-                    .companiesHouseNumber("08761455")
-                    .orgType(GrantMandatoryQuestionOrgType.LIMITED_COMPANY)
-                    .build();
-
-            final GetGrantMandatoryQuestionDto mandatoryQuestionsDto = GetGrantMandatoryQuestionDto.builder()
-                    .name("AND Digital")
-                    .fundingAmount("50000.00")
-                    .addressLine1("215 Bothwell Street")
-                    .city("Glasgow")
-                    .postcode("G2 7EZ")
-                    .fundingLocation(List.of("Scotland"))
-                    .companiesHouseNumber("08761455")
-                    .orgType("Limited company")
-                    .schemeId(scheme.getId())
-                    .isPageAlreadyAnswered(true)
-                    .nextNotAnsweredPage("nextPageUrl")
-                    .build();
-
-            when(grantMandatoryQuestionService.getGrantMandatoryQuestionById(mandatoryQuestionsId, jwtPayload.getSub()))
-                    .thenReturn(mandatoryQuestions);
-
-            when(modelMapper.map(mandatoryQuestions, GetGrantMandatoryQuestionDto.class))
-                    .thenReturn(mandatoryQuestionsDto);
-
-            when(grantMandatoryQuestionService.isPageAlreadyAnswered("url", mandatoryQuestionsDto))
-                    .thenReturn(true);
-
-            when(grantMandatoryQuestionService.generateNextPageUrl(mandatoryQuestions))
-                    .thenReturn("nextPageUrl");
-
-            final ResponseEntity<GetGrantMandatoryQuestionDto> methodResponse = controllerUnderTest.getGrantMandatoryQuestionsById(mandatoryQuestionsId, "url");
-
-            assertThat(methodResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
-            assertThat(methodResponse.getBody()).isEqualTo(mandatoryQuestionsDto);
-        }
-
-        @Test
-        void updateMandatoryQuestion_UpdatesExpectedFields_AndSavesChanges() {
-            final GrantMandatoryQuestionFundingLocation fundingLocation = SCOTLAND;
-            final GrantMandatoryQuestionFundingLocation[] fundingLocations = new GrantMandatoryQuestionFundingLocation[]{fundingLocation};
-            final String updatedValue = "AND Digital updated";
-            final UpdateGrantMandatoryQuestionDto updateDto = UpdateGrantMandatoryQuestionDto.builder()
-                    .name(updatedValue)
-                    .build();
-
-            final UUID mandatoryQuestionsId = UUID.randomUUID();
-
-            final GrantMandatoryQuestions mandatoryQuestions = GrantMandatoryQuestions.builder()
-                    .id(mandatoryQuestionsId)
-                    .createdBy(applicant)
-                    .grantScheme(scheme)
-                    .name("AND Digital")
-                    .fundingAmount(new BigDecimal("50000.00"))
-                    .addressLine1("215 Bothwell Street")
-                    .city("Glasgow")
-                    .postcode("G2 7EZ")
-                    .fundingLocation(fundingLocations)
-                    .companiesHouseNumber("08761455")
-                    .orgType(GrantMandatoryQuestionOrgType.LIMITED_COMPANY)
-                    .build();
-
-            when(grantMandatoryQuestionService.getGrantMandatoryQuestionById(mandatoryQuestionsId, jwtPayload.getSub()))
-                    .thenReturn(mandatoryQuestions);
-            when(grantMandatoryQuestionService.generateNextPageUrl(mandatoryQuestions))
-                    .thenReturn("nextPageUrl");
-            final ResponseEntity<String> methodResponse = controllerUnderTest.updateMandatoryQuestion(mandatoryQuestionsId, updateDto);
-
-            verify(grantMandatoryQuestionService).updateMandatoryQuestion(mandatoryQuestions);
-
-            assertThat(methodResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
-            assertThat(methodResponse.getBody()).isEqualTo("nextPageUrl");
-
-        }
+    @BeforeEach
+    void setup() {
+        when(securityContext.getAuthentication()).thenReturn(authentication);
+        SecurityContextHolder.setContext(securityContext);
+        jwtPayload = JwtPayload.builder().sub(applicantUserId).build();
+        when(SecurityContextHolder.getContext().getAuthentication().getPrincipal()).thenReturn(jwtPayload);
     }
 
-    @Nested
-    class protectedMethod {
-        @Test
-        public void testMapDtoToEntityWithOrgType() {
-            final UpdateGrantMandatoryQuestionDto dto = UpdateGrantMandatoryQuestionDto.builder().orgType("Limited company").build();
-            final GrantMandatoryQuestions entity = new GrantMandatoryQuestions();
+    @Test
+    void createMandatoryQuestion_CreatesMandatoryQuestionEntry_AndReturnsItsID() {
 
-            controllerUnderTest.mapDtoToEntity(dto, entity);
+        final GrantMandatoryQuestions emptyMandatoryQuestions = GrantMandatoryQuestions.builder()
+                .id(MANDATORY_QUESTION_ID)
+                .build();
+        final GetGrantMandatoryQuestionDto emptyMandatoryQuestionsDto = GetGrantMandatoryQuestionDto.builder()
+                .id(MANDATORY_QUESTION_ID)
+                .build();
 
-            assertThat(entity.getOrgType()).isEqualTo(GrantMandatoryQuestionOrgType.LIMITED_COMPANY);
-        }
+        when(grantApplicantService.getApplicantById(applicantUserId))
+                .thenReturn(applicant);
 
-        @Test
-        public void testMapDtoToEntityWithFundingAmount() {
-            final UpdateGrantMandatoryQuestionDto dto = UpdateGrantMandatoryQuestionDto.builder().fundingAmount("1000.00").build();
-            final GrantMandatoryQuestions entity = new GrantMandatoryQuestions();
+        when(grantSchemeService.getSchemeById(schemeId))
+                .thenReturn(scheme);
 
-            controllerUnderTest.mapDtoToEntity(dto, entity);
+        when(grantMandatoryQuestionService.createMandatoryQuestion(scheme, applicant))
+                .thenReturn(emptyMandatoryQuestions);
 
-            assertThat(entity.getFundingAmount()).isEqualTo(new BigDecimal("1000.00"));
-        }
+        when(grantMandatoryQuestionMapper.mapGrantMandatoryQuestionToGetGrantMandatoryQuestionDTO(emptyMandatoryQuestions))
+                .thenReturn(emptyMandatoryQuestionsDto);
 
-        @Test
-        public void testMapDtoToEntityWithFundingLocation() {
-            final UpdateGrantMandatoryQuestionDto dto = UpdateGrantMandatoryQuestionDto.builder().fundingLocation(List.of("Scotland", "Wales")).build();
-            final GrantMandatoryQuestions entity = new GrantMandatoryQuestions();
+        final ResponseEntity<GetGrantMandatoryQuestionDto> methodResponse = controllerUnderTest.createMandatoryQuestion(schemeId);
 
-            controllerUnderTest.mapDtoToEntity(dto, entity);
+        verify(grantMandatoryQuestionService).createMandatoryQuestion(scheme, applicant);
+        assertThat(methodResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(methodResponse.getBody()).isEqualTo(emptyMandatoryQuestionsDto);
 
-            assertThat(entity.getFundingLocation()).isEqualTo(new GrantMandatoryQuestionFundingLocation[]{SCOTLAND, WALES});
-        }
-
-        @Test
-        public void testMapDtoToEntityWithStatusChange() {
-            final UpdateGrantMandatoryQuestionDto dto = UpdateGrantMandatoryQuestionDto.builder().build();
-
-            final GrantMandatoryQuestions entity = GrantMandatoryQuestions.builder().status(NOT_STARTED).build();
-
-            controllerUnderTest.mapDtoToEntity(dto, entity);
-
-            assertThat(entity.getStatus()).isEqualTo(IN_PROGRESS);
-        }
-
-        @Test
-        public void testMapDtoToEntityWithAddressLine1() {
-            final UpdateGrantMandatoryQuestionDto dto = UpdateGrantMandatoryQuestionDto.builder()
-                    .addressLine1("123 Main Street")
-                    .build();
-            final GrantMandatoryQuestions entity = new GrantMandatoryQuestions();
-
-            controllerUnderTest.mapDtoToEntity(dto, entity);
-
-            assertThat(entity.getAddressLine1()).isEqualTo("123 Main Street");
-        }
-
-        @Test
-        public void testMapDtoToEntityWithAddressLine2() {
-            final UpdateGrantMandatoryQuestionDto dto = UpdateGrantMandatoryQuestionDto.builder()
-                    .addressLine2("Apt 4B")
-                    .build();
-            final GrantMandatoryQuestions entity = new GrantMandatoryQuestions();
-
-            controllerUnderTest.mapDtoToEntity(dto, entity);
-
-            assertThat(entity.getAddressLine2()).isEqualTo("Apt 4B");
-        }
-
-        @Test
-        public void testMapDtoToEntityWithCity() {
-            final UpdateGrantMandatoryQuestionDto dto = UpdateGrantMandatoryQuestionDto.builder()
-                    .city("New York")
-                    .build();
-            final GrantMandatoryQuestions entity = new GrantMandatoryQuestions();
-
-            controllerUnderTest.mapDtoToEntity(dto, entity);
-
-            assertThat(entity.getCity()).isEqualTo("New York");
-        }
-
-        @Test
-        public void testMapDtoToEntityWithCounty() {
-            final UpdateGrantMandatoryQuestionDto dto = UpdateGrantMandatoryQuestionDto.builder()
-                    .county("Suffolk")
-                    .build();
-            final GrantMandatoryQuestions entity = new GrantMandatoryQuestions();
-
-            controllerUnderTest.mapDtoToEntity(dto, entity);
-
-            assertThat(entity.getCounty()).isEqualTo("Suffolk");
-        }
-
-        @Test
-        public void testMapDtoToEntityWithPostcode() {
-            final UpdateGrantMandatoryQuestionDto dto = UpdateGrantMandatoryQuestionDto.builder()
-                    .postcode("12345")
-                    .build();
-            final GrantMandatoryQuestions entity = new GrantMandatoryQuestions();
-
-            controllerUnderTest.mapDtoToEntity(dto, entity);
-
-            assertThat(entity.getPostcode()).isEqualTo("12345");
-        }
-
-        @Test
-        public void testMapDtoToEntityWithCompaniesHouseNumber() {
-            final UpdateGrantMandatoryQuestionDto dto = UpdateGrantMandatoryQuestionDto.builder()
-                    .companiesHouseNumber("AB12345")
-                    .build();
-            final GrantMandatoryQuestions entity = new GrantMandatoryQuestions();
-
-            controllerUnderTest.mapDtoToEntity(dto, entity);
-
-            assertThat(entity.getCompaniesHouseNumber()).isEqualTo("AB12345");
-        }
-
-        @Test
-        public void testMapDtoToEntityWithCharityCommissionNumber() {
-            final UpdateGrantMandatoryQuestionDto dto = UpdateGrantMandatoryQuestionDto.builder()
-                    .charityCommissionNumber("123456")
-                    .build();
-            final GrantMandatoryQuestions entity = new GrantMandatoryQuestions();
-
-            controllerUnderTest.mapDtoToEntity(dto, entity);
-
-            assertThat(entity.getCharityCommissionNumber()).isEqualTo("123456");
-        }
     }
+
+    @Test
+    void getGrantMandatoryQuestionsById_ReturnsExpectedMandatoryQuestions() {
+
+        final GrantMandatoryQuestionFundingLocation fundingLocation = SCOTLAND;
+        final GrantMandatoryQuestionFundingLocation[] fundingLocations = new GrantMandatoryQuestionFundingLocation[]{fundingLocation};
+        final GrantMandatoryQuestions mandatoryQuestions = GrantMandatoryQuestions.builder()
+                .id(MANDATORY_QUESTION_ID)
+                .createdBy(applicant)
+                .grantScheme(scheme)
+                .name("AND Digital")
+                .fundingAmount(new BigDecimal("50000.00"))
+                .addressLine1("215 Bothwell Street")
+                .city("Glasgow")
+                .postcode("G2 7EZ")
+                .fundingLocation(fundingLocations)
+                .companiesHouseNumber("08761455")
+                .orgType(GrantMandatoryQuestionOrgType.LIMITED_COMPANY)
+                .build();
+
+        final GetGrantMandatoryQuestionDto mandatoryQuestionsDto = GetGrantMandatoryQuestionDto.builder()
+                .name("AND Digital")
+                .fundingAmount("50000.00")
+                .addressLine1("215 Bothwell Street")
+                .city("Glasgow")
+                .postcode("G2 7EZ")
+                .fundingLocation(List.of("Scotland"))
+                .companiesHouseNumber("08761455")
+                .orgType("Limited company")
+                .schemeId(scheme.getId())
+                .build();
+
+        when(grantMandatoryQuestionService.getGrantMandatoryQuestionById(MANDATORY_QUESTION_ID, jwtPayload.getSub()))
+                .thenReturn(mandatoryQuestions);
+
+        when(grantMandatoryQuestionMapper.mapGrantMandatoryQuestionToGetGrantMandatoryQuestionDTO(mandatoryQuestions))
+                .thenReturn(mandatoryQuestionsDto);
+
+        final ResponseEntity<GetGrantMandatoryQuestionDto> methodResponse = controllerUnderTest.getGrantMandatoryQuestionsById(MANDATORY_QUESTION_ID);
+
+        verify(grantMandatoryQuestionService).getGrantMandatoryQuestionById(MANDATORY_QUESTION_ID, jwtPayload.getSub());
+        assertThat(methodResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(methodResponse.getBody()).isEqualTo(mandatoryQuestionsDto);
+    }
+
+    @Test
+    void updateMandatoryQuestion_UpdatesExpectedFields_AndSavesChanges() {
+        final GrantMandatoryQuestionFundingLocation fundingLocation = SCOTLAND;
+        final GrantMandatoryQuestionFundingLocation[] fundingLocations = new GrantMandatoryQuestionFundingLocation[]{fundingLocation};
+        final String updatedValue = "AND Digital updated";
+        final UpdateGrantMandatoryQuestionDto updateDto = UpdateGrantMandatoryQuestionDto.builder()
+                .name(updatedValue)
+                .build();
+
+        final GrantMandatoryQuestions mandatoryQuestions = GrantMandatoryQuestions.builder()
+                .id(MANDATORY_QUESTION_ID)
+                .createdBy(applicant)
+                .grantScheme(scheme)
+                .name("AND Digital")
+                .fundingAmount(new BigDecimal("50000.00"))
+                .addressLine1("215 Bothwell Street")
+                .city("Glasgow")
+                .postcode("G2 7EZ")
+                .fundingLocation(fundingLocations)
+                .companiesHouseNumber("08761455")
+                .orgType(GrantMandatoryQuestionOrgType.LIMITED_COMPANY)
+                .build();
+
+        when(grantApplicantService.getApplicantById(jwtPayload.getSub()))
+                .thenReturn(applicant);
+
+        when(grantMandatoryQuestionService.getGrantMandatoryQuestionById(MANDATORY_QUESTION_ID, jwtPayload.getSub()))
+                .thenReturn(mandatoryQuestions);
+
+        when(grantMandatoryQuestionMapper.mapUpdateGrantMandatoryQuestionDtoToGrantMandatoryQuestion(updateDto, mandatoryQuestions))
+                .thenReturn(mandatoryQuestions);
+
+        when(grantMandatoryQuestionService.updateMandatoryQuestion(mandatoryQuestions))
+                .thenReturn(mandatoryQuestions);
+
+        when(grantMandatoryQuestionService.generateNextPageUrl("url", MANDATORY_QUESTION_ID))
+                .thenReturn("nextPageUrl");
+
+
+        final ResponseEntity<String> methodResponse = controllerUnderTest.updateMandatoryQuestion(MANDATORY_QUESTION_ID, updateDto, "url");
+
+        verify(grantMandatoryQuestionService).updateMandatoryQuestion(mandatoryQuestions);
+        assertThat(methodResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(methodResponse.getBody()).isEqualTo("nextPageUrl");
+
+    }
+
+
 }
