@@ -14,17 +14,7 @@ import org.hibernate.annotations.Parameter;
 import org.hibernate.annotations.TypeDef;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
-import javax.persistence.Column;
-import javax.persistence.Entity;
-import javax.persistence.EntityListeners;
-import javax.persistence.EnumType;
-import javax.persistence.Enumerated;
-import javax.persistence.FetchType;
-import javax.persistence.GeneratedValue;
-import javax.persistence.Id;
-import javax.persistence.JoinColumn;
-import javax.persistence.ManyToOne;
-import javax.persistence.Table;
+import javax.persistence.*;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.UUID;
@@ -57,7 +47,7 @@ public class GrantMandatoryQuestions extends BaseEntity {
     @JoinColumn(name = "grant_scheme_id")
     private GrantScheme grantScheme;
 
-    @ManyToOne
+    @OneToOne
     @JoinColumn(name = "submission_id", referencedColumnName = "id")
     private Submission submission;
 
