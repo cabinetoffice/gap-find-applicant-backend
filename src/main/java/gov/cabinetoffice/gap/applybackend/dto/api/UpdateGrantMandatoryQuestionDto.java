@@ -1,5 +1,6 @@
 package gov.cabinetoffice.gap.applybackend.dto.api;
 
+import gov.cabinetoffice.gap.applybackend.validation.annotations.ValidFundingAmount;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -82,7 +83,7 @@ public class UpdateGrantMandatoryQuestionDto {
 
 
     private Optional<
-                @Pattern(regexp = "^\\d+$",message = "Funding amount must only contain whole numbers")
+               @ValidFundingAmount
             String> fundingAmount;
 
 
