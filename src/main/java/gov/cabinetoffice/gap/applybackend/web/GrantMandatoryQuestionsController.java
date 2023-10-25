@@ -19,14 +19,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PatchMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import javax.validation.Valid;
 import java.time.Instant;
@@ -99,13 +92,11 @@ public class GrantMandatoryQuestionsController {
         grantMandatoryQuestions.setLastUpdatedBy(applicant);
         grantMandatoryQuestions.setLastUpdated(Instant.now());
 
-
+        grantMandatoryQuestionService.addMandatoryQuestionsToSubmissionObject(grantMandatoryQuestions);
         grantMandatoryQuestionService.updateMandatoryQuestion(grantMandatoryQuestions);
 
         log.info("Mandatory question with ID {} has been updated.", grantMandatoryQuestions.getId());
 
         return ResponseEntity.ok(grantMandatoryQuestionService.generateNextPageUrl(url, mandatoryQuestionId));
     }
-
-
 }
