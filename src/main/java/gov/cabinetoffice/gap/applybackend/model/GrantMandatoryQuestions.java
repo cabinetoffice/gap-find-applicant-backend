@@ -90,7 +90,7 @@ public class GrantMandatoryQuestions extends BaseEntity {
     @Column(name = "charity_commission_number")
     private String charityCommissionNumber;
 
-    @Column(name = "funding_amount", precision = 16, scale = 2) // this should match your database column definition
+    @Column(name = "funding_amount", precision = 16) // this should match your database column definition
     private BigDecimal fundingAmount;
 
     @Column(name = "funding_location")
