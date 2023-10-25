@@ -81,6 +81,10 @@ public class GrantMandatoryQuestionService {
         final String[] urlParts = url.split("/");
         //takes the last part of the url and strips it of eventual queryParams
         final String questionPage = urlParts[urlParts.length - 1].split("\\?")[0];
+        if(mapper.get(questionPage) == null){
+            log.info("No next page found for question page {}", questionPage);
+            return "";
+        }
         return mapper.get(questionPage);
     }
 
