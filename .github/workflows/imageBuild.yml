@@ -88,12 +88,12 @@ jobs:
 
       - name: Build project
         run: |
-          ./mvnw package
+          ./mvnw spring-boot:build-image
 
       - name: Build Docker image
         env:
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-        run: docker build --tag $ECR_REGISTRY/gap-apply-admin-backend:${{ env.BUILD_VERSION }} .
+        run: docker tag apply-backend:0.0.1-SNAPSHOT $ECR_REGISTRY/gap-apply-applicant-backend:${{ env.BUILD_VERSION }}
 
       - name: Generate Docker image name
         id: docker-image-name

@@ -35,7 +35,6 @@ public class GrantAdvertService {
     }
 
     public GrantAdvert getAdvertByContentfulSlug(String contentfulSlug) {
-
         final GrantAdvert advert = grantAdvertRepository.findByContentfulSlug(contentfulSlug)
                 .orElseThrow(() -> new NotFoundException("Advert with slug " + contentfulSlug + " not found"));
 
