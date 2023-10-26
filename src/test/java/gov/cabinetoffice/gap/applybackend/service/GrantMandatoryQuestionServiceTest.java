@@ -251,6 +251,24 @@ class GrantMandatoryQuestionServiceTest {
         }
 
         @Test
+        void doesNothing_IfSubmissionIsVersionOne() {
+
+            final Submission submission = Submission.builder()
+                    .version(1)
+                    .build();
+
+            final GrantMandatoryQuestions mandatoryQuestions = GrantMandatoryQuestions.builder()
+                    .submission(submission)
+                    .build();
+
+            serviceUnderTest.addMandatoryQuestionsToSubmissionObject(mandatoryQuestions);
+
+            // Strange test this, but basically if we never call these methods and no exception is thrown then we're happy
+            verify(serviceUnderTest, never()).buildOrganisationDetailsSubmissionSection(Mockito.any(), Mockito.any());
+            verify(serviceUnderTest, never()).buildFundingDetailsSubmissionSection(Mockito.any(), Mockito.any());
+        }
+
+        @Test
         void throwsNotFoundException_IfOrganisationDetailsSectionIsNotFound() {
 
             final SubmissionDefinition definition = SubmissionDefinition.builder()
@@ -259,6 +277,7 @@ class GrantMandatoryQuestionServiceTest {
 
             final Submission submission = Submission.builder()
                     .definition(definition)
+                    .version(2)
                     .build();
 
             final GrantMandatoryQuestions mandatoryQuestions = GrantMandatoryQuestions.builder()
@@ -283,6 +302,7 @@ class GrantMandatoryQuestionServiceTest {
 
             final Submission submission = Submission.builder()
                     .definition(definition)
+                    .version(2)
                     .build();
 
             final GrantMandatoryQuestions mandatoryQuestions = GrantMandatoryQuestions.builder()
@@ -315,6 +335,7 @@ class GrantMandatoryQuestionServiceTest {
 
             final Submission submission = Submission.builder()
                     .definition(definition)
+                    .version(2)
                     .build();
 
             final GrantMandatoryQuestions mandatoryQuestions = GrantMandatoryQuestions.builder()

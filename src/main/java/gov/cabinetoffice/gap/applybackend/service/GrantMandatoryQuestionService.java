@@ -81,7 +81,8 @@ public class GrantMandatoryQuestionService {
     }
 
     public void addMandatoryQuestionsToSubmissionObject(final GrantMandatoryQuestions mandatoryQuestions) {
-        if (mandatoryQuestions.getSubmission() != null) {
+        if (mandatoryQuestions.getSubmission() != null &&
+                mandatoryQuestions.getSubmission().getVersion() > 1) {
             final Submission submission = mandatoryQuestions.getSubmission();
 
             log.info("Adding mandatory question responses to submission " + submission.getId());
