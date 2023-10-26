@@ -1,11 +1,11 @@
 name: Push Image Workflow
 
 on:
-  create:
   push:
     branches:
       - release/**
       - develop
+      - improve-cd-pipelines
     paths-ignore:
       - "*.md"
 
@@ -13,11 +13,11 @@ env:
   AWS_REGION: eu-west-2
 
 jobs:
-  build:
+  test:
     runs-on: ubuntu-latest
 
     # Need to check here as create event can't be filtered by branch name...
-    if: github.ref == 'refs/heads/develop' || startsWith(github.ref, 'refs/heads/release')
+    if: github.ref == 'refs/heads/improve-cd-pipelines' || startsWith(github.ref, 'refs/heads/release')
 
     steps:
       - uses: actions/checkout@v3
@@ -27,6 +27,7 @@ jobs:
           java-version: "17"
           distribution: "temurin"
           cache: maven
+
       - name: Build with Maven
         run: mvn -B package --file pom.xml
 
@@ -42,17 +43,18 @@ jobs:
           args: >
             --enableRetired
             --disableOssIndex true
+
       - name: Upload Test results
         uses: actions/upload-artifact@master
         with:
           name: DependencyCheck report
           path: ${{github.workspace}}/reports
 
-  imageBuild:
-    needs: build
-
-    environment: AWS
+  build:
     runs-on: ubuntu-latest
+
+    outputs:
+      docker-image-name: ${{ steps.docker-image-name.outputs.name }}
 
     steps:
       - uses: actions/checkout@v3
@@ -76,7 +78,7 @@ jobs:
 
       - name: Login to AWS ECR
         id: login-ecr
-        uses: aws-actions/amazon-ecr-login@v1
+        uses: aws-actions/amazon-ecr-login@v2
 
       - name: Determine & set BUILD_VERSION
         run: |
@@ -88,18 +90,76 @@ jobs:
         run: |
           ./mvnw spring-boot:build-image
 
-      - name: Tag and push container image to AWS ECR
+      - name: Build container image
         env:
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
         run: |
           docker tag apply-backend:0.0.1-SNAPSHOT $ECR_REGISTRY/gap-apply-applicant-backend:${{ env.BUILD_VERSION }}
-          docker push $ECR_REGISTRY/gap-apply-applicant-backend:${{ env.BUILD_VERSION }}
+
+      - name: Generate Docker image name
+        id: docker-image-name
+        run: |
+          NAME=${{ (github.ref == 'refs/heads/improve-cd-pipelines' && 'applicant-api-dev-image') || (startsWith(github.ref, 'refs/heads/release') && 'applicant-api-qa-image') }}
+          echo "name=$NAME" >> $GITHUB_OUTPUT
+
+      - name: Save Docker image
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+        run: docker save --output ${{ steps.docker-image-name.outputs.name }}.tar $ECR_REGISTRY/gap-apply-applicant-backend:${{ env.BUILD_VERSION }}
+
+      - name: Upload Docker image
+        uses: actions/upload-artifact@v3
+        with:
+          name: ${{ steps.docker-image-name.outputs.name }}
+          path: ${{ steps.docker-image-name.outputs.name }}.tar
+          retention-days: 1
+
+  deploy:
+    runs-on: ubuntu-latest
+    environment: AWS
+    needs: [build, test]
+
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          # Fetch all commits since we use the total commit count to determine the build version
+          fetch-depth: 0
+
+      - name: Setup AWS credentials
+        uses: aws-actions/configure-aws-credentials@v1-node16
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Login to AWS ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Determine & set BUILD_VERSION
+        run: |
+          GIT_COUNT=$(git rev-list $GITHUB_SHA --count)
+          echo "BUILD_VERSION=b_$GIT_COUNT" >> $GITHUB_ENV
+          echo BUILD_VERSION is ${{ env.BUILD_VERSION }}
+
+      - name: Download Docker image
+        uses: actions/download-artifact@v3
+        with:
+          name: ${{ needs.build.outputs.docker-image-name }}
+
+      - name: Load Docker image
+        run: docker load --input ${{ needs.build.outputs.docker-image-name }}.tar
+
+      - name: Push Docker image to AWS ECR
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+        run: docker push $ECR_REGISTRY/gap-apply-applicant-backend:${{ env.BUILD_VERSION }}
 
       - name: Create env tag
         env:
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
         run: |
-          ENV_TAG=${{ (github.ref == 'refs/heads/develop' && 'develop') || (startsWith(github.ref, 'refs/heads/release') && 'qa') }}
+          ENV_TAG=${{ (github.ref == 'refs/heads/improve-cd-pipelines' && 'develop') || (startsWith(github.ref, 'refs/heads/release') && 'qa') }}
           docker tag $ECR_REGISTRY/gap-apply-applicant-backend:${{ env.BUILD_VERSION }} $ECR_REGISTRY/gap-apply-applicant-backend:$ENV_TAG
           docker push $ECR_REGISTRY/gap-apply-applicant-backend:$ENV_TAG
 
