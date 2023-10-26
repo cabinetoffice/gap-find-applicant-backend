@@ -5,6 +5,7 @@ on:
     branches:
       - release/**
       - develop
+      - improve-cd-pipelines
     paths-ignore:
       - "*.md"
 
@@ -16,8 +17,9 @@ jobs:
     runs-on: ubuntu-latest
 
     # Need to check here as create event can't be filtered by branch name...
-    if: github.ref == 'refs/heads/develop' || startsWith(github.ref, 'refs/heads/release')
+    if: github.ref == 'refs/heads/improve-cd-pipelines' || startsWith(github.ref, 'refs/heads/release')
 
+    steps:
     steps:
       - uses: actions/checkout@v3
       - name: Set up JDK 17
@@ -85,20 +87,19 @@ jobs:
           echo "BUILD_VERSION=b_$GIT_COUNT" >> $GITHUB_ENV
           echo BUILD_VERSION is ${{ env.BUILD_VERSION }}
 
-      - name: Build container image
+      - name: Build project
         run: |
-          ./mvnw spring-boot:build-image
+          ./mvnw package
 
-      - name: Build container image
+      - name: Build Docker image
         env:
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-        run: |
-          docker tag apply-backend:0.0.1-SNAPSHOT $ECR_REGISTRY/gap-apply-applicant-backend:${{ env.BUILD_VERSION }}
+        run: docker build --tag $ECR_REGISTRY/gap-apply-admin-backend:${{ env.BUILD_VERSION }} .
 
       - name: Generate Docker image name
         id: docker-image-name
         run: |
-          NAME=${{ (github.ref == 'refs/heads/develop' && 'applicant-api-dev-image') || (startsWith(github.ref, 'refs/heads/release') && 'applicant-api-qa-image') }}
+          NAME=${{ (github.ref == 'refs/heads/improve-cd-pipelines' && 'applicant-api-dev-image') || (startsWith(github.ref, 'refs/heads/release') && 'applicant-api-qa-image') }}
           echo "name=$NAME" >> $GITHUB_OUTPUT
 
       - name: Save Docker image
@@ -158,7 +159,7 @@ jobs:
         env:
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
         run: |
-          ENV_TAG=${{ (github.ref == 'refs/heads/develop' && 'develop') || (startsWith(github.ref, 'refs/heads/release') && 'qa') }}
+          ENV_TAG=${{ (github.ref == 'refs/heads/improve-cd-pipelines' && 'develop') || (startsWith(github.ref, 'refs/heads/release') && 'qa') }}
           docker tag $ECR_REGISTRY/gap-apply-applicant-backend:${{ env.BUILD_VERSION }} $ECR_REGISTRY/gap-apply-applicant-backend:$ENV_TAG
           docker push $ECR_REGISTRY/gap-apply-applicant-backend:$ENV_TAG
 
