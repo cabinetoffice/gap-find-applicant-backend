@@ -49,7 +49,7 @@ public class GrantAdvertController {
         return ResponseEntity.ok(grantAdvertDto);
     }
 
-    @GetMapping
+    @GetMapping("/scheme/{schemeId}")
     @Operation(summary = "Get the grant advert with the given scheme Id")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "204", description = "Successfully got grant advert with schemeId provided"),
@@ -58,7 +58,7 @@ public class GrantAdvertController {
             @ApiResponse(responseCode = "404", description = "Unable to find grant advert with scheme Id provided",
                     content = @Content(mediaType = "application/json"))
     })
-    public ResponseEntity<GetGrantAdvertDto> generateGetGrantAdvertDtoFromSchemeId(@RequestParam @NotBlank String schemeId) {
+    public ResponseEntity<GetGrantAdvertDto> generateGetGrantAdvertDtoFromSchemeId(@PathVariable final String schemeId) {
         final GrantAdvert advert = grantAdvertService.getAdvertBySchemeId(schemeId);
         return ResponseEntity.ok(grantAdvertService.generateGetGrantAdvertDto(advert));
     }
