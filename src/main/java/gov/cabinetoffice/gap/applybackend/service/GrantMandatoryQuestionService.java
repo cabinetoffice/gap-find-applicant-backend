@@ -280,6 +280,7 @@ public class GrantMandatoryQuestionService {
     }
 
     private SubmissionQuestion buildOrganisationAddressQuestion(final GrantMandatoryQuestions mandatoryQuestions) {
+        // TODO check whether other address to String array logic uses values directly or converts nulls to empty strings
         final String[] address = new String[] {
                 mandatoryQuestions.getAddressLine1(),
                 mandatoryQuestions.getAddressLine2(),
