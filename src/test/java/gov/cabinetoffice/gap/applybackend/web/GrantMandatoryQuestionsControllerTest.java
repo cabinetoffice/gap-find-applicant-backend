@@ -197,6 +197,7 @@ class GrantMandatoryQuestionsControllerTest {
 
         final ResponseEntity<String> methodResponse = controllerUnderTest.updateMandatoryQuestion(MANDATORY_QUESTION_ID, updateDto, "url");
 
+        verify(grantMandatoryQuestionService).addMandatoryQuestionsToSubmissionObject(mandatoryQuestions);
         verify(grantMandatoryQuestionService).updateMandatoryQuestion(mandatoryQuestions);
         assertThat(methodResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(methodResponse.getBody()).isEqualTo("nextPageUrl");

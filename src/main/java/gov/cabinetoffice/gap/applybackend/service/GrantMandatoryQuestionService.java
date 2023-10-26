@@ -86,22 +86,19 @@ public class GrantMandatoryQuestionService {
 
             log.info("Adding mandatory question responses to submission " + submission.getId());
 
-            final SubmissionSectionStatus organisationDetailsSectionStatus = Optional.ofNullable(submission.getSection("ORGANISATION_DETAILS"))
-                    .orElseThrow(() -> new NotFoundException("ORGANISATION_DETAILS section not found on submission"))
-                    .getSectionStatus();
-
-            final SubmissionSectionStatus fundingDetailsSectionStatus = Optional.ofNullable(submission.getSection("FUNDING_DETAILS"))
-                    .orElseThrow(() -> new NotFoundException("FUNDING_DETAILS section not found on submission"))
-                    .getSectionStatus();
+            final SubmissionSectionStatus organisationDetailsSectionStatus = submission.getSection("ORGANISATION_DETAILS").getSectionStatus();
+            final SubmissionSectionStatus fundingDetailsSectionStatus = submission.getSection("FUNDING_DETAILS").getSectionStatus();
 
             final SubmissionSection updatedOrgDetails = buildOrganisationDetailsSubmissionSection(mandatoryQuestions, organisationDetailsSectionStatus);
             final SubmissionSection updatedFundingDetails = buildFundingDetailsSubmissionSection(mandatoryQuestions, fundingDetailsSectionStatus);
 
-            //TODO probably worth checking if these actually exist before trying to delete
-            submission.getDefinition().getSections().removeIf(s -> s.getSectionId().equals("ORGANISATION_DETAILS"));
-            submission.getDefinition().getSections().removeIf(s -> s.getSectionId().equals("FUNDING_DETAILS"));
+            submission.removeSection("ORGANISATION_DETAILS");
+            submission.removeSection("FUNDING_DETAILS");
 
-            //TODO make this better, it's begging to throw an index out of bounds exception
+            /*
+                Wouldn't usually access encapsulated collections this way, but I don't want to write
+                a method on the Submission object to add a section which requires the array index to be specified
+             */
             submission.getDefinition().getSections().add(1, updatedOrgDetails);
             submission.getDefinition().getSections().add(2, updatedFundingDetails);
 
@@ -256,7 +253,7 @@ public class GrantMandatoryQuestionService {
                 .adminSummary(MandatoryQuestionConstants.APPLICANT_AMOUNT_ADMIN_SUMMARY)
                 .fieldPrefix(MandatoryQuestionConstants.APPLICANT_AMOUNT_PREFIX)
                 .responseType(SubmissionQuestionResponseType.Numeric)
-                .response(mandatoryQuestions.getCompaniesHouseNumber())
+                .response(mandatoryQuestions.getFundingAmount().toString())
                 .validation(validation)
                 .build();
     }
