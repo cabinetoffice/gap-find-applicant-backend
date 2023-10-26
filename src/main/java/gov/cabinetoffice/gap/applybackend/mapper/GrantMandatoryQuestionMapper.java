@@ -22,6 +22,7 @@ import java.util.Optional;
 public interface GrantMandatoryQuestionMapper {
 
 
+    @Mapping(source= "grantScheme.id", target = "schemeId")
     @Mapping(source = "orgType", target = "orgType", qualifiedByName = "mapEntityOrgTypeToDtoOrgType")
     @Mapping(source = "fundingAmount", target = "fundingAmount", qualifiedByName = "mapEntityFundingAmountToDtoFundingAmount")
     @Mapping(source = "fundingLocation", target = "fundingLocation", qualifiedByName = "mapEntityFundingLocationToDtoFundingLocation")
@@ -50,6 +51,8 @@ public interface GrantMandatoryQuestionMapper {
     }
 
     //at this time the Optional is still not fully implemented in MapStruct (there's a pr for it https://github.com/mapstruct/mapstruct/pull/3183), so we need to use the workaround below
+
+
     @Mapping(source = "name", target = "name", qualifiedByName = "unWrapOptionalString")
     @Mapping(source = "addressLine1", target = "addressLine1", qualifiedByName = "unWrapOptionalString")
     @Mapping(source = "addressLine2", target = "addressLine2", qualifiedByName = "unWrapOptionalString")

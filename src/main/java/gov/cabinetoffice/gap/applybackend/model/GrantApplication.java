@@ -65,7 +65,7 @@ public class GrantApplication extends BaseEntity {
 
     public GrantApplication(GrantScheme grantScheme, String applicationName, Integer lastUpdateBy,
             ApplicationDefinition definition) {
-        this.version = 1;
+        this.version = 2;
         this.created = Instant.now();
         this.lastUpdated = Instant.now();
         this.applicationStatus = GrantApplicantStatus.DRAFT;

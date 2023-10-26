@@ -12,7 +12,7 @@ import java.util.UUID;
 @AllArgsConstructor
 @Builder
 @Data
-public class GetGrandAdvertDto {
+public class GetGrantAdvertDto {
 
     private UUID id;
 

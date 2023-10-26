@@ -8,9 +8,11 @@ import gov.cabinetoffice.gap.applybackend.mapper.GrantMandatoryQuestionMapper;
 import gov.cabinetoffice.gap.applybackend.model.GrantApplicant;
 import gov.cabinetoffice.gap.applybackend.model.GrantMandatoryQuestions;
 import gov.cabinetoffice.gap.applybackend.model.GrantScheme;
+import gov.cabinetoffice.gap.applybackend.model.Submission;
 import gov.cabinetoffice.gap.applybackend.service.GrantApplicantService;
 import gov.cabinetoffice.gap.applybackend.service.GrantMandatoryQuestionService;
 import gov.cabinetoffice.gap.applybackend.service.GrantSchemeService;
+import gov.cabinetoffice.gap.applybackend.service.SubmissionService;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -42,6 +44,7 @@ public class GrantMandatoryQuestionsController {
     private final GrantApplicantService grantApplicantService;
     private final GrantSchemeService grantSchemeService;
     private final GrantMandatoryQuestionMapper grantMandatoryQuestionMapper;
+    private final SubmissionService submissionService;
 
     @PostMapping()
     @ApiResponses(value = {
@@ -92,7 +95,10 @@ public class GrantMandatoryQuestionsController {
         final GrantMandatoryQuestions grantMandatoryQuestions = grantMandatoryQuestionService.getGrantMandatoryQuestionById(mandatoryQuestionId, jwtPayload.getSub());
 
         grantMandatoryQuestionMapper.mapUpdateGrantMandatoryQuestionDtoToGrantMandatoryQuestion(mandatoryQuestionDto, grantMandatoryQuestions);
-
+        if(mandatoryQuestionDto.getSubmissionId()!=null){
+            final Submission submission = submissionService.getSubmissionFromDatabaseBySubmissionId(jwtPayload.getSub(), mandatoryQuestionDto.getSubmissionId());
+            grantMandatoryQuestions.setSubmission(submission);
+        }
         if (grantMandatoryQuestions.getStatus().equals(GrantMandatoryQuestionStatus.NOT_STARTED)) {
             grantMandatoryQuestions.setStatus(GrantMandatoryQuestionStatus.IN_PROGRESS);
         }
