@@ -27,6 +27,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 import static gov.cabinetoffice.gap.applybackend.enums.GrantMandatoryQuestionFundingLocation.SCOTLAND;
@@ -159,7 +160,7 @@ class GrantMandatoryQuestionsControllerTest {
     void updateMandatoryQuestion_UpdatesExpectedFields_AndSavesChanges() {
         final GrantMandatoryQuestionFundingLocation fundingLocation = SCOTLAND;
         final GrantMandatoryQuestionFundingLocation[] fundingLocations = new GrantMandatoryQuestionFundingLocation[]{fundingLocation};
-        final String updatedValue = "AND Digital updated";
+        final Optional<String> updatedValue = Optional.of("AND Digital updated");
         final UpdateGrantMandatoryQuestionDto updateDto = UpdateGrantMandatoryQuestionDto.builder()
                 .name(updatedValue)
                 .build();

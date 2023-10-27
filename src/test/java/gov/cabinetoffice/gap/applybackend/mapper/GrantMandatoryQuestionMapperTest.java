@@ -11,6 +11,7 @@ import org.mapstruct.factory.Mappers;
 
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -90,32 +91,32 @@ class GrantMandatoryQuestionMapperTest {
                     .version(1)
                     .build();
             final UpdateGrantMandatoryQuestionDto updateGrantMandatoryQuestionDto = UpdateGrantMandatoryQuestionDto.builder()
-                    .name("name")
-                    .addressLine1("addressLine1")
-                    .addressLine2("addressLine2")
-                    .city("city")
-                    .county("county")
-                    .postcode("postcode")
-                    .orgType("Limited company")
-                    .charityCommissionNumber("charityCommissionNumber")
-                    .companiesHouseNumber("companiesHouseNumber")
-                    .fundingAmount("1000")
-                    .fundingLocation(List.of("Scotland"))
+                    .name(Optional.of("name"))
+                    .addressLine1(Optional.of("addressLine1"))
+                    .addressLine2(Optional.of("addressLine2"))
+                    .city(Optional.of("city"))
+                    .county(Optional.of("county"))
+                    .postcode(Optional.of("postcode"))
+                    .orgType(Optional.of("Limited company"))
+                    .charityCommissionNumber(Optional.of("charityCommissionNumber"))
+                    .companiesHouseNumber(Optional.of("companiesHouseNumber"))
+                    .fundingAmount(Optional.of("1000"))
+                    .fundingLocation(Optional.of(List.of("Scotland")))
                     .build();
 
             grantMandatoryQuestionMapper.mapUpdateGrantMandatoryQuestionDtoToGrantMandatoryQuestion(updateGrantMandatoryQuestionDto, mandatoryQuestions);
 
             assertThat(mandatoryQuestions.getVersion()).isEqualTo(1);
-            assertThat(mandatoryQuestions.getName()).isEqualTo(updateGrantMandatoryQuestionDto.getName());
-            assertThat(mandatoryQuestions.getAddressLine1()).isEqualTo(updateGrantMandatoryQuestionDto.getAddressLine1());
-            assertThat(mandatoryQuestions.getAddressLine2()).isEqualTo(updateGrantMandatoryQuestionDto.getAddressLine2());
-            assertThat(mandatoryQuestions.getCity()).isEqualTo(updateGrantMandatoryQuestionDto.getCity());
-            assertThat(mandatoryQuestions.getCounty()).isEqualTo(updateGrantMandatoryQuestionDto.getCounty());
-            assertThat(mandatoryQuestions.getPostcode()).isEqualTo(updateGrantMandatoryQuestionDto.getPostcode());
+            assertThat(mandatoryQuestions.getName()).isEqualTo("name");
+            assertThat(mandatoryQuestions.getAddressLine1()).isEqualTo("addressLine1");
+            assertThat(mandatoryQuestions.getAddressLine2()).isEqualTo("addressLine2");
+            assertThat(mandatoryQuestions.getCity()).isEqualTo("city");
+            assertThat(mandatoryQuestions.getCounty()).isEqualTo("county");
+            assertThat(mandatoryQuestions.getPostcode()).isEqualTo("postcode");
             assertThat(mandatoryQuestions.getOrgType()).isEqualTo(GrantMandatoryQuestionOrgType.LIMITED_COMPANY);
-            assertThat(mandatoryQuestions.getCompaniesHouseNumber()).isEqualTo(updateGrantMandatoryQuestionDto.getCompaniesHouseNumber());
-            assertThat(mandatoryQuestions.getCharityCommissionNumber()).isEqualTo(updateGrantMandatoryQuestionDto.getCharityCommissionNumber());
-            assertThat(mandatoryQuestions.getFundingAmount()).isEqualTo(new BigDecimal(updateGrantMandatoryQuestionDto.getFundingAmount()));
+            assertThat(mandatoryQuestions.getCompaniesHouseNumber()).isEqualTo("companiesHouseNumber");
+            assertThat(mandatoryQuestions.getCharityCommissionNumber()).isEqualTo("charityCommissionNumber");
+            assertThat(mandatoryQuestions.getFundingAmount()).isEqualTo(new BigDecimal("1000"));
             assertThat(mandatoryQuestions.getFundingLocation()).isEqualTo(new GrantMandatoryQuestionFundingLocation[]{GrantMandatoryQuestionFundingLocation.SCOTLAND});
         }
 
@@ -130,13 +131,13 @@ class GrantMandatoryQuestionMapperTest {
                     .fundingLocation(new GrantMandatoryQuestionFundingLocation[]{GrantMandatoryQuestionFundingLocation.SCOTLAND})
                     .build();
             final UpdateGrantMandatoryQuestionDto updateGrantMandatoryQuestionDto = UpdateGrantMandatoryQuestionDto.builder()
-                    .name("newName")
+                    .name(Optional.of("newName"))
                     .build();
 
             grantMandatoryQuestionMapper.mapUpdateGrantMandatoryQuestionDtoToGrantMandatoryQuestion(updateGrantMandatoryQuestionDto, mandatoryQuestions);
 
             assertThat(mandatoryQuestions.getVersion()).isEqualTo(1);
-            assertThat(mandatoryQuestions.getName()).isEqualTo(updateGrantMandatoryQuestionDto.getName());
+            assertThat(mandatoryQuestions.getName()).isEqualTo("newName");
             assertThat(mandatoryQuestions.getAddressLine1()).isEqualTo("addressLine1");
             assertThat(mandatoryQuestions.getAddressLine2()).isNull();
             assertThat(mandatoryQuestions.getCity()).isNull();
@@ -151,11 +152,10 @@ class GrantMandatoryQuestionMapperTest {
 
         @Test
         void UpdateDtoIsNull() {
-            final UpdateGrantMandatoryQuestionDto updateGrantMandatoryQuestionDto = null;
             final GrantMandatoryQuestions mandatoryQuestions = GrantMandatoryQuestions.builder()
                     .build();
 
-            final GrantMandatoryQuestions result = grantMandatoryQuestionMapper.mapUpdateGrantMandatoryQuestionDtoToGrantMandatoryQuestion(updateGrantMandatoryQuestionDto, mandatoryQuestions);
+            final GrantMandatoryQuestions result = grantMandatoryQuestionMapper.mapUpdateGrantMandatoryQuestionDtoToGrantMandatoryQuestion(null, mandatoryQuestions);
 
             assertThat(result).isEqualTo(mandatoryQuestions);
         }
