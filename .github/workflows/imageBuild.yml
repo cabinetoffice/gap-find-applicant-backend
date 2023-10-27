@@ -87,8 +87,8 @@ jobs:
           echo BUILD_VERSION is ${{ env.BUILD_VERSION }}
 
       - name: Build project
-          run: |
-            ./mvnw package
+        run: |
+          ./mvnw package
 
       - name: Build Docker image
         env:
