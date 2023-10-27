@@ -6,6 +6,7 @@ import gov.cabinetoffice.gap.applybackend.exception.NotFoundException;
 import gov.cabinetoffice.gap.applybackend.exception.SubmissionAlreadyCreatedException;
 import gov.cabinetoffice.gap.applybackend.exception.SubmissionNotReadyException;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.tomcat.util.http.fileupload.impl.FileSizeLimitExceededException;
 import org.springframework.http.HttpStatus;
 import org.springframework.validation.FieldError;
@@ -20,6 +21,7 @@ import java.time.Clock;
 import java.time.ZonedDateTime;
 import java.util.List;
 
+@Slf4j
 @RestControllerAdvice
 @RequiredArgsConstructor
 public class ControllerExceptionHandler {
@@ -32,6 +34,7 @@ public class ControllerExceptionHandler {
     })
     @ResponseStatus(value = HttpStatus.NOT_FOUND)
     public ErrorMessage handle404s(Exception ex, WebRequest request) {
+        log.error("An error occurred", ex);
         return ErrorMessage.builder()
                 .status(HttpStatus.NOT_FOUND)
                 .date(ZonedDateTime.now(clock))
