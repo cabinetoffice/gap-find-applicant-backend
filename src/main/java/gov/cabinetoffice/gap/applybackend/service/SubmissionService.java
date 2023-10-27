@@ -380,10 +380,10 @@ public class SubmissionService {
         final GrantScheme grantScheme = grantApplication.getGrantScheme();
         final int version = grantApplication.getVersion();
         final String applicationName = grantApplication.getApplicationName();
-        SubmissionDefinition definition =
+        final SubmissionDefinition definition =
                 SubmissionDefinition.transformApplicationDefinitionToSubmissionOne(grantApplication.getDefinition());
 
-        LocalDateTime now = LocalDateTime.now(clock);
+        final LocalDateTime now = LocalDateTime.now(clock);
 
         final Submission newSubmission = Submission.builder()
                 .scheme(grantScheme)
@@ -401,13 +401,14 @@ public class SubmissionService {
 
         final Submission submission = submissionRepository.save(newSubmission);
         final UUID submissionId = submission.getId();
-        CreateSubmissionResponseDto submissionResponseDto = CreateSubmissionResponseDto.builder()
+        final CreateSubmissionResponseDto submissionResponseDto = CreateSubmissionResponseDto.builder()
                 .submissionCreated(true)
                 .submissionId(submissionId)
                 .build();
 
-        populateEssentialInformation(userId, submission);
-
+        if(version == 1) {
+            populateEssentialInformation(userId, submission);
+        }
         return submissionResponseDto;
     }
 

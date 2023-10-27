@@ -229,6 +229,16 @@ class GrantMandatoryQuestionServiceTest {
 
             assertThat(nextPageUrl).isEqualTo(expectedNextPageUrl);
         }
+
+        @Test
+        public void testGenerateNextPageUrl_UrlNotInMapper() {
+            final String url = "/any/url/thatIsNotInMapper";
+            final String expectedNextPageUrl = "";
+
+            final String nextPageUrl = serviceUnderTest.generateNextPageUrl(url, MANDATORY_QUESTION_ID);
+
+            assertThat(nextPageUrl).isEqualTo(expectedNextPageUrl);
+        }
     }
 
     @Nested
