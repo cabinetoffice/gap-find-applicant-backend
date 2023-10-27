@@ -406,6 +406,7 @@ public class SubmissionService {
                 .submissionId(submissionId)
                 .build();
 
+        //TODO this won't work - it needs to be the SCHEME version that drives this functionality
         if(version == 1) {
             populateEssentialInformation(userId, submission);
         }
