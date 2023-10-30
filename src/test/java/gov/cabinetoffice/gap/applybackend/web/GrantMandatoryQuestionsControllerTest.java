@@ -203,5 +203,48 @@ class GrantMandatoryQuestionsControllerTest {
 
     }
 
+    @Test
+    void getGrantMandatoryQuestionsBySubmissionId_ReturnsExpectedMandatoryQuestions() {
+        final UUID submissionId = UUID.randomUUID();
+
+        final GrantMandatoryQuestionFundingLocation[] fundingLocations = new GrantMandatoryQuestionFundingLocation[]{SCOTLAND};
+        final GrantMandatoryQuestions mandatoryQuestions = GrantMandatoryQuestions.builder()
+                .id(MANDATORY_QUESTION_ID)
+                .createdBy(applicant)
+                .grantScheme(scheme)
+                .name("AND Digital")
+                .fundingAmount(new BigDecimal("50000.00"))
+                .addressLine1("215 Bothwell Street")
+                .city("Glasgow")
+                .postcode("G2 7EZ")
+                .fundingLocation(fundingLocations)
+                .companiesHouseNumber("08761455")
+                .orgType(GrantMandatoryQuestionOrgType.LIMITED_COMPANY)
+                .build();
+
+        final GetGrantMandatoryQuestionDto mandatoryQuestionsDto = GetGrantMandatoryQuestionDto.builder()
+                .name("AND Digital")
+                .fundingAmount("50000.00")
+                .addressLine1("215 Bothwell Street")
+                .city("Glasgow")
+                .postcode("G2 7EZ")
+                .fundingLocation(List.of("Scotland"))
+                .companiesHouseNumber("08761455")
+                .orgType("Limited company")
+                .schemeId(scheme.getId())
+                .build();
+
+        when(grantMandatoryQuestionService.getGrantMandatoryQuestionBySubmissionId(submissionId, jwtPayload.getSub()))
+                .thenReturn(mandatoryQuestions);
+
+        when(grantMandatoryQuestionMapper.mapGrantMandatoryQuestionToGetGrantMandatoryQuestionDTO(mandatoryQuestions))
+                .thenReturn(mandatoryQuestionsDto);
+
+        final ResponseEntity<GetGrantMandatoryQuestionDto> methodResponse = controllerUnderTest.getGrantMandatoryQuestionsBySubmissionId(submissionId);
+
+        verify(grantMandatoryQuestionService).getGrantMandatoryQuestionBySubmissionId(submissionId, jwtPayload.getSub());
+        assertThat(methodResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(methodResponse.getBody()).isEqualTo(mandatoryQuestionsDto);
+    }
 
 }

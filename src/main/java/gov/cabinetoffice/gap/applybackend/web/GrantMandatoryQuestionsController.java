@@ -1,6 +1,8 @@
 package gov.cabinetoffice.gap.applybackend.web;
 
-import gov.cabinetoffice.gap.applybackend.dto.api.*;
+import gov.cabinetoffice.gap.applybackend.dto.api.GetGrantMandatoryQuestionDto;
+import gov.cabinetoffice.gap.applybackend.dto.api.JwtPayload;
+import gov.cabinetoffice.gap.applybackend.dto.api.UpdateGrantMandatoryQuestionDto;
 import gov.cabinetoffice.gap.applybackend.enums.GrantMandatoryQuestionStatus;
 import gov.cabinetoffice.gap.applybackend.mapper.GrantMandatoryQuestionMapper;
 import gov.cabinetoffice.gap.applybackend.model.GrantApplicant;
@@ -17,17 +19,9 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.modelmapper.ModelMapper;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PatchMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import javax.validation.Valid;
 import java.time.Instant;
@@ -44,7 +38,6 @@ public class GrantMandatoryQuestionsController {
     private final GrantSchemeService grantSchemeService;
     private final GrantMandatoryQuestionMapper grantMandatoryQuestionMapper;
     private final SubmissionService submissionService;
-    private final ModelMapper modelMapper;
 
     @PostMapping()
     @ApiResponses(value = {
@@ -86,12 +79,12 @@ public class GrantMandatoryQuestionsController {
             @ApiResponse(responseCode = "403", description = "User cannot access this mandatory question", content = @Content(mediaType = "application/json")),
             @ApiResponse(responseCode = "404", description = "No Grant Mandatory question found", content = @Content(mediaType = "application/json")),
     })
-    public ResponseEntity<GetGrantMandatoryQuestionBySubmissionDto> getGrantMandatoryQuestionsBySubmissionId(@PathVariable final UUID submissionId) {
+    public ResponseEntity<GetGrantMandatoryQuestionDto> getGrantMandatoryQuestionsBySubmissionId(@PathVariable final UUID submissionId) {
         final JwtPayload jwtPayload = (JwtPayload) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
         final GrantMandatoryQuestions grantMandatoryQuestions = grantMandatoryQuestionService.getGrantMandatoryQuestionBySubmissionId(submissionId, jwtPayload.getSub());
         log.info("Mandatory question with ID {} has been grabbed.", grantMandatoryQuestions.getId());
 
-        final GetGrantMandatoryQuestionBySubmissionDto getGrantMandatoryQuestionBySubmissionDto = modelMapper.map(grantMandatoryQuestions, GetGrantMandatoryQuestionBySubmissionDto.class);
+        final GetGrantMandatoryQuestionDto getGrantMandatoryQuestionBySubmissionDto = grantMandatoryQuestionMapper.mapGrantMandatoryQuestionToGetGrantMandatoryQuestionDTO(grantMandatoryQuestions);
         return ResponseEntity.ok(getGrantMandatoryQuestionBySubmissionDto);
     }
 

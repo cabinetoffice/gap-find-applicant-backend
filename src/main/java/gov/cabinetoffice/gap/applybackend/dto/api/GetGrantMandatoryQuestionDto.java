@@ -14,6 +14,7 @@ import java.util.UUID;
 @Builder
 public class GetGrantMandatoryQuestionDto {
     private UUID id;
+
     private int schemeId;
 
     private UUID submissionId;
