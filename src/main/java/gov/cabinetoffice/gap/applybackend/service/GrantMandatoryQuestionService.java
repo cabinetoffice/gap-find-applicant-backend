@@ -37,6 +37,17 @@ public class GrantMandatoryQuestionService {
         return grantMandatoryQuestion.get();
     }
 
+    public GrantMandatoryQuestions getGrantMandatoryQuestionBySubmissionId(UUID id, String applicantSub) {
+        final Optional<GrantMandatoryQuestions> grantMandatoryQuestion = ofNullable(grantMandatoryQuestionRepository.findBySubmissionId(id)
+                .orElseThrow(() -> new NotFoundException(String.format("No Mandatory Question with ID %s was found", id))));
+
+        if (!grantMandatoryQuestion.get().getCreatedBy().getUserId().equals(applicantSub)) {
+            throw new ForbiddenException(String.format("Mandatory Question with ID %s was not created by %s", id, applicantSub));
+        }
+
+        return grantMandatoryQuestion.get();
+    }
+
     public GrantMandatoryQuestions createMandatoryQuestion(GrantScheme scheme, GrantApplicant applicant) {
 
         // TODO we probably don't need to ask if it exists and instead react if the result is null
