@@ -104,7 +104,6 @@ public class GrantMandatoryQuestionsController {
 
         grantMandatoryQuestionMapper.mapUpdateGrantMandatoryQuestionDtoToGrantMandatoryQuestion(mandatoryQuestionDto, grantMandatoryQuestions);
 
-        // TODO this branch needs unit tested
         if (mandatoryQuestionDto.getSubmissionId() != null) {
             final Submission submission = submissionService.getSubmissionFromDatabaseBySubmissionId(jwtPayload.getSub(), mandatoryQuestionDto.getSubmissionId());
             grantMandatoryQuestions.setSubmission(submission);

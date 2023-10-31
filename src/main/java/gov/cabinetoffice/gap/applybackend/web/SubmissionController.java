@@ -2,35 +2,16 @@ package gov.cabinetoffice.gap.applybackend.web;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import gov.cabinetoffice.gap.applybackend.constants.APIConstants;
-import gov.cabinetoffice.gap.applybackend.dto.api.CreateQuestionResponseDto;
-import gov.cabinetoffice.gap.applybackend.dto.api.CreateSubmissionResponseDto;
-import gov.cabinetoffice.gap.applybackend.dto.api.GetNavigationParamsDto;
-import gov.cabinetoffice.gap.applybackend.dto.api.GetQuestionDto;
-import gov.cabinetoffice.gap.applybackend.dto.api.GetQuestionNavigationDto;
-import gov.cabinetoffice.gap.applybackend.dto.api.GetSectionDto;
-import gov.cabinetoffice.gap.applybackend.dto.api.GetSubmissionDto;
-import gov.cabinetoffice.gap.applybackend.dto.api.JwtPayload;
-import gov.cabinetoffice.gap.applybackend.dto.api.SubmissionReviewBodyDto;
-import gov.cabinetoffice.gap.applybackend.dto.api.SubmitApplicationDto;
-import gov.cabinetoffice.gap.applybackend.dto.api.UpdateAttachmentDto;
+import gov.cabinetoffice.gap.applybackend.dto.api.*;
 import gov.cabinetoffice.gap.applybackend.enums.GrantAttachmentStatus;
 import gov.cabinetoffice.gap.applybackend.enums.SubmissionSectionStatus;
 import gov.cabinetoffice.gap.applybackend.exception.AttachmentException;
 import gov.cabinetoffice.gap.applybackend.exception.GrantApplicationNotPublishedException;
 import gov.cabinetoffice.gap.applybackend.exception.NotFoundException;
 import gov.cabinetoffice.gap.applybackend.exception.SubmissionAlreadyCreatedException;
-import gov.cabinetoffice.gap.applybackend.model.GrantApplicant;
-import gov.cabinetoffice.gap.applybackend.model.GrantApplication;
-import gov.cabinetoffice.gap.applybackend.model.GrantAttachment;
-import gov.cabinetoffice.gap.applybackend.model.Submission;
-import gov.cabinetoffice.gap.applybackend.model.SubmissionQuestion;
-import gov.cabinetoffice.gap.applybackend.model.SubmissionSection;
-import gov.cabinetoffice.gap.applybackend.service.AttachmentService;
-import gov.cabinetoffice.gap.applybackend.service.GrantApplicantService;
-import gov.cabinetoffice.gap.applybackend.service.GrantApplicationService;
-import gov.cabinetoffice.gap.applybackend.service.GrantAttachmentService;
-import gov.cabinetoffice.gap.applybackend.service.SecretAuthService;
-import gov.cabinetoffice.gap.applybackend.service.SubmissionService;
+import gov.cabinetoffice.gap.applybackend.model.*;
+import gov.cabinetoffice.gap.applybackend.service.*;
+import static gov.cabinetoffice.gap.applybackend.utils.SecurityContextHelper.getUserIdFromSecurityContext;
 import lombok.RequiredArgsConstructor;
 import org.apache.commons.io.FilenameUtils;
 import org.slf4j.Logger;
@@ -38,29 +19,13 @@ import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.web.bind.annotation.DeleteMapping;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.PutMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestHeader;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import javax.validation.Valid;
 import java.time.Clock;
 import java.time.Instant;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.UUID;
-
-import static gov.cabinetoffice.gap.applybackend.utils.SecurityContextHelper.getUserIdFromSecurityContext;
+import java.util.*;
 
 // TODO This class could probably be broken up into a few smaller more targeted classes
 @RequiredArgsConstructor
@@ -288,7 +253,7 @@ public class SubmissionController {
             throw new AttachmentException("You can only select up to 1 file at the same time");
         }
 
-        final String cleanedOriginalFilename = attachment.getOriginalFilename().replaceAll(SPECIAL_CHARACTER_REGEX, "_");
+        final String cleanedOriginalFilename =  attachment.getOriginalFilename().replaceAll(SPECIAL_CHARACTER_REGEX, "_");
         String extension = FilenameUtils.getExtension(attachment.getOriginalFilename()).toLowerCase();
         Arrays.stream(question.getValidation().getAllowedTypes())
                 .filter(item -> Objects.equals(item.toLowerCase(), extension))
