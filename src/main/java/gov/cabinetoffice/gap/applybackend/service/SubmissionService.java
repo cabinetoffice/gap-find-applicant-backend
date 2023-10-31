@@ -1,6 +1,7 @@
 package gov.cabinetoffice.gap.applybackend.service;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import gov.cabinetoffice.gap.applybackend.client.GovNotifyClient;
 import gov.cabinetoffice.gap.applybackend.config.properties.EnvironmentProperties;
 import gov.cabinetoffice.gap.applybackend.constants.APIConstants;
@@ -13,16 +14,7 @@ import gov.cabinetoffice.gap.applybackend.enums.SubmissionStatus;
 import gov.cabinetoffice.gap.applybackend.exception.NotFoundException;
 import gov.cabinetoffice.gap.applybackend.exception.SubmissionAlreadySubmittedException;
 import gov.cabinetoffice.gap.applybackend.exception.SubmissionNotReadyException;
-import gov.cabinetoffice.gap.applybackend.model.DiligenceCheck;
-import gov.cabinetoffice.gap.applybackend.model.GrantApplicant;
-import gov.cabinetoffice.gap.applybackend.model.GrantApplicantOrganisationProfile;
-import gov.cabinetoffice.gap.applybackend.model.GrantApplication;
-import gov.cabinetoffice.gap.applybackend.model.GrantBeneficiary;
-import gov.cabinetoffice.gap.applybackend.model.GrantScheme;
-import gov.cabinetoffice.gap.applybackend.model.Submission;
-import gov.cabinetoffice.gap.applybackend.model.SubmissionDefinition;
-import gov.cabinetoffice.gap.applybackend.model.SubmissionQuestion;
-import gov.cabinetoffice.gap.applybackend.model.SubmissionSection;
+import gov.cabinetoffice.gap.applybackend.model.*;
 import gov.cabinetoffice.gap.applybackend.repository.DiligenceCheckRepository;
 import gov.cabinetoffice.gap.applybackend.repository.GrantBeneficiaryRepository;
 import gov.cabinetoffice.gap.applybackend.repository.SubmissionRepository;
@@ -54,6 +46,8 @@ public class SubmissionService {
     private static final String APPLICANT_ORG_CHARITY_NUMBER = "APPLICANT_ORG_CHARITY_NUMBER";
     private static final String BENEFITIARY_LOCATION = "BENEFITIARY_LOCATION";
     private static final String ELIGIBILITY = "ELIGIBILITY";
+    public static final String ORGANISATION_DETAILS = "ORGANISATION_DETAILS";
+    public static final String FUNDING_DETAILS = "FUNDING_DETAILS";
 
 
     private final SubmissionRepository submissionRepository;
@@ -70,7 +64,11 @@ public class SubmissionService {
                 .orElseThrow(() -> new NotFoundException(
                         String.format("No Submission with ID %s was found", submissionId)));
 
-        populateEssentialInformation(userId, submission);
+        // Don't love this. Begging for exceptions to be thrown.
+        if (submission.getApplication().getGrantScheme().getVersion() == 1) {
+            populateEssentialInformation(userId, submission);
+        }
+
         return submission;
     }
 
@@ -380,8 +378,7 @@ public class SubmissionService {
         final GrantScheme grantScheme = grantApplication.getGrantScheme();
         final int version = grantApplication.getVersion();
         final String applicationName = grantApplication.getApplicationName();
-        final SubmissionDefinition definition =
-                SubmissionDefinition.transformApplicationDefinitionToSubmissionOne(grantApplication.getDefinition());
+        final SubmissionDefinition definition = this.transformApplicationDefinitionToSubmissionDefinition(grantApplication.getDefinition(), grantScheme.getVersion());
 
         final LocalDateTime now = LocalDateTime.now(clock);
 
@@ -406,9 +403,10 @@ public class SubmissionService {
                 .submissionId(submissionId)
                 .build();
 
-        if(version == 1) {
+        if (grantScheme.getVersion() == 1) {
             populateEssentialInformation(userId, submission);
         }
+
         return submissionResponseDto;
     }
 
@@ -496,6 +494,37 @@ public class SubmissionService {
                 .setSectionStatus(sectionStatus);
         submissionRepository.save(submission);
         return sectionStatus;
+    }
+
+    public SubmissionDefinition transformApplicationDefinitionToSubmissionDefinition(ApplicationDefinition applicationDefinition, int schemeVersion) throws JsonProcessingException {
+        final ObjectMapper objectMapper = new ObjectMapper();
+        final String applicationDefinitionJson = objectMapper.writeValueAsString(applicationDefinition);
+        final SubmissionDefinition definition = objectMapper.readValue(applicationDefinitionJson, SubmissionDefinition.class);
+
+        // If scheme version is > 1 then the ESSENTIAL section needs to be split into 2 new sections: ORGANISATION_DETAILS and FUNDING_DETAILS
+        // At this stage it's fine if the Question arrays are empty since we'll be re-building them based on mandatory question responses.
+        if (schemeVersion > 1) {
+            definition.getSections().removeIf(section -> section.getSectionId().equals(ESSENTIAL_SECTION_ID));
+            definition.getSections().add(1,
+                    SubmissionSection.builder()
+                    .sectionId(ORGANISATION_DETAILS)
+                    .build()
+            );
+            definition.getSections().add(2,
+                    SubmissionSection.builder()
+                            .sectionId(FUNDING_DETAILS)
+                            .build()
+            );
+        }
+
+
+        definition.getSections().forEach(section -> {
+                    final SubmissionSectionStatus status = section.getSectionId().equals(ELIGIBILITY) ? SubmissionSectionStatus.NOT_STARTED : SubmissionSectionStatus.CANNOT_START_YET;
+                    section.setSectionStatus(status);
+                }
+        );
+
+        return definition;
     }
 }
 

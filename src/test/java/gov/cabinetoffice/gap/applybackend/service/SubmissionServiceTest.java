@@ -13,20 +13,11 @@ import gov.cabinetoffice.gap.applybackend.enums.SubmissionStatus;
 import gov.cabinetoffice.gap.applybackend.exception.NotFoundException;
 import gov.cabinetoffice.gap.applybackend.exception.SubmissionAlreadySubmittedException;
 import gov.cabinetoffice.gap.applybackend.exception.SubmissionNotReadyException;
-import gov.cabinetoffice.gap.applybackend.model.ApplicationDefinition;
-import gov.cabinetoffice.gap.applybackend.model.DiligenceCheck;
-import gov.cabinetoffice.gap.applybackend.model.GrantApplicant;
-import gov.cabinetoffice.gap.applybackend.model.GrantApplication;
-import gov.cabinetoffice.gap.applybackend.model.GrantBeneficiary;
-import gov.cabinetoffice.gap.applybackend.model.GrantScheme;
-import gov.cabinetoffice.gap.applybackend.model.Submission;
-import gov.cabinetoffice.gap.applybackend.model.SubmissionDefinition;
-import gov.cabinetoffice.gap.applybackend.model.SubmissionQuestion;
-import gov.cabinetoffice.gap.applybackend.model.SubmissionQuestionValidation;
-import gov.cabinetoffice.gap.applybackend.model.SubmissionSection;
+import gov.cabinetoffice.gap.applybackend.model.*;
 import gov.cabinetoffice.gap.applybackend.repository.DiligenceCheckRepository;
 import gov.cabinetoffice.gap.applybackend.repository.GrantBeneficiaryRepository;
 import gov.cabinetoffice.gap.applybackend.repository.SubmissionRepository;
+import static org.assertj.core.api.Assertions.assertThat;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -49,9 +40,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -947,5 +938,157 @@ class SubmissionServiceTest {
         when(submissionRepository.save(submission)).thenReturn(submission);
         final SubmissionSectionStatus response = serviceUnderTest.handleSectionReview(userId, SUBMISSION_ID, SECTION_ID_1, true);
         assertEquals(SubmissionSectionStatus.COMPLETED, response);
+    }
+
+    @Test
+    void transformApplicationDefinitionToSubmissionDefinition_HandlesV1Schemes() throws JsonProcessingException {
+
+        final int SCHEME_VERSION = 1;
+        final ApplicationFormQuestion eligibilityQuestion = ApplicationFormQuestion.builder()
+                .questionId("ELIGIBILITY")
+                .fieldTitle("Please confirm that your organisation is eligible to receive this funding")
+                .build();
+
+        final ApplicationFormSection eligibilitySection = ApplicationFormSection.builder()
+                .sectionId("ELIGIBILITY")
+                .sectionTitle("Eligibility")
+                .questions(new ArrayList<>(List.of(eligibilityQuestion)))
+                .build();
+
+        final ApplicationFormQuestion organisationNameQuestion = ApplicationFormQuestion.builder()
+                .questionId("ORG_NAME")
+                .fieldTitle("Enter your organisation name")
+                .build();
+
+        final ApplicationFormSection essentialSection = ApplicationFormSection.builder()
+                .sectionId("ESSENTIAL")
+                .sectionTitle("Essential Information")
+                .questions(new ArrayList<>(List.of(organisationNameQuestion)))
+                .build();
+
+        final ApplicationFormQuestion customQuestion = ApplicationFormQuestion.builder()
+                .questionId("CUSTOM_QUESTION_!")
+                .fieldTitle("Describe how your organisation will use this funding")
+                .build();
+
+        final ApplicationFormSection customSection = ApplicationFormSection.builder()
+                .sectionId("CUSTOM_SECTION_1")
+                .sectionTitle("Funding circumstances")
+                .questions(new ArrayList<>(List.of(customQuestion)))
+                .build();
+
+        final ApplicationDefinition applicationDefinition = ApplicationDefinition.builder()
+                .sections(new ArrayList<>(List.of(eligibilitySection, essentialSection, customSection)))
+                .build();
+
+        // assert that section statuses have not been set prior to running the test
+        assertThat(eligibilitySection.getSectionStatus()).isNull();
+        assertThat(essentialSection.getSectionStatus()).isNull();
+
+        final SubmissionDefinition submissionDefinition = serviceUnderTest.transformApplicationDefinitionToSubmissionDefinition(applicationDefinition, SCHEME_VERSION);
+
+        // V1 schemes and submissions should have a section with ID of ESSENTIAL
+        assertThat(submissionDefinition.getSections().stream()
+                .anyMatch(section -> section.getSectionId().equals("ESSENTIAL"))).isTrue();
+
+        // V1 Schemes and submissions should NOT contain ORGANISATION_DETAILS or FUNDING_DETAILS sections
+        assertThat(submissionDefinition.getSections().stream()
+                .anyMatch(section -> section.getSectionId().equals("ORGANISATION_DETAILS"))).isFalse();
+
+        assertThat(submissionDefinition.getSections().stream()
+                .anyMatch(section -> section.getSectionId().equals("FUNDING_DETAILS"))).isFalse();
+
+        // ELIGIBILITY section should have a status of not started
+        final SubmissionSectionStatus eligibilitySectionStatus = submissionDefinition.getSections().stream()
+                .filter(section -> section.getSectionId().equals("ELIGIBILITY"))
+                .findAny()
+                .map(SubmissionSection::getSectionStatus)
+                .orElseThrow();
+
+        assertThat(eligibilitySectionStatus).isEqualTo(SubmissionSectionStatus.NOT_STARTED);
+
+        // All other sections should have a status of unable to start
+        final List<SubmissionSectionStatus> allOtherSectionStatuses = submissionDefinition.getSections().stream()
+                .filter(section -> !section.getSectionId().equals("ELIGIBILITY"))
+                .map(SubmissionSection::getSectionStatus)
+                .collect(Collectors.toList());
+
+        assertThat(allOtherSectionStatuses).containsOnly(SubmissionSectionStatus.CANNOT_START_YET);
+    }
+
+    @Test
+    void transformApplicationDefinitionToSubmissionDefinition_HandlesV2Schemes() throws JsonProcessingException {
+
+        final int SCHEME_VERSION = 2;
+        final ApplicationFormQuestion eligibilityQuestion = ApplicationFormQuestion.builder()
+                .questionId("ELIGIBILITY")
+                .fieldTitle("Please confirm that your organisation is eligible to receive this funding")
+                .build();
+
+        final ApplicationFormSection eligibilitySection = ApplicationFormSection.builder()
+                .sectionId("ELIGIBILITY")
+                .sectionTitle("Eligibility")
+                .questions(new ArrayList<>(List.of(eligibilityQuestion)))
+                .build();
+
+        final ApplicationFormQuestion organisationNameQuestion = ApplicationFormQuestion.builder()
+                .questionId("ORG_NAME")
+                .fieldTitle("Enter your organisation name")
+                .build();
+
+        final ApplicationFormSection essentialSection = ApplicationFormSection.builder()
+                .sectionId("ESSENTIAL")
+                .sectionTitle("Essential Information")
+                .questions(new ArrayList<>(List.of(organisationNameQuestion)))
+                .build();
+
+        final ApplicationFormQuestion customQuestion = ApplicationFormQuestion.builder()
+                .questionId("CUSTOM_QUESTION_!")
+                .fieldTitle("Describe how your organisation will use this funding")
+                .build();
+
+        final ApplicationFormSection customSection = ApplicationFormSection.builder()
+                .sectionId("CUSTOM_SECTION_1")
+                .sectionTitle("Funding circumstances")
+                .questions(new ArrayList<>(List.of(customQuestion)))
+                .build();
+
+        final ApplicationDefinition applicationDefinition = ApplicationDefinition.builder()
+                .sections(new ArrayList<>(List.of(eligibilitySection, essentialSection, customSection)))
+                .build();
+
+        // assert that section statuses have not been set prior to running the test
+        assertThat(eligibilitySection.getSectionStatus()).isNull();
+        assertThat(essentialSection.getSectionStatus()).isNull();
+
+        final SubmissionDefinition submissionDefinition = serviceUnderTest.transformApplicationDefinitionToSubmissionDefinition(applicationDefinition, SCHEME_VERSION);
+
+        // V1 schemes and submissions should have a section with ID of ESSENTIAL
+        assertThat(submissionDefinition.getSections().stream()
+                .anyMatch(section -> section.getSectionId().equals("ESSENTIAL"))).isFalse();
+
+        // V1 Schemes and submissions should NOT contain ORGANISATION_DETAILS or FUNDING_DETAILS sections
+        assertThat(submissionDefinition.getSections().stream()
+                .anyMatch(section -> section.getSectionId().equals("ORGANISATION_DETAILS"))).isTrue();
+
+        assertThat(submissionDefinition.getSections().stream()
+                .anyMatch(section -> section.getSectionId().equals("FUNDING_DETAILS"))).isTrue();
+
+        // ELIGIBILITY section should have a status of not started
+        final SubmissionSectionStatus eligibilitySectionStatus = submissionDefinition.getSections().stream()
+                .filter(section -> section.getSectionId().equals("ELIGIBILITY"))
+                .findAny()
+                .map(SubmissionSection::getSectionStatus)
+                .orElseThrow();
+
+        assertThat(eligibilitySectionStatus).isEqualTo(SubmissionSectionStatus.NOT_STARTED);
+
+        // All other sections should have a status of unable to start
+        final List<SubmissionSectionStatus> allOtherSectionStatuses = submissionDefinition.getSections().stream()
+                .filter(section -> !section.getSectionId().equals("ELIGIBILITY"))
+                .map(SubmissionSection::getSectionStatus)
+                .collect(Collectors.toList());
+
+        assertThat(allOtherSectionStatuses).containsOnly(SubmissionSectionStatus.CANNOT_START_YET);
     }
 }

@@ -239,7 +239,6 @@ public class SubmissionController {
         }
 
         return ResponseEntity.ok(submissionService.createSubmissionFromApplication(applicantId, grantApplicant, grantApplication));
-
     }
 
     @PutMapping("/{submissionId}/question/{questionId}/attachment/scanresult")
