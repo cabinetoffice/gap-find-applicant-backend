@@ -6,13 +6,11 @@ import gov.cabinetoffice.gap.applybackend.dto.api.UpdateGrantMandatoryQuestionDt
 import gov.cabinetoffice.gap.applybackend.enums.GrantMandatoryQuestionFundingLocation;
 import gov.cabinetoffice.gap.applybackend.enums.GrantMandatoryQuestionOrgType;
 import gov.cabinetoffice.gap.applybackend.mapper.GrantMandatoryQuestionMapper;
-import gov.cabinetoffice.gap.applybackend.model.GrantApplicant;
-import gov.cabinetoffice.gap.applybackend.model.GrantApplicantOrganisationProfile;
-import gov.cabinetoffice.gap.applybackend.model.GrantMandatoryQuestions;
-import gov.cabinetoffice.gap.applybackend.model.GrantScheme;
+import gov.cabinetoffice.gap.applybackend.model.*;
 import gov.cabinetoffice.gap.applybackend.service.GrantApplicantService;
 import gov.cabinetoffice.gap.applybackend.service.GrantMandatoryQuestionService;
 import gov.cabinetoffice.gap.applybackend.service.GrantSchemeService;
+import gov.cabinetoffice.gap.applybackend.service.SubmissionService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -69,6 +67,10 @@ class GrantMandatoryQuestionsControllerTest {
     private Authentication authentication;
     @Mock
     private SecurityContext securityContext;
+
+    @Mock
+    private SubmissionService submissionService;
+
     @InjectMocks
     private GrantMandatoryQuestionsController controllerUnderTest;
 
@@ -204,5 +206,92 @@ class GrantMandatoryQuestionsControllerTest {
 
     }
 
+    @Test
+    void updateMandatoryQuestion_AddsSubmissionToMandatoryQuestions_IfSubmissionIdProvided() {
+
+        final UUID submissionId = UUID.randomUUID();
+        final UpdateGrantMandatoryQuestionDto updateDto = UpdateGrantMandatoryQuestionDto.builder()
+                .submissionId(submissionId)
+                .build();
+
+        final GrantMandatoryQuestions mandatoryQuestions = GrantMandatoryQuestions.builder()
+                .id(MANDATORY_QUESTION_ID)
+                .build();
+
+        final Submission submission = Submission.builder()
+                .id(submissionId)
+                .build();
+
+        when(grantApplicantService.getApplicantById(jwtPayload.getSub()))
+                .thenReturn(applicant);
+
+        when(grantMandatoryQuestionService.getGrantMandatoryQuestionById(MANDATORY_QUESTION_ID, jwtPayload.getSub()))
+                .thenReturn(mandatoryQuestions);
+
+        when(grantMandatoryQuestionMapper.mapUpdateGrantMandatoryQuestionDtoToGrantMandatoryQuestion(updateDto, mandatoryQuestions))
+                .thenReturn(mandatoryQuestions);
+
+        when(grantMandatoryQuestionService.updateMandatoryQuestion(mandatoryQuestions))
+                .thenReturn(mandatoryQuestions);
+
+        when(grantMandatoryQuestionService.generateNextPageUrl("url", MANDATORY_QUESTION_ID))
+                .thenReturn("nextPageUrl");
+
+        when(submissionService.getSubmissionFromDatabaseBySubmissionId(jwtPayload.getSub(), submissionId))
+                .thenReturn(submission);
+
+
+        final ResponseEntity<String> methodResponse = controllerUnderTest.updateMandatoryQuestion(MANDATORY_QUESTION_ID, updateDto, "url");
+
+
+        verify(submissionService).getSubmissionFromDatabaseBySubmissionId(jwtPayload.getSub(), submissionId);
+        verify(grantMandatoryQuestionService).updateMandatoryQuestion(mandatoryQuestions);
+        assertThat(methodResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(methodResponse.getBody()).isEqualTo("nextPageUrl");
+    }
+
+    @Test
+    void getGrantMandatoryQuestionsBySubmissionId_ReturnsExpectedMandatoryQuestions() {
+        final UUID submissionId = UUID.randomUUID();
+
+        final GrantMandatoryQuestionFundingLocation[] fundingLocations = new GrantMandatoryQuestionFundingLocation[]{SCOTLAND};
+        final GrantMandatoryQuestions mandatoryQuestions = GrantMandatoryQuestions.builder()
+                .id(MANDATORY_QUESTION_ID)
+                .createdBy(applicant)
+                .grantScheme(scheme)
+                .name("AND Digital")
+                .fundingAmount(new BigDecimal("50000.00"))
+                .addressLine1("215 Bothwell Street")
+                .city("Glasgow")
+                .postcode("G2 7EZ")
+                .fundingLocation(fundingLocations)
+                .companiesHouseNumber("08761455")
+                .orgType(GrantMandatoryQuestionOrgType.LIMITED_COMPANY)
+                .build();
+
+        final GetGrantMandatoryQuestionDto mandatoryQuestionsDto = GetGrantMandatoryQuestionDto.builder()
+                .name("AND Digital")
+                .fundingAmount("50000.00")
+                .addressLine1("215 Bothwell Street")
+                .city("Glasgow")
+                .postcode("G2 7EZ")
+                .fundingLocation(List.of("Scotland"))
+                .companiesHouseNumber("08761455")
+                .orgType("Limited company")
+                .schemeId(scheme.getId())
+                .build();
+
+        when(grantMandatoryQuestionService.getGrantMandatoryQuestionBySubmissionId(submissionId, jwtPayload.getSub()))
+                .thenReturn(mandatoryQuestions);
+
+        when(grantMandatoryQuestionMapper.mapGrantMandatoryQuestionToGetGrantMandatoryQuestionDTO(mandatoryQuestions))
+                .thenReturn(mandatoryQuestionsDto);
+
+        final ResponseEntity<GetGrantMandatoryQuestionDto> methodResponse = controllerUnderTest.getGrantMandatoryQuestionsBySubmissionId(submissionId);
+
+        verify(grantMandatoryQuestionService).getGrantMandatoryQuestionBySubmissionId(submissionId, jwtPayload.getSub());
+        assertThat(methodResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(methodResponse.getBody()).isEqualTo(mandatoryQuestionsDto);
+    }
 
 }

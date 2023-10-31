@@ -73,6 +73,21 @@ public class GrantMandatoryQuestionsController {
         return ResponseEntity.ok(getGrantMandatoryQuestionDto);
     }
 
+    @GetMapping("/get-by-submission/{submissionId}")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Grant Mandatory found", content = @Content(mediaType = "application/json", schema = @Schema(implementation = GrantMandatoryQuestions.class))),
+            @ApiResponse(responseCode = "403", description = "User cannot access this mandatory question", content = @Content(mediaType = "application/json")),
+            @ApiResponse(responseCode = "404", description = "No Grant Mandatory question found", content = @Content(mediaType = "application/json")),
+    })
+    public ResponseEntity<GetGrantMandatoryQuestionDto> getGrantMandatoryQuestionsBySubmissionId(@PathVariable final UUID submissionId) {
+        final JwtPayload jwtPayload = (JwtPayload) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        final GrantMandatoryQuestions grantMandatoryQuestions = grantMandatoryQuestionService.getGrantMandatoryQuestionBySubmissionId(submissionId, jwtPayload.getSub());
+        log.info("Mandatory question with ID {} has been grabbed.", grantMandatoryQuestions.getId());
+
+        final GetGrantMandatoryQuestionDto getGrantMandatoryQuestionBySubmissionDto = grantMandatoryQuestionMapper.mapGrantMandatoryQuestionToGetGrantMandatoryQuestionDTO(grantMandatoryQuestions);
+        return ResponseEntity.ok(getGrantMandatoryQuestionBySubmissionDto);
+    }
+
 
     @PatchMapping("/{mandatoryQuestionId}")
     @ApiResponses(value = {

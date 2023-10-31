@@ -34,7 +34,7 @@ public class ControllerExceptionHandler {
     })
     @ResponseStatus(value = HttpStatus.NOT_FOUND)
     public ErrorMessage handle404s(Exception ex, WebRequest request) {
-        log.error("An error occurred", ex);
+        log.error("Exception thrown: ", ex.getStackTrace());
         return ErrorMessage.builder()
                 .status(HttpStatus.NOT_FOUND)
                 .date(ZonedDateTime.now(clock))
@@ -47,6 +47,7 @@ public class ControllerExceptionHandler {
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ErrorResponseBody handleValidationExceptions(
             MethodArgumentNotValidException ex) {
+        log.error("MethodArgumentNotValidException thrown: ", ex.getStackTrace());
         return ErrorResponseBody.builder()
                 .responseAccepted(Boolean.FALSE)
                 .message("Validation failure")
@@ -70,6 +71,7 @@ public class ControllerExceptionHandler {
             SubmissionNotReadyException.class,
     })
     public ErrorMessage handleBadRequest(RuntimeException ex, WebRequest request) {
+        log.error("SubmissionNotReadyException thrown: ", ex.getStackTrace());
         return ErrorMessage.builder()
                 .status(HttpStatus.BAD_REQUEST)
                 .date(ZonedDateTime.now(clock))
@@ -83,6 +85,7 @@ public class ControllerExceptionHandler {
     })
     @ResponseStatus(value = HttpStatus.BAD_REQUEST)
     public ErrorResponseBody handleAttachment(Exception ex) {
+        log.error("AttachmentException thrown: ", ex.getStackTrace());
         return ErrorResponseBody.builder()
                 .responseAccepted(Boolean.FALSE)
                 .message("Validation failure")
@@ -110,6 +113,7 @@ public class ControllerExceptionHandler {
             GrantApplicationNotPublishedException.class,
     })
     public ErrorMessage handleGrantNotPublished(GrantApplicationNotPublishedException ex, WebRequest request) {
+        log.error("GrantApplicationNotPublishedException thrown: ", ex.getStackTrace());
         return ErrorMessage.builder()
                 .status(HttpStatus.BAD_REQUEST)
                 .date(ZonedDateTime.now(clock))
@@ -124,7 +128,8 @@ public class ControllerExceptionHandler {
     @ExceptionHandler({
             SubmissionAlreadyCreatedException.class,
     })
-    public ErrorMessage handleSubmissionAlreadyCreated(RuntimeException ex, WebRequest request) {
+    public ErrorMessage handleSubmissionAlreadyCreated(SubmissionAlreadyCreatedException ex, WebRequest request) {
+        log.error("SubmissionAlreadyCreatedException thrown: ", ex.getStackTrace());
         return ErrorMessage.builder()
                 .status(HttpStatus.BAD_REQUEST)
                 .date(ZonedDateTime.now(clock))

@@ -26,6 +26,7 @@ import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class GrantMandatoryQuestionServiceTest {
@@ -104,6 +105,64 @@ class GrantMandatoryQuestionServiceTest {
                     .thenReturn(mandatoryQuestions);
 
             final GrantMandatoryQuestions methodResponse = serviceUnderTest.getGrantMandatoryQuestionById(mandatoryQuestionsId, applicantUserId);
+
+            assertThat(methodResponse).isEqualTo(mandatoryQuestions.get());
+        }
+    }
+
+    @Nested
+    class getGrantMandatoryQuestionBySubmissionId {
+        @Test
+        void getGrantMandatoryQuestionBySubmissionId_ThrowsNotFoundException() {
+            final UUID submissionId = UUID.randomUUID();
+
+            when(grantMandatoryQuestionRepository.findBySubmissionId(submissionId))
+                    .thenThrow(NotFoundException.class);
+
+            assertThrows(NotFoundException.class, () -> serviceUnderTest.getGrantMandatoryQuestionBySubmissionId(submissionId, applicantUserId));
+        }
+
+        @Test
+        void getGrantMandatoryQuestionBySubmissionId_ThrowsForbiddenException() {
+
+            final GrantApplicant applicant = GrantApplicant
+                    .builder()
+                    .userId(applicantUserId)
+                    .build();
+
+            final Optional<GrantMandatoryQuestions> mandatoryQuestions = Optional.of(GrantMandatoryQuestions
+                    .builder()
+                    .createdBy(applicant)
+                    .build());
+
+            final UUID submissionId = UUID.randomUUID();
+            final String invalidUserId = "a-bad-user-id";
+
+            when(grantMandatoryQuestionRepository.findBySubmissionId(submissionId))
+                    .thenReturn(mandatoryQuestions);
+
+            assertThrows(ForbiddenException.class, () -> serviceUnderTest.getGrantMandatoryQuestionBySubmissionId(submissionId, invalidUserId));
+        }
+
+        @Test
+        void getGrantMandatoryQuestionBySubmissionId_ReturnsExpectedMandatoryQuestions() {
+
+            final GrantApplicant applicant = GrantApplicant
+                    .builder()
+                    .userId(applicantUserId)
+                    .build();
+
+            final Optional<GrantMandatoryQuestions> mandatoryQuestions = Optional.of(GrantMandatoryQuestions
+                    .builder()
+                    .createdBy(applicant)
+                    .build());
+
+            final UUID submissionId = UUID.randomUUID();
+
+            when(grantMandatoryQuestionRepository.findBySubmissionId(submissionId))
+                    .thenReturn(mandatoryQuestions);
+
+            final GrantMandatoryQuestions methodResponse = serviceUnderTest.getGrantMandatoryQuestionBySubmissionId(submissionId, applicantUserId);
 
             assertThat(methodResponse).isEqualTo(mandatoryQuestions.get());
         }

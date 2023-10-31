@@ -33,18 +33,23 @@ public class GrantMandatoryQuestionService {
         return grantMandatoryQuestion.get();
     }
 
-    public GrantMandatoryQuestions createMandatoryQuestion(GrantScheme scheme, GrantApplicant applicant) {
+    public GrantMandatoryQuestions getGrantMandatoryQuestionBySubmissionId(UUID id, String applicantSub) {
+        final Optional<GrantMandatoryQuestions> grantMandatoryQuestion = ofNullable(grantMandatoryQuestionRepository.findBySubmissionId(id)
+                .orElseThrow(() -> new NotFoundException(String.format("No Mandatory Question with ID %s was found", id))));
 
-        // TODO we probably don't need to ask if it exists and instead react if the result is null
-        //TODO definitely a valid use case for both here
-        //the create method should error out if it's trying to create a mandatory question which already exists
-        //however in our usage, there is a benefit to us doing a create-or-retrieve as that is the process we'd want in the frontend.
-        //might be worth having two methods, a create method which errors out if it already exists, and a create-or-retrieve method
-        // which uses the previous one and does the retrieval if it errors.
+        if (!grantMandatoryQuestion.get().getCreatedBy().getUserId().equals(applicantSub)) {
+            throw new ForbiddenException(String.format("Mandatory Question with ID %s was not created by %s", id, applicantSub));
+        }
+
+        return grantMandatoryQuestion.get();
+    }
+
+    public GrantMandatoryQuestions createMandatoryQuestion(GrantScheme scheme, GrantApplicant applicant) {
         if (doesMandatoryQuestionAlreadyExist(scheme, applicant)) {
             log.debug("Mandatory question for scheme {}, and applicant {} already exist", scheme.getId(), applicant.getId());
             return grantMandatoryQuestionRepository.findByGrantSchemeAndCreatedBy(scheme, applicant).get(0);
         }
+
         final GrantApplicantOrganisationProfile organisationProfile = applicant.getOrganisationProfile();
 
         final GrantMandatoryQuestions grantMandatoryQuestions = organisationProfileMapper.mapOrgProfileToGrantMandatoryQuestion(organisationProfile);
