@@ -103,16 +103,17 @@ public class GrantMandatoryQuestionsController {
         final GrantMandatoryQuestions grantMandatoryQuestions = grantMandatoryQuestionService.getGrantMandatoryQuestionById(mandatoryQuestionId, jwtPayload.getSub());
 
         grantMandatoryQuestionMapper.mapUpdateGrantMandatoryQuestionDtoToGrantMandatoryQuestion(mandatoryQuestionDto, grantMandatoryQuestions);
-        if(mandatoryQuestionDto.getSubmissionId()!=null){
+        if (mandatoryQuestionDto.getSubmissionId() != null) {
             final Submission submission = submissionService.getSubmissionFromDatabaseBySubmissionId(jwtPayload.getSub(), mandatoryQuestionDto.getSubmissionId());
             grantMandatoryQuestions.setSubmission(submission);
         }
+
         if (grantMandatoryQuestions.getStatus().equals(GrantMandatoryQuestionStatus.NOT_STARTED)) {
             grantMandatoryQuestions.setStatus(GrantMandatoryQuestionStatus.IN_PROGRESS);
         }
+
         grantMandatoryQuestions.setLastUpdatedBy(applicant);
         grantMandatoryQuestions.setLastUpdated(Instant.now());
-
 
         grantMandatoryQuestionService.updateMandatoryQuestion(grantMandatoryQuestions);
 
@@ -120,6 +121,4 @@ public class GrantMandatoryQuestionsController {
 
         return ResponseEntity.ok(grantMandatoryQuestionService.generateNextPageUrl(url, mandatoryQuestionId));
     }
-
-
 }
