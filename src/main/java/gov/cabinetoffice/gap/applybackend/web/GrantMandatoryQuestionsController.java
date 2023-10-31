@@ -103,6 +103,7 @@ public class GrantMandatoryQuestionsController {
         final GrantMandatoryQuestions grantMandatoryQuestions = grantMandatoryQuestionService.getGrantMandatoryQuestionById(mandatoryQuestionId, jwtPayload.getSub());
 
         grantMandatoryQuestionMapper.mapUpdateGrantMandatoryQuestionDtoToGrantMandatoryQuestion(mandatoryQuestionDto, grantMandatoryQuestions);
+
         if (mandatoryQuestionDto.getSubmissionId() != null) {
             final Submission submission = submissionService.getSubmissionFromDatabaseBySubmissionId(jwtPayload.getSub(), mandatoryQuestionDto.getSubmissionId());
             grantMandatoryQuestions.setSubmission(submission);
@@ -115,6 +116,7 @@ public class GrantMandatoryQuestionsController {
         grantMandatoryQuestions.setLastUpdatedBy(applicant);
         grantMandatoryQuestions.setLastUpdated(Instant.now());
 
+        grantMandatoryQuestionService.addMandatoryQuestionsToSubmissionObject(grantMandatoryQuestions);
         grantMandatoryQuestionService.updateMandatoryQuestion(grantMandatoryQuestions);
 
         log.info("Mandatory question with ID {} has been updated.", grantMandatoryQuestions.getId());

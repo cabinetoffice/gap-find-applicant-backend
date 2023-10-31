@@ -20,4 +20,11 @@ public class SubmissionSection {
 
     @Builder.Default
     private List<SubmissionQuestion> questions = new ArrayList<>();
+
+    public void addQuestion(final SubmissionQuestion question) {
+        if (this.getQuestions() == null) {
+            this.questions = new ArrayList<>();
+        }
+        this.questions.add(question);
+    }
 }
