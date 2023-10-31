@@ -1,21 +1,9 @@
 name: Java CI with Maven
 
 on:
-  push:
-    branches:
-      - feature/**
-      - AFG-**
-      - bug/**
-      - GAP-**
-      - feat/**
-      - TMI2-**
   pull_request:
     branches:
-      - feature/**
-      - AFG-**
-      - bug/**
-      - GAP-**
-      - TMI2-**
+      - develop
 
 jobs:
   build:
