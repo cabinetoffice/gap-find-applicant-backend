@@ -10,7 +10,9 @@ import java.util.Optional;
 import java.util.UUID;
 
 public interface GrantMandatoryQuestionRepository extends JpaRepository<GrantMandatoryQuestions, UUID> {
-    List<GrantMandatoryQuestions> findByGrantSchemeAndCreatedBy(GrantScheme schemeId, GrantApplicant applicant);
+    List<GrantMandatoryQuestions> findByGrantSchemeAndCreatedBy(GrantScheme scheme, GrantApplicant applicant);
     Optional<GrantMandatoryQuestions> findBySubmissionId(UUID submissionId);
+
+    Optional<GrantMandatoryQuestions> findByGrantScheme(GrantScheme scheme);
 
 }
