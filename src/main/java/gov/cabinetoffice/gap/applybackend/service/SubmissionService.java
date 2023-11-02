@@ -355,6 +355,11 @@ public class SubmissionService {
                 .anyMatch(submission -> submission.getApplication().getId().equals(grantApplication.getId()));
     }
 
+    public Optional<Submission> getSubmissionByApplicantAndApplicationId(GrantApplicant grantApplicant,
+                                                                         GrantApplication grantApplication) {
+        return submissionRepository.findByApplicantIdAndApplicationId(grantApplicant.getId(), grantApplication.getId());
+    }
+
 
     public CreateSubmissionResponseDto createSubmissionFromApplication(final String userId,
                                                                        final GrantApplicant grantApplicant,
