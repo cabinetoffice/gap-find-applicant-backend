@@ -65,13 +65,13 @@ public class UpdateGrantMandatoryQuestionDto {
             String> postcode;
 
     private Optional<
-                @Size(max = 250, message = "Charity commission number must be 250 characters or less")
+                @Size(max = 15, message = "Charity commission number must be 15 characters or less")
                 @Pattern(regexp = "^(?![\\s\\S])|^[a-zA-Z0-9\\s',-]+$",
                         message = "Charity commission number must only use letters, numbers, and special characters such as hyphens, spaces and apostrophes")
             String> charityCommissionNumber;
 
     private Optional<
-                @Size(max = 250, message = "Companies house number must be 250 characters or less")
+                @Size(max = 8, message = "Companies house number must be 8 characters or less")
                 @Pattern(regexp = "^(?![\\s\\S])|^[a-zA-Z0-9\\s',-]+$",
                         message = "Companies house must only use letters, numbers, and special characters such as hyphens, spaces and apostrophes")
             String> companiesHouseNumber;
