@@ -63,6 +63,7 @@ import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Stream;
 
@@ -488,7 +489,7 @@ class SubmissionControllerTest {
     }
 
     @Test
-    void createApplication__submissionAlreadyExists_ThrowSubmissionAlreadyCreatedException() {
+    void returnSubmission__IfsubmissionAlreadyExists() throws JsonProcessingException {
         when(securityContext.getAuthentication()).thenReturn(authentication);
 
         SecurityContextHolder.setContext(securityContext);
@@ -498,11 +499,14 @@ class SubmissionControllerTest {
         when(grantApplicationService.isGrantApplicationPublished(1)).thenReturn(true);
         when(grantApplicationService.getGrantApplicationById(1)).thenReturn(application);
         when(grantApplicantService.getApplicantById(grantApplicant.getUserId())).thenReturn(grantApplicant);
-        when(submissionService.doesSubmissionExist(grantApplicant, application)).thenReturn(true);
+        when(submissionService.getSubmissionByApplicantAndApplicationId(grantApplicant, application))
+                .thenReturn(Optional.of(submission));
 
-        SubmissionAlreadyCreatedException result = assertThrows(SubmissionAlreadyCreatedException.class, () -> controllerUnderTest.createApplication(1));
+        ResponseEntity<CreateSubmissionResponseDto> response = controllerUnderTest.createApplication(1);
 
-        assertTrue(result.getMessage().contains("SUBMISSION_EXISTS"));
+        assertEquals(response, new ResponseEntity<>(CreateSubmissionResponseDto.builder().submissionCreated(false)
+                .submissionId(submission.getId())
+                .build(), HttpStatus.OK));
     }
 
     @Test
