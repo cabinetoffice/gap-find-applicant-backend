@@ -22,9 +22,11 @@ public class MandatoryQuestionConstants {
     public static final String[] APPLICANT_TYPE_OPTIONS = new String[] {
             "Limited company",
             "Non-limited company",
+            "Registered charity",
+            "Unregistered charity",
+            "Other",
             "Charity",
             "I am applying as an Individual",
-            "Other"
     };
 
     public static final String ORGANISATION_ADDRESS_TITLE = "Enter your organisations address";
