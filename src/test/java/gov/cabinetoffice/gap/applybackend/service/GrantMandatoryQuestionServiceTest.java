@@ -193,7 +193,7 @@ class GrantMandatoryQuestionServiceTest {
             final GrantScheme scheme = new GrantScheme();
             final String applicantSub = "valid-applicant-id";
 
-            when(grantMandatoryQuestionRepository.findByGrantSchemeId(1))
+            when(grantMandatoryQuestionRepository.findByGrantScheme_IdAndCreatedBy_UserId(1, applicantSub))
                     .thenReturn(Optional.empty());
 
             assertThrows(NotFoundException.class, () -> serviceUnderTest.getMandatoryQuestionByScheme(1, applicantSub));
@@ -207,7 +207,7 @@ class GrantMandatoryQuestionServiceTest {
             final GrantApplicant createdByOtherUser = GrantApplicant.builder().userId("other-user-id").build();
             final GrantMandatoryQuestions mandatoryQuestions = GrantMandatoryQuestions.builder().createdBy(createdByOtherUser).build();
 
-            when(grantMandatoryQuestionRepository.findByGrantSchemeId(1))
+            when(grantMandatoryQuestionRepository.findByGrantScheme_IdAndCreatedBy_UserId(1, applicantSub))
                     .thenReturn(Optional.of(mandatoryQuestions));
 
             assertThrows(ForbiddenException.class, () -> serviceUnderTest.getMandatoryQuestionByScheme(1, applicantSub));
@@ -221,7 +221,7 @@ class GrantMandatoryQuestionServiceTest {
             final GrantApplicant createdByValidUser = GrantApplicant.builder().userId(applicantSub).build();
             final GrantMandatoryQuestions mandatoryQuestions = GrantMandatoryQuestions.builder().createdBy(createdByValidUser).build();
 
-            when(grantMandatoryQuestionRepository.findByGrantSchemeId(1))
+            when(grantMandatoryQuestionRepository.findByGrantScheme_IdAndCreatedBy_UserId(1, applicantSub))
                     .thenReturn(Optional.of(mandatoryQuestions));
 
             final GrantMandatoryQuestions methodResponse = serviceUnderTest.getMandatoryQuestionByScheme(1, applicantSub);

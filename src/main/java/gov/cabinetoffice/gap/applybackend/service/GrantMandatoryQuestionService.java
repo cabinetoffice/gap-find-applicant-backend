@@ -59,7 +59,7 @@ public class GrantMandatoryQuestionService {
 
     public GrantMandatoryQuestions getMandatoryQuestionByScheme(Integer schemeId, String applicantSub) {
         final Optional<GrantMandatoryQuestions> grantMandatoryQuestion = ofNullable(grantMandatoryQuestionRepository
-                .findByGrantSchemeId(schemeId)
+                .findByGrantScheme_IdAndCreatedBy_UserId(schemeId, applicantSub)
                 .orElseThrow(() -> new NotFoundException(String.format("No Mandatory Question with scheme id  %s was found", schemeId))));
 
         if (!grantMandatoryQuestion.get().getCreatedBy().getUserId().equals(applicantSub)) {
