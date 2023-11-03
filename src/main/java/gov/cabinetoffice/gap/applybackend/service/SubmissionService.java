@@ -205,8 +205,9 @@ public class SubmissionService {
                 .getDefinition()
                 .getSections();
 
-        final boolean sectionAreAllCompleted = sections.stream().filter(section -> !section.getSectionStatus().equals(SubmissionSectionStatus.COMPLETED)).toList().isEmpty();
-//to cover the edge scenario in case an applicant somehow skips the questions and goes directly
+        boolean sectionAreAllCompleted = sections.stream()
+                .allMatch(section -> section.getSectionStatus().equals(SubmissionSectionStatus.COMPLETED));
+// we check also the questions response to cover the edge scenario in case an applicant somehow skips the questions and goes directly
 //to the section summary page to set the status of the section.
         final boolean questionsAreAllAnswered = sections
                 .stream()
