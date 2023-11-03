@@ -14,7 +14,17 @@ import gov.cabinetoffice.gap.applybackend.enums.SubmissionStatus;
 import gov.cabinetoffice.gap.applybackend.exception.NotFoundException;
 import gov.cabinetoffice.gap.applybackend.exception.SubmissionAlreadySubmittedException;
 import gov.cabinetoffice.gap.applybackend.exception.SubmissionNotReadyException;
-import gov.cabinetoffice.gap.applybackend.model.*;
+import gov.cabinetoffice.gap.applybackend.model.ApplicationDefinition;
+import gov.cabinetoffice.gap.applybackend.model.DiligenceCheck;
+import gov.cabinetoffice.gap.applybackend.model.GrantApplicant;
+import gov.cabinetoffice.gap.applybackend.model.GrantApplicantOrganisationProfile;
+import gov.cabinetoffice.gap.applybackend.model.GrantApplication;
+import gov.cabinetoffice.gap.applybackend.model.GrantBeneficiary;
+import gov.cabinetoffice.gap.applybackend.model.GrantScheme;
+import gov.cabinetoffice.gap.applybackend.model.Submission;
+import gov.cabinetoffice.gap.applybackend.model.SubmissionDefinition;
+import gov.cabinetoffice.gap.applybackend.model.SubmissionQuestion;
+import gov.cabinetoffice.gap.applybackend.model.SubmissionSection;
 import gov.cabinetoffice.gap.applybackend.repository.DiligenceCheckRepository;
 import gov.cabinetoffice.gap.applybackend.repository.GrantBeneficiaryRepository;
 import gov.cabinetoffice.gap.applybackend.repository.SubmissionRepository;
@@ -28,6 +38,7 @@ import java.time.LocalDateTime;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.Arrays;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
@@ -37,6 +48,8 @@ import java.util.stream.Stream;
 @RequiredArgsConstructor
 @Service
 public class SubmissionService {
+    public static final String ORGANISATION_DETAILS = "ORGANISATION_DETAILS";
+    public static final String FUNDING_DETAILS = "FUNDING_DETAILS";
     private static final String ESSENTIAL_SECTION_ID = "ESSENTIAL";
     private static final String APPLICANT_ORG_NAME = "APPLICANT_ORG_NAME";
     private static final String APPLICANT_ORG_TYPE = "APPLICANT_ORG_TYPE";
@@ -46,10 +59,6 @@ public class SubmissionService {
     private static final String APPLICANT_ORG_CHARITY_NUMBER = "APPLICANT_ORG_CHARITY_NUMBER";
     private static final String BENEFITIARY_LOCATION = "BENEFITIARY_LOCATION";
     private static final String ELIGIBILITY = "ELIGIBILITY";
-    public static final String ORGANISATION_DETAILS = "ORGANISATION_DETAILS";
-    public static final String FUNDING_DETAILS = "FUNDING_DETAILS";
-
-
     private final SubmissionRepository submissionRepository;
     private final DiligenceCheckRepository diligenceCheckRepository;
     private final GrantBeneficiaryRepository grantBeneficiaryRepository;
@@ -192,9 +201,15 @@ public class SubmissionService {
             return false;
         }
 
-        return submission
+        final List<SubmissionSection> sections = submission
                 .getDefinition()
-                .getSections()
+                .getSections();
+
+        boolean sectionAreAllCompleted = sections.stream()
+                .allMatch(section -> section.getSectionStatus().equals(SubmissionSectionStatus.COMPLETED));
+// we check also the questions response to cover the edge scenario in case an applicant somehow skips the questions and goes directly
+//to the section summary page to set the status of the section.
+        final boolean questionsAreAllAnswered = sections
                 .stream()
                 .flatMap(section -> section.getQuestions().stream())
                 .filter(question -> {
@@ -208,6 +223,8 @@ public class SubmissionService {
                 })
                 .toList()
                 .isEmpty();
+
+        return questionsAreAllAnswered && sectionAreAllCompleted;
     }
 
     @Transactional
@@ -496,8 +513,8 @@ public class SubmissionService {
             definition.getSections().removeIf(section -> section.getSectionId().equals(ESSENTIAL_SECTION_ID));
             definition.getSections().add(1,
                     SubmissionSection.builder()
-                    .sectionId(ORGANISATION_DETAILS)
-                    .build()
+                            .sectionId(ORGANISATION_DETAILS)
+                            .build()
             );
             definition.getSections().add(2,
                     SubmissionSection.builder()
