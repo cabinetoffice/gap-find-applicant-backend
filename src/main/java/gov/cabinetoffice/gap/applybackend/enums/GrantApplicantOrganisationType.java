@@ -8,6 +8,8 @@ public enum GrantApplicantOrganisationType {
     UNLIMITED_COMPANY("Unlimited company"),
     REGISTERED_CHARITY("Registered charity"),
     UNREGISTERED_CHARITY("Unregistered charity"),
+    CHARITY("Charity"),
+    INDIVIDUAL("I am applying as an Individual"),
     OTHER("Other");
 
     private String name;
@@ -37,9 +39,3 @@ public enum GrantApplicantOrganisationType {
 
     }
 }
-
-
-
-
-
-
