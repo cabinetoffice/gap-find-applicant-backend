@@ -24,7 +24,7 @@ class GrantMandatoryQuestionMapperTest {
     class mapGrantMandatoryQuestionToGetGrantMandatoryQuestionDTO {
         @Test
         void grantMandatoryQuestionIsFilled() {
-            UUID uuid = UUID.randomUUID();
+            final UUID uuid = UUID.randomUUID();
             final Submission submission = Submission.builder()
                     .id(uuid)
                     .build();
