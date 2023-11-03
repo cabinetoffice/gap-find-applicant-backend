@@ -61,7 +61,7 @@ public class GrantAdvertController {
             GetGrantMandatoryQuestionDto mandatoryQuestionsDto = null;
 
             if (grantMandatoryQuestionService.existsBySchemeIdAndApplicantId(advert.getScheme().getId(), grantApplicant.getId())) {
-                final GrantMandatoryQuestions grantMandatoryQuestions = grantMandatoryQuestionService.getMandatoryQuestionByScheme(advert.getScheme(), jwtPayload.getSub());
+                final GrantMandatoryQuestions grantMandatoryQuestions = grantMandatoryQuestionService.getMandatoryQuestionByScheme(advert.getScheme().getId(), jwtPayload.getSub());
                 mandatoryQuestionsDto = mapper.mapGrantMandatoryQuestionToGetGrantMandatoryQuestionDTO(grantMandatoryQuestions);
             }
 
@@ -90,8 +90,9 @@ public class GrantAdvertController {
 
         GetGrantMandatoryQuestionDto mandatoryQuestionsDto = null;
 
-        if (grantMandatoryQuestionService.existsBySchemeIdAndApplicantId(advert.getScheme().getId(), grantApplicant.getId())) {
-            final GrantMandatoryQuestions grantMandatoryQuestions = grantMandatoryQuestionService.getMandatoryQuestionByScheme(advert.getScheme(), jwtPayload.getSub());
+        if (grantMandatoryQuestionService.existsBySchemeIdAndApplicantId(Integer.parseInt(schemeId), grantApplicant.getId())) {
+            final GrantMandatoryQuestions grantMandatoryQuestions = grantMandatoryQuestionService
+                    .getMandatoryQuestionByScheme(Integer.parseInt(schemeId), jwtPayload.getSub());
             mandatoryQuestionsDto = mapper.mapGrantMandatoryQuestionToGetGrantMandatoryQuestionDTO(grantMandatoryQuestions);
         }
 
