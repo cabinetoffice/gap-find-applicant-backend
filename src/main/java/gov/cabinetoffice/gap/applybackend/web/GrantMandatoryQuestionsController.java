@@ -133,6 +133,10 @@ public class GrantMandatoryQuestionsController {
             grantMandatoryQuestions.setStatus(GrantMandatoryQuestionStatus.IN_PROGRESS);
         }
 
+        if (mandatoryQuestionDto.isMandatoryQuestionsComplete()) {
+            grantMandatoryQuestions.setStatus(GrantMandatoryQuestionStatus.COMPLETED);
+        }
+
         grantMandatoryQuestions.setLastUpdatedBy(applicant);
         grantMandatoryQuestions.setLastUpdated(Instant.now());
 

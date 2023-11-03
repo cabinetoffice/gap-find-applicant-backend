@@ -22,6 +22,8 @@ public class UpdateGrantMandatoryQuestionDto {
 
     private UUID submissionId;
 
+    private boolean mandatoryQuestionsComplete;
+
     private Optional<
                 @NotBlank(message = "You must enter an answer")
                 @Size(max = 250, message = "Organisation name must be 250 characters or less")
