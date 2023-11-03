@@ -258,24 +258,11 @@ public class SubmissionService {
     }
 
     private void createDiligenceCheckFromSubmission(final Submission submission) {
-        final SubmissionSection essentialInfoSection = submission.getDefinition().getSections()
-                .stream()
-                .filter(section -> section.getSectionId().equals(ESSENTIAL_SECTION_ID))
-                .findAny()
-                .orElseThrow(
-                        () -> new IllegalArgumentException(
-                                "submission does not contain an essential info section"));
-
-        final String organisationName = getResponseBySectionAndQuestionId(essentialInfoSection,
-                APPLICANT_ORG_NAME);
-        final String[] organisationAddress = getMultiResponseBySectionAndQuestionId(essentialInfoSection,
-                APPLICANT_ORG_ADDRESS);
-        final String applicationAmount = getResponseBySectionAndQuestionId(essentialInfoSection,
-                APPLICANT_AMOUNT);
-        final String companiesHouseNumber = getResponseBySectionAndQuestionId(essentialInfoSection,
-                APPLICANT_ORG_COMPANIES_HOUSE);
-        final String charitiesCommissionNumber = getResponseBySectionAndQuestionId(essentialInfoSection,
-                APPLICANT_ORG_CHARITY_NUMBER);
+        final String organisationName = getQuestionResponseByQuestionId(submission, APPLICANT_ORG_NAME);
+        final String[] organisationAddress = getQuestionMultiResponseByQuestionId(submission, APPLICANT_ORG_ADDRESS);
+        final String applicationAmount = getQuestionResponseByQuestionId(submission, APPLICANT_AMOUNT);
+        final String companiesHouseNumber = getQuestionResponseByQuestionId(submission, APPLICANT_ORG_COMPANIES_HOUSE);
+        final String charitiesCommissionNumber = getQuestionResponseByQuestionId(submission, APPLICANT_ORG_CHARITY_NUMBER);
 
         diligenceCheckRepository.save(DiligenceCheck.builder()
                 .submissionId(submission.getId())
@@ -291,16 +278,28 @@ public class SubmissionService {
                 .build());
     }
 
-    private String getResponseBySectionAndQuestionId(final SubmissionSection essentialInfoSection,
-                                                     final String questionId) {
-        return essentialInfoSection.getQuestions()
+    private String getQuestionResponseByQuestionId(final Submission submission, final String questionId) {
+        return submission.getDefinition().getSections()
                 .stream()
+                .flatMap(s -> s.getQuestions().stream())
                 .filter(question -> question.getQuestionId().equals(questionId))
                 .findAny()
                 .orElseThrow(() -> new IllegalArgumentException(
-                        String.format("section %s does not contain a question with an ID of %s",
-                                essentialInfoSection.getSectionId(), questionId)))
+                        String.format("submission %s does not contain a question with an ID of %s",
+                                submission.getId(), questionId)))
                 .getResponse();
+    }
+
+    private String[] getQuestionMultiResponseByQuestionId(final Submission submission, final String questionId) {
+        return submission.getDefinition().getSections()
+                .stream()
+                .flatMap(s -> s.getQuestions().stream())
+                .filter(question -> question.getQuestionId().equals(questionId))
+                .findAny()
+                .orElseThrow(() -> new IllegalArgumentException(
+                        String.format("submission %s does not contain a question with an ID of %s",
+                                submission.getId(), questionId)))
+                .getMultiResponse();
     }
 
     private String[] getMultiResponseBySectionAndQuestionId(final SubmissionSection essentialInfoSection,
@@ -338,22 +337,7 @@ public class SubmissionService {
     }
 
     private void createGrantBeneficiary(final Submission submission) {
-        final SubmissionSection essentialInfoSection = submission.getDefinition().getSections()
-                .stream()
-                .filter(section -> section.getSectionId().equals(ESSENTIAL_SECTION_ID))
-                .findAny()
-                .orElseThrow(
-                        () -> new IllegalArgumentException(
-                                "submission does not contain an essential info section"));
-
-        String[] locations = essentialInfoSection.getQuestions()
-                .stream()
-                .filter(question -> question.getQuestionId().equals(BENEFITIARY_LOCATION))
-                .findAny()
-                .orElseThrow(
-                        () -> new IllegalArgumentException(
-                                "Essential information does not contain a Beneficiary location question"))
-                .getMultiResponse();
+        final String[] locations = getQuestionMultiResponseByQuestionId(submission, BENEFITIARY_LOCATION);
 
         grantBeneficiaryRepository.save(GrantBeneficiary.builder()
                 .schemeId(submission.getScheme().getId())
@@ -386,6 +370,11 @@ public class SubmissionService {
         return submissionRepository.findByApplicantId(grantApplicant.getId())
                 .stream()
                 .anyMatch(submission -> submission.getApplication().getId().equals(grantApplication.getId()));
+    }
+
+    public Optional<Submission> getSubmissionByApplicantAndApplicationId(GrantApplicant grantApplicant,
+                                                                         GrantApplication grantApplication) {
+        return submissionRepository.findByApplicantIdAndApplicationId(grantApplicant.getId(), grantApplication.getId());
     }
 
 

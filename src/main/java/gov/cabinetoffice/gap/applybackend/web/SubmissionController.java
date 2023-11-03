@@ -8,7 +8,6 @@ import gov.cabinetoffice.gap.applybackend.enums.SubmissionSectionStatus;
 import gov.cabinetoffice.gap.applybackend.exception.AttachmentException;
 import gov.cabinetoffice.gap.applybackend.exception.GrantApplicationNotPublishedException;
 import gov.cabinetoffice.gap.applybackend.exception.NotFoundException;
-import gov.cabinetoffice.gap.applybackend.exception.SubmissionAlreadyCreatedException;
 import gov.cabinetoffice.gap.applybackend.model.*;
 import gov.cabinetoffice.gap.applybackend.service.*;
 import static gov.cabinetoffice.gap.applybackend.utils.SecurityContextHelper.getUserIdFromSecurityContext;
@@ -197,10 +196,15 @@ public class SubmissionController {
         final GrantApplication grantApplication = grantApplicationService.getGrantApplicationById(applicationId);
         final GrantApplicant grantApplicant = grantApplicantService.getApplicantById(applicantId);
 
-        final boolean submissionExists = submissionService.doesSubmissionExist(grantApplicant, grantApplication);
-        if (submissionExists) {
+        Optional<Submission> existingSubmission =
+                submissionService.getSubmissionByApplicantAndApplicationId(grantApplicant, grantApplication);
+
+        if (existingSubmission.isPresent()) {
             logger.info("Grant Submission for {} already exists.", applicationId);
-            throw new SubmissionAlreadyCreatedException("SUBMISSION_EXISTS");
+            return ResponseEntity.ok(CreateSubmissionResponseDto.builder()
+                    .submissionCreated(false)
+                    .submissionId(existingSubmission.get().getId())
+                    .build());
         }
 
         return ResponseEntity.ok(submissionService.createSubmissionFromApplication(applicantId, grantApplicant, grantApplication));
