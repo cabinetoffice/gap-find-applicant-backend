@@ -7,26 +7,44 @@ import gov.cabinetoffice.gap.applybackend.enums.SubmissionSectionStatus;
 import gov.cabinetoffice.gap.applybackend.exception.ForbiddenException;
 import gov.cabinetoffice.gap.applybackend.exception.NotFoundException;
 import gov.cabinetoffice.gap.applybackend.mapper.GrantApplicantOrganisationProfileMapper;
-import gov.cabinetoffice.gap.applybackend.model.*;
+import gov.cabinetoffice.gap.applybackend.model.GrantApplicant;
+import gov.cabinetoffice.gap.applybackend.model.GrantApplicantOrganisationProfile;
+import gov.cabinetoffice.gap.applybackend.model.GrantMandatoryQuestions;
+import gov.cabinetoffice.gap.applybackend.model.GrantScheme;
+import gov.cabinetoffice.gap.applybackend.model.Submission;
+import gov.cabinetoffice.gap.applybackend.model.SubmissionDefinition;
+import gov.cabinetoffice.gap.applybackend.model.SubmissionQuestion;
+import gov.cabinetoffice.gap.applybackend.model.SubmissionSection;
 import gov.cabinetoffice.gap.applybackend.repository.GrantMandatoryQuestionRepository;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
-import org.mockito.*;
-import static org.mockito.Mockito.*;
+import org.mockito.ArgumentCaptor;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.Mockito;
+import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.math.BigDecimal;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
 import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.any;
+import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class GrantMandatoryQuestionServiceTest {
@@ -169,6 +187,51 @@ class GrantMandatoryQuestionServiceTest {
     }
 
     @Nested
+    class getGrantMandatoryQuestionByScheme {
+        @Test
+        void getMandatoryQuestionByScheme_ThrowsNotFoundException() {
+            final GrantScheme scheme = new GrantScheme();
+            final String applicantSub = "valid-applicant-id";
+
+            when(grantMandatoryQuestionRepository.findByGrantScheme(scheme))
+                    .thenReturn(Optional.empty());
+
+            assertThrows(NotFoundException.class, () -> serviceUnderTest.getMandatoryQuestionByScheme(scheme, applicantSub));
+        }
+
+        @Test
+        void getMandatoryQuestionByScheme_ThrowsForbiddenException() {
+            final GrantScheme scheme = new GrantScheme();
+            final String applicantSub = "valid-applicant-id";
+
+            final GrantApplicant createdByOtherUser = GrantApplicant.builder().userId("other-user-id").build();
+            final GrantMandatoryQuestions mandatoryQuestions = GrantMandatoryQuestions.builder().createdBy(createdByOtherUser).build();
+
+            when(grantMandatoryQuestionRepository.findByGrantScheme(scheme))
+                    .thenReturn(Optional.of(mandatoryQuestions));
+
+            assertThrows(ForbiddenException.class, () -> serviceUnderTest.getMandatoryQuestionByScheme(scheme, applicantSub));
+        }
+
+        @Test
+        void getMandatoryQuestionByScheme_ReturnsExpectedMandatoryQuestions() {
+            final GrantScheme scheme = new GrantScheme();
+            final String applicantSub = "valid-applicant-id";
+
+            final GrantApplicant createdByValidUser = GrantApplicant.builder().userId(applicantSub).build();
+            final GrantMandatoryQuestions mandatoryQuestions = GrantMandatoryQuestions.builder().createdBy(createdByValidUser).build();
+
+            when(grantMandatoryQuestionRepository.findByGrantScheme(scheme))
+                    .thenReturn(Optional.of(mandatoryQuestions));
+
+            final GrantMandatoryQuestions methodResponse = serviceUnderTest.getMandatoryQuestionByScheme(scheme, applicantSub);
+
+            assertThat(methodResponse).isEqualTo(mandatoryQuestions);
+        }
+
+    }
+
+    @Nested
     class createMandatoryQuestion {
         @Test
         void createMandatoryQuestion_ReturnsExistingMandatoryQuestions_InsteadOfCreatingNewOnes() {
@@ -186,6 +249,9 @@ class GrantMandatoryQuestionServiceTest {
                     .builder()
                     .userId(applicantUserId)
                     .build();
+
+            when(grantMandatoryQuestionRepository.existsByGrantScheme_IdAndCreatedBy_Id(scheme.getId(), applicant.getId()))
+                    .thenReturn(true);
 
             when(grantMandatoryQuestionRepository.findByGrantSchemeAndCreatedBy(scheme, applicant))
                     .thenReturn(List.of(existingMandatoryQuestions));
@@ -220,8 +286,8 @@ class GrantMandatoryQuestionServiceTest {
                     .addressLine1(organisationProfile.getAddressLine1())
                     .build();
 
-            when(grantMandatoryQuestionRepository.findByGrantSchemeAndCreatedBy(scheme, applicant))
-                    .thenReturn(Collections.emptyList());
+            when(grantMandatoryQuestionRepository.existsByGrantScheme_IdAndCreatedBy_Id(scheme.getId(), applicant.getId()))
+                    .thenReturn(false);
 
             when(grantMandatoryQuestionRepository.save(Mockito.any()))
                     .thenReturn(grantMandatoryQuestions);
@@ -468,7 +534,7 @@ class GrantMandatoryQuestionServiceTest {
                     .postcode("G2 7EZ")
                     .orgType(GrantMandatoryQuestionOrgType.LIMITED_COMPANY)
                     .fundingAmount(BigDecimal.valueOf(150000))
-                    .fundingLocation(new GrantMandatoryQuestionFundingLocation[] {
+                    .fundingLocation(new GrantMandatoryQuestionFundingLocation[]{
                             GrantMandatoryQuestionFundingLocation.SCOTLAND
                     })
                     .companiesHouseNumber("1234567")
@@ -515,8 +581,8 @@ class GrantMandatoryQuestionServiceTest {
                     .build();
 
             final SubmissionQuestion orgName = SubmissionQuestion.builder()
-                            .questionId(MandatoryQuestionConstants.SUBMISSION_QUESTION_IDS.APPLICANT_ORG_NAME.toString())
-                            .build();
+                    .questionId(MandatoryQuestionConstants.SUBMISSION_QUESTION_IDS.APPLICANT_ORG_NAME.toString())
+                    .build();
 
             final SubmissionQuestion applicantType = SubmissionQuestion.builder()
                     .questionId(MandatoryQuestionConstants.SUBMISSION_QUESTION_IDS.APPLICANT_TYPE.toString())
@@ -635,8 +701,8 @@ class GrantMandatoryQuestionServiceTest {
         static final String postcode = "G2 7EZ";
         static final GrantMandatoryQuestionOrgType organisationType = GrantMandatoryQuestionOrgType.LIMITED_COMPANY;
         static final BigDecimal fundingAmount = BigDecimal.valueOf(150000);
-        static final GrantMandatoryQuestionFundingLocation[] fundingLocations = new GrantMandatoryQuestionFundingLocation[] {
-            GrantMandatoryQuestionFundingLocation.SCOTLAND
+        static final GrantMandatoryQuestionFundingLocation[] fundingLocations = new GrantMandatoryQuestionFundingLocation[]{
+                GrantMandatoryQuestionFundingLocation.SCOTLAND
         };
         static final String charityNumber = "1234567";
         static final String companiesHouseNumber = "22135";
@@ -648,17 +714,17 @@ class GrantMandatoryQuestionServiceTest {
                     Arguments.of("APPLICANT_ORG_CHARITY_NUMBER", charityNumber),
                     Arguments.of("APPLICANT_ORG_COMPANIES_HOUSE", companiesHouseNumber),
                     Arguments.of("APPLICANT_AMOUNT", fundingAmount.toString()),
-                    Arguments.of("BENEFITIARY_LOCATION", new String[] {
+                    Arguments.of("BENEFITIARY_LOCATION", new String[]{
                             GrantMandatoryQuestionFundingLocation.SCOTLAND.getName()
                     }),
-                    Arguments.of("APPLICANT_ORG_ADDRESS", new String[] {
+                    Arguments.of("APPLICANT_ORG_ADDRESS", new String[]{
                             address1,
                             null,
                             city,
                             null,
                             postcode
                     })
-                    );
+            );
         }
 
 
@@ -684,7 +750,7 @@ class GrantMandatoryQuestionServiceTest {
             assertThat(question.getQuestionId()).isEqualTo(questionId);
 
             // I am sorry.......
-            switch(questionId) {
+            switch (questionId) {
                 case "APPLICANT_ORG_NAME":
                 case "APPLICANT_TYPE":
                 case "APPLICANT_ORG_CHARITY_NUMBER":

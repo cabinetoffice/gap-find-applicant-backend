@@ -7,6 +7,7 @@ import com.contentful.java.cda.CDAEntry;
 import com.contentful.java.cda.CDAResourceNotFoundException;
 import com.contentful.java.cda.FetchQuery;
 import gov.cabinetoffice.gap.applybackend.dto.api.GetGrantAdvertDto;
+import gov.cabinetoffice.gap.applybackend.dto.api.GetGrantMandatoryQuestionDto;
 import gov.cabinetoffice.gap.applybackend.exception.NotFoundException;
 import gov.cabinetoffice.gap.applybackend.model.GrantAdvert;
 import gov.cabinetoffice.gap.applybackend.model.GrantAdvertPageResponse;
@@ -53,7 +54,7 @@ class GrantAdvertServiceTest {
     @Mock
     private FetchQuery fetchQuery;
 
-    private static GrantAdvertResponse genereteResponseWithHowToApplySection() {
+    private static GrantAdvertResponse generateResponseWithHowToApplySection() {
         final GrantAdvertQuestionResponse questionResponse = GrantAdvertQuestionResponse.builder()
                 .id("grantWebpageUrl")
                 .response("responseUrl")
@@ -86,7 +87,7 @@ class GrantAdvertServiceTest {
     class getExternalSubmissionUrl {
         @Test
         void getExternalSubmissionUrl() {
-            final GrantAdvertResponse response = genereteResponseWithHowToApplySection();
+            final GrantAdvertResponse response = generateResponseWithHowToApplySection();
             final GrantAdvert advert = GrantAdvert.builder()
                     .response(response)
                     .build();
@@ -111,7 +112,7 @@ class GrantAdvertServiceTest {
     }
 
     @Nested
-    class getAdvertByContentfulSlug{
+    class getAdvertByContentfulSlug {
         @Test
         void getAdvertByContentfulSlug() {
             final String contentfulSlug = "slug";
@@ -135,6 +136,7 @@ class GrantAdvertServiceTest {
             assertThrows(NotFoundException.class, () -> grantAdvertService.getAdvertByContentfulSlug(contentfulSlug));
         }
     }
+
     @Nested
     class generateGetGrandAdvertDto {
         @Test
@@ -148,11 +150,12 @@ class GrantAdvertServiceTest {
                     .scheme(scheme)
                     .response(response)
                     .build();
+            final GetGrantMandatoryQuestionDto mandatoryQuestionDto = GetGrantMandatoryQuestionDto.builder().build();
 
             when(grantApplicationService.doesSchemeHaveApplication(scheme)).thenReturn(true);
             when(grantApplicationService.getGrantApplicationId(scheme)).thenReturn(1);
 
-            final GetGrantAdvertDto methodResponse = grantAdvertService.generateGetGrantAdvertDto(advert);
+            final GetGrantAdvertDto methodResponse = grantAdvertService.generateGetGrantAdvertDto(advert, mandatoryQuestionDto);
 
             assertThat(methodResponse.getId()).isEqualTo(ADVERT_ID);
             assertThat(methodResponse.getVersion()).isEqualTo(1);
@@ -160,6 +163,7 @@ class GrantAdvertServiceTest {
             assertThat(methodResponse.isInternal()).isTrue();
             assertThat(methodResponse.getGrantApplicationId()).isEqualTo(1);
             assertThat(methodResponse.getGrantSchemeId()).isEqualTo(1);
+            assertThat(methodResponse.getMandatoryQuestionsDto()).isEqualTo(mandatoryQuestionDto);
         }
 
         @Test
@@ -173,11 +177,12 @@ class GrantAdvertServiceTest {
                     .scheme(scheme)
                     .response(response)
                     .build();
+            final GetGrantMandatoryQuestionDto mandatoryQuestionDto = GetGrantMandatoryQuestionDto.builder().build();
 
             when(grantApplicationService.doesSchemeHaveApplication(scheme)).thenReturn(true);
             when(grantApplicationService.getGrantApplicationId(scheme)).thenReturn(1);
 
-            final GetGrantAdvertDto methodResponse = grantAdvertService.generateGetGrantAdvertDto(advert);
+            final GetGrantAdvertDto methodResponse = grantAdvertService.generateGetGrantAdvertDto(advert, mandatoryQuestionDto);
 
             assertThat(methodResponse.getId()).isEqualTo(ADVERT_ID);
             assertThat(methodResponse.getVersion()).isEqualTo(2);
@@ -185,11 +190,12 @@ class GrantAdvertServiceTest {
             assertThat(methodResponse.isInternal()).isTrue();
             assertThat(methodResponse.getGrantApplicationId()).isEqualTo(1);
             assertThat(methodResponse.getGrantSchemeId()).isEqualTo(1);
+            assertThat(methodResponse.getMandatoryQuestionsDto()).isEqualTo(mandatoryQuestionDto);
         }
 
         @Test
         void generateGetGrantAdvertDto_createDtoForExternalApplicationAndVersion2() {
-            final GrantAdvertResponse response = genereteResponseWithHowToApplySection();
+            final GrantAdvertResponse response = generateResponseWithHowToApplySection();
             final GrantScheme scheme = GrantScheme.builder().id(1).build();
             final GrantAdvert advert = GrantAdvert.builder()
                     .contentfulSlug("slug")
@@ -198,12 +204,12 @@ class GrantAdvertServiceTest {
                     .scheme(scheme)
                     .response(response)
                     .build();
-
+            final GetGrantMandatoryQuestionDto mandatoryQuestionDto = GetGrantMandatoryQuestionDto.builder().build();
 
             when(grantApplicationService.doesSchemeHaveApplication(scheme)).thenReturn(false);
             when(grantApplicationService.getGrantApplicationId(scheme)).thenReturn(null);
 
-            final GetGrantAdvertDto methodResponse = grantAdvertService.generateGetGrantAdvertDto(advert);
+            final GetGrantAdvertDto methodResponse = grantAdvertService.generateGetGrantAdvertDto(advert, mandatoryQuestionDto);
 
             assertThat(methodResponse.getId()).isEqualTo(ADVERT_ID);
             assertThat(methodResponse.getVersion()).isEqualTo(2);
@@ -211,11 +217,12 @@ class GrantAdvertServiceTest {
             assertThat(methodResponse.isInternal()).isFalse();
             assertThat(methodResponse.getGrantApplicationId()).isNull();
             assertThat(methodResponse.getGrantSchemeId()).isEqualTo(1);
+            assertThat(methodResponse.getMandatoryQuestionsDto()).isEqualTo(mandatoryQuestionDto);
         }
 
         @Test
         void generateGetGrantAdvertDto_createDtoForExternalApplicationAndVersion1() {
-            final GrantAdvertResponse response = genereteResponseWithHowToApplySection();
+            final GrantAdvertResponse response = generateResponseWithHowToApplySection();
             final GrantScheme scheme = GrantScheme.builder().id(1).build();
             final GrantAdvert advert = GrantAdvert.builder()
                     .contentfulSlug("slug")
@@ -224,12 +231,12 @@ class GrantAdvertServiceTest {
                     .scheme(scheme)
                     .response(response)
                     .build();
-
+            final GetGrantMandatoryQuestionDto mandatoryQuestionDto = GetGrantMandatoryQuestionDto.builder().build();
 
             when(grantApplicationService.doesSchemeHaveApplication(scheme)).thenReturn(false);
             when(grantApplicationService.getGrantApplicationId(scheme)).thenReturn(null);
 
-            final GetGrantAdvertDto methodResponse = grantAdvertService.generateGetGrantAdvertDto(advert);
+            final GetGrantAdvertDto methodResponse = grantAdvertService.generateGetGrantAdvertDto(advert, mandatoryQuestionDto);
 
             assertThat(methodResponse.getId()).isEqualTo(ADVERT_ID);
             assertThat(methodResponse.getVersion()).isEqualTo(1);
@@ -237,6 +244,7 @@ class GrantAdvertServiceTest {
             assertThat(methodResponse.isInternal()).isFalse();
             assertThat(methodResponse.getGrantApplicationId()).isNull();
             assertThat(methodResponse.getGrantSchemeId()).isEqualTo(1);
+            assertThat(methodResponse.getMandatoryQuestionsDto()).isEqualTo(mandatoryQuestionDto);
         }
     }
 
@@ -295,7 +303,7 @@ class GrantAdvertServiceTest {
     }
 
     @Nested
-    class getAdvertBySchemeId{
+    class getAdvertBySchemeId {
         @Test
         void getAdvertBySchemeId() {
             final String schemeId = "1";
