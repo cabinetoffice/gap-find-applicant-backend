@@ -250,6 +250,9 @@ class GrantMandatoryQuestionServiceTest {
                     .userId(applicantUserId)
                     .build();
 
+            when(grantMandatoryQuestionRepository.existsByGrantScheme_IdAndCreatedBy_Id(scheme.getId(), applicant.getId()))
+                    .thenReturn(true);
+
             when(grantMandatoryQuestionRepository.findByGrantSchemeAndCreatedBy(scheme, applicant))
                     .thenReturn(List.of(existingMandatoryQuestions));
 
@@ -283,8 +286,8 @@ class GrantMandatoryQuestionServiceTest {
                     .addressLine1(organisationProfile.getAddressLine1())
                     .build();
 
-            when(grantMandatoryQuestionRepository.findByGrantSchemeAndCreatedBy(scheme, applicant))
-                    .thenReturn(Collections.emptyList());
+            when(grantMandatoryQuestionRepository.existsByGrantScheme_IdAndCreatedBy_Id(scheme.getId(), applicant.getId()))
+                    .thenReturn(false);
 
             when(grantMandatoryQuestionRepository.save(Mockito.any()))
                     .thenReturn(grantMandatoryQuestions);

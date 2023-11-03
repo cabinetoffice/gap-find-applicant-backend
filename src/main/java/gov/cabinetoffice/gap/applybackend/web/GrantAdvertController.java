@@ -57,12 +57,16 @@ public class GrantAdvertController {
         try {
             final GrantApplicant grantApplicant = grantApplicantService.getApplicantById(jwtPayload.getSub());
             final GrantAdvert advert = grantAdvertService.getAdvertByContentfulSlug(contentfulSlug);
+
             GetGrantMandatoryQuestionDto mandatoryQuestionsDto = null;
-            if (grantMandatoryQuestionService.doesMandatoryQuestionAlreadyExist(advert.getScheme(), grantApplicant)) {
+
+            if (grantMandatoryQuestionService.existsBySchemeIdAndApplicantId(advert.getScheme().getId(), grantApplicant.getId())) {
                 final GrantMandatoryQuestions grantMandatoryQuestions = grantMandatoryQuestionService.getMandatoryQuestionByScheme(advert.getScheme(), jwtPayload.getSub());
                 mandatoryQuestionsDto = mapper.mapGrantMandatoryQuestionToGetGrantMandatoryQuestionDTO(grantMandatoryQuestions);
             }
+
             grantAdvertDto = grantAdvertService.generateGetGrantAdvertDto(advert, mandatoryQuestionsDto);
+
         } catch (NotFoundException e) {
             log.info("Advert with slug " + contentfulSlug + " not found");
         }
@@ -83,11 +87,14 @@ public class GrantAdvertController {
         final JwtPayload jwtPayload = (JwtPayload) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
         final GrantApplicant grantApplicant = grantApplicantService.getApplicantById(jwtPayload.getSub());
         final GrantAdvert advert = grantAdvertService.getAdvertBySchemeId(schemeId);
+
         GetGrantMandatoryQuestionDto mandatoryQuestionsDto = null;
-        if (grantMandatoryQuestionService.doesMandatoryQuestionAlreadyExist(advert.getScheme(), grantApplicant)) {
+
+        if (grantMandatoryQuestionService.existsBySchemeIdAndApplicantId(advert.getScheme().getId(), grantApplicant.getId())) {
             final GrantMandatoryQuestions grantMandatoryQuestions = grantMandatoryQuestionService.getMandatoryQuestionByScheme(advert.getScheme(), jwtPayload.getSub());
             mandatoryQuestionsDto = mapper.mapGrantMandatoryQuestionToGetGrantMandatoryQuestionDTO(grantMandatoryQuestions);
         }
+
         return ResponseEntity.ok(grantAdvertService.generateGetGrantAdvertDto(advert, mandatoryQuestionsDto));
     }
 

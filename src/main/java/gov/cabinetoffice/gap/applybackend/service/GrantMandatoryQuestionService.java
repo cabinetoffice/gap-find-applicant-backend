@@ -69,7 +69,7 @@ public class GrantMandatoryQuestionService {
     }
 
     public GrantMandatoryQuestions createMandatoryQuestion(GrantScheme scheme, GrantApplicant applicant) {
-        if (doesMandatoryQuestionAlreadyExist(scheme, applicant)) {
+        if (existsBySchemeIdAndApplicantId(scheme.getId(), applicant.getId())) {
             log.debug("Mandatory question for scheme {}, and applicant {} already exist", scheme.getId(), applicant.getId());
             return grantMandatoryQuestionRepository.findByGrantSchemeAndCreatedBy(scheme, applicant).get(0);
         }
@@ -197,8 +197,8 @@ public class GrantMandatoryQuestionService {
         }
     }
 
-    public boolean doesMandatoryQuestionAlreadyExist(GrantScheme scheme, GrantApplicant applicant) {
-        return !grantMandatoryQuestionRepository.findByGrantSchemeAndCreatedBy(scheme, applicant).isEmpty();
+    public boolean existsBySchemeIdAndApplicantId(Integer schemeId, Long applicantId) {
+        return grantMandatoryQuestionRepository.existsByGrantScheme_IdAndCreatedBy_Id(schemeId, applicantId);
     }
 
     private SubmissionQuestion buildOrganisationNameQuestion(final GrantMandatoryQuestions mandatoryQuestions) {

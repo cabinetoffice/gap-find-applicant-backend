@@ -11,8 +11,10 @@ import java.util.UUID;
 
 public interface GrantMandatoryQuestionRepository extends JpaRepository<GrantMandatoryQuestions, UUID> {
     List<GrantMandatoryQuestions> findByGrantSchemeAndCreatedBy(GrantScheme scheme, GrantApplicant applicant);
+
     Optional<GrantMandatoryQuestions> findBySubmissionId(UUID submissionId);
 
     Optional<GrantMandatoryQuestions> findByGrantScheme(GrantScheme scheme);
 
+    boolean existsByGrantScheme_IdAndCreatedBy_Id(Integer schemeId, long applicantId);
 }

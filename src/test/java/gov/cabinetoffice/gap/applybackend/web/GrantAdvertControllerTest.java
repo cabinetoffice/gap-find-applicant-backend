@@ -91,11 +91,16 @@ class GrantAdvertControllerTest {
 
             when(grantApplicantService.getApplicantById(applicantUserId))
                     .thenReturn(applicant);
-            when(grantAdvertService.getAdvertByContentfulSlug("slug")).thenReturn(grantAdvert);
-            when(grantMandatoryQuestionService.doesMandatoryQuestionAlreadyExist(scheme, applicant)).thenReturn(true);
-            when(grantMandatoryQuestionService.getMandatoryQuestionByScheme(scheme, applicantUserId)).thenReturn(grantMandatoryQuestions);
-            when(mapper.mapGrantMandatoryQuestionToGetGrantMandatoryQuestionDTO(grantMandatoryQuestions)).thenReturn(grantMandatoryQuestionDto);
-            when(grantAdvertService.generateGetGrantAdvertDto(grantAdvert, grantMandatoryQuestionDto)).thenReturn(getGrantAdvertDto);
+            when(grantAdvertService.getAdvertByContentfulSlug("slug"))
+                    .thenReturn(grantAdvert);
+            when(grantMandatoryQuestionService.existsBySchemeIdAndApplicantId(scheme.getId(), applicant.getId()))
+                    .thenReturn(true);
+            when(grantMandatoryQuestionService.getMandatoryQuestionByScheme(scheme, applicantUserId))
+                    .thenReturn(grantMandatoryQuestions);
+            when(mapper.mapGrantMandatoryQuestionToGetGrantMandatoryQuestionDTO(grantMandatoryQuestions))
+                    .thenReturn(grantMandatoryQuestionDto);
+            when(grantAdvertService.generateGetGrantAdvertDto(grantAdvert, grantMandatoryQuestionDto))
+                    .thenReturn(getGrantAdvertDto);
 
             final GetGrantAdvertDto result = grantAdvertController.generateGetGrantAdvertDtoFromAdvertSlug("slug").getBody();
 
@@ -172,11 +177,16 @@ class GrantAdvertControllerTest {
 
             when(grantApplicantService.getApplicantById(applicantUserId))
                     .thenReturn(applicant);
-            when(grantAdvertService.getAdvertBySchemeId(String.valueOf(schemeId))).thenReturn(grantAdvert);
-            when(grantMandatoryQuestionService.doesMandatoryQuestionAlreadyExist(scheme, applicant)).thenReturn(true);
-            when(grantMandatoryQuestionService.getMandatoryQuestionByScheme(scheme, applicantUserId)).thenReturn(grantMandatoryQuestions);
-            when(mapper.mapGrantMandatoryQuestionToGetGrantMandatoryQuestionDTO(grantMandatoryQuestions)).thenReturn(grantMandatoryQuestionDto);
-            when(grantAdvertService.generateGetGrantAdvertDto(grantAdvert, grantMandatoryQuestionDto)).thenReturn(getGrantAdvertDto);
+            when(grantAdvertService.getAdvertBySchemeId(String.valueOf(schemeId)))
+                    .thenReturn(grantAdvert);
+            when(grantMandatoryQuestionService.existsBySchemeIdAndApplicantId(scheme.getId(), applicant.getId()))
+                    .thenReturn(true);
+            when(grantMandatoryQuestionService.getMandatoryQuestionByScheme(scheme, applicantUserId))
+                    .thenReturn(grantMandatoryQuestions);
+            when(mapper.mapGrantMandatoryQuestionToGetGrantMandatoryQuestionDTO(grantMandatoryQuestions))
+                    .thenReturn(grantMandatoryQuestionDto);
+            when(grantAdvertService.generateGetGrantAdvertDto(grantAdvert, grantMandatoryQuestionDto))
+                    .thenReturn(getGrantAdvertDto);
 
             final GetGrantAdvertDto result = grantAdvertController.generateGetGrantAdvertDtoFromSchemeId(String.valueOf(schemeId)).getBody();
 
