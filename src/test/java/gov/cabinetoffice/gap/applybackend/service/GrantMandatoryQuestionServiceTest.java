@@ -338,9 +338,6 @@ class GrantMandatoryQuestionServiceTest {
                     .charityCommissionNumber(orgProfileWithLongCCandCH.getCharityCommissionNumber())
                     .build();
 
-            when(grantMandatoryQuestionRepository.findByGrantSchemeAndCreatedBy(scheme, applicant))
-                    .thenReturn(Collections.emptyList());
-
             when(grantMandatoryQuestionRepository.save(Mockito.any()))
                     .thenReturn(grantMandatoryQuestions);
 
