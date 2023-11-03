@@ -20,6 +20,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
+import org.springframework.lang.Nullable;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
@@ -67,7 +68,7 @@ public class GrantMandatoryQuestionsController {
     public ResponseEntity<GetGrantMandatoryQuestionDto> getGrantMandatoryQuestionsById(@PathVariable final UUID mandatoryQuestionId) {
         final JwtPayload jwtPayload = (JwtPayload) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
         final GrantMandatoryQuestions grantMandatoryQuestions = grantMandatoryQuestionService.getGrantMandatoryQuestionById(mandatoryQuestionId, jwtPayload.getSub());
-        log.info("Mandatory question with ID {} has been grabbed.", grantMandatoryQuestions.getId());
+        log.info("Mandatory question with ID {} has been retrieved.", grantMandatoryQuestions.getId());
 
         final GetGrantMandatoryQuestionDto getGrantMandatoryQuestionDto = grantMandatoryQuestionMapper.mapGrantMandatoryQuestionToGetGrantMandatoryQuestionDTO(grantMandatoryQuestions);
         return ResponseEntity.ok(getGrantMandatoryQuestionDto);
@@ -82,7 +83,26 @@ public class GrantMandatoryQuestionsController {
     public ResponseEntity<GetGrantMandatoryQuestionDto> getGrantMandatoryQuestionsBySubmissionId(@PathVariable final UUID submissionId) {
         final JwtPayload jwtPayload = (JwtPayload) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
         final GrantMandatoryQuestions grantMandatoryQuestions = grantMandatoryQuestionService.getGrantMandatoryQuestionBySubmissionId(submissionId, jwtPayload.getSub());
-        log.info("Mandatory question with ID {} has been grabbed.", grantMandatoryQuestions.getId());
+        log.info("Mandatory question with ID {} has been retrieved.", grantMandatoryQuestions.getId());
+
+        final GetGrantMandatoryQuestionDto getGrantMandatoryQuestionBySubmissionDto = grantMandatoryQuestionMapper.mapGrantMandatoryQuestionToGetGrantMandatoryQuestionDTO(grantMandatoryQuestions);
+        return ResponseEntity.ok(getGrantMandatoryQuestionBySubmissionDto);
+    }
+
+    @GetMapping("/")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Grant Mandatory found", content = @Content(mediaType = "application/json", schema = @Schema(implementation = GrantMandatoryQuestions.class))),
+            @ApiResponse(responseCode = "403", description = "User cannot access this mandatory question", content = @Content(mediaType = "application/json")),
+            @ApiResponse(responseCode = "404", description = "No Grant Mandatory question found", content = @Content(mediaType = "application/json")),
+    })
+    public ResponseEntity<GetGrantMandatoryQuestionDto> getGrantMandatoryQuestionsBy(@RequestParam final Integer schemeId) {
+        final JwtPayload jwtPayload = (JwtPayload) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        GrantMandatoryQuestions grantMandatoryQuestions = null;
+        if(schemeId != null) {
+            grantMandatoryQuestions = grantMandatoryQuestionService.getMandatoryQuestionBySchemeId(schemeId, jwtPayload.getSub());
+        }
+
+        log.info("Mandatory question with ID {} has been retrieved", grantMandatoryQuestions.getId());
 
         final GetGrantMandatoryQuestionDto getGrantMandatoryQuestionBySubmissionDto = grantMandatoryQuestionMapper.mapGrantMandatoryQuestionToGetGrantMandatoryQuestionDTO(grantMandatoryQuestions);
         return ResponseEntity.ok(getGrantMandatoryQuestionBySubmissionDto);
