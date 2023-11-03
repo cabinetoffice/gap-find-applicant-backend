@@ -859,77 +859,77 @@ class SubmissionServiceTest {
             assertThat(capturedCheck.getApplicationNumber()).isEqualTo(submission.getGapId());
         }
 
-    @Test
-    void submit_ThrowsIllegalArgumentException_IfSectionNotPresentInSubmission() {
-        final String emailAddress = "test@email.com";
-        final SubmissionDefinition definitionWithNoEssentialSection = SubmissionDefinition.builder()
-                .sections(Collections.emptyList())
-                .build();
+        @Test
+        void submit_ThrowsIllegalArgumentException_IfSectionNotPresentInSubmission() {
+            final String emailAddress = "test@email.com";
+            final SubmissionDefinition definitionWithNoEssentialSection = SubmissionDefinition.builder()
+                    .sections(Collections.emptyList())
+                    .build();
 
-        final GrantApplicant grantApplicant = GrantApplicant.builder()
-                .userId(userId)
-                .id(1)
-                .build();
+            final GrantApplicant grantApplicant = GrantApplicant.builder()
+                    .userId(userId)
+                    .id(1)
+                    .build();
 
-        final GrantScheme scheme = GrantScheme.builder()
-                .version(1)
-                .build();
+            final GrantScheme scheme = GrantScheme.builder()
+                    .version(1)
+                    .build();
 
-        final GrantApplication application = GrantApplication.builder()
-                .grantScheme(scheme)
-                .build();
+            final GrantApplication application = GrantApplication.builder()
+                    .grantScheme(scheme)
+                    .build();
 
-        final Submission submissionWithoutEssentialSection = Submission.builder()
-                .definition(definitionWithNoEssentialSection)
-                .status(SubmissionStatus.IN_PROGRESS)
-                .id(SUBMISSION_ID)
-                .application(application)
-                .build();
+            final Submission submissionWithoutEssentialSection = Submission.builder()
+                    .definition(definitionWithNoEssentialSection)
+                    .status(SubmissionStatus.IN_PROGRESS)
+                    .id(SUBMISSION_ID)
+                    .application(application)
+                    .build();
 
-        doReturn(true).when(serviceUnderTest).isSubmissionReadyToBeSubmitted(userId, SUBMISSION_ID);
+            doReturn(true).when(serviceUnderTest).isSubmissionReadyToBeSubmitted(userId, SUBMISSION_ID);
 
-        assertThrows(IllegalArgumentException.class,
-                () -> serviceUnderTest.submit(submissionWithoutEssentialSection, grantApplicant, emailAddress));
-    }
+            assertThrows(IllegalArgumentException.class,
+                    () -> serviceUnderTest.submit(submissionWithoutEssentialSection, grantApplicant, emailAddress));
+        }
 
-    @ParameterizedTest
-    @MethodSource("provideSectionsWithMissingQuestions")
-    void submit_ThrowsIllegalArgumentException_IfQuestionNotPresentInSection(List<SubmissionQuestion> questions) {
-        final String emailAddress = "test@email.com";
-        final SubmissionSection essentialSection = SubmissionSection.builder()
-                .sectionId("ESSENTIAL")
-                .questions(questions)
-                .build();
+        @ParameterizedTest
+        @MethodSource("provideSectionsWithMissingQuestions")
+        void submit_ThrowsIllegalArgumentException_IfQuestionNotPresentInSection(List<SubmissionQuestion> questions) {
+            final String emailAddress = "test@email.com";
+            final SubmissionSection essentialSection = SubmissionSection.builder()
+                    .sectionId("ESSENTIAL")
+                    .questions(questions)
+                    .build();
 
-        final GrantApplicant grantApplicant = GrantApplicant.builder()
-                .userId(userId)
-                .id(1)
-                .build();
+            final GrantApplicant grantApplicant = GrantApplicant.builder()
+                    .userId(userId)
+                    .id(1)
+                    .build();
 
-        final SubmissionDefinition definitionWithNoEssentialSection = SubmissionDefinition.builder()
-                .sections(List.of(essentialSection))
-                .build();
+            final SubmissionDefinition definitionWithNoEssentialSection = SubmissionDefinition.builder()
+                    .sections(List.of(essentialSection))
+                    .build();
 
-        final GrantScheme scheme = GrantScheme.builder()
-                .version(1)
-                .build();
+            final GrantScheme scheme = GrantScheme.builder()
+                    .version(1)
+                    .build();
 
-        final GrantApplication application = GrantApplication.builder()
-                .grantScheme(scheme)
-                .build();
+            final GrantApplication application = GrantApplication.builder()
+                    .grantScheme(scheme)
+                    .build();
 
-        final Submission submissionWithoutEssentialSection = Submission.builder()
-                .definition(definitionWithNoEssentialSection)
-                .id(SUBMISSION_ID)
-                .status(SubmissionStatus.IN_PROGRESS)
-                .application(application)
-                .build();
+            final Submission submissionWithoutEssentialSection = Submission.builder()
+                    .definition(definitionWithNoEssentialSection)
+                    .id(SUBMISSION_ID)
+                    .status(SubmissionStatus.IN_PROGRESS)
+                    .application(application)
+                    .build();
 
-        doReturn(true).when(serviceUnderTest).isSubmissionReadyToBeSubmitted(userId, SUBMISSION_ID);
+            doReturn(true).when(serviceUnderTest).isSubmissionReadyToBeSubmitted(userId, SUBMISSION_ID);
 
-        assertThrows(IllegalArgumentException.class,
-                () -> serviceUnderTest.submit(submissionWithoutEssentialSection, grantApplicant, emailAddress));
-    }
+            assertThrows(IllegalArgumentException.class,
+                    () -> serviceUnderTest.submit(submissionWithoutEssentialSection, grantApplicant, emailAddress));
+        }
 
         @Test
         void submit_CreatesGrantBeneficiary() {
