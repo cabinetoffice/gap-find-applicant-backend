@@ -95,7 +95,7 @@ class GrantAdvertControllerTest {
                     .thenReturn(grantAdvert);
             when(grantMandatoryQuestionService.existsBySchemeIdAndApplicantId(scheme.getId(), applicant.getId()))
                     .thenReturn(true);
-            when(grantMandatoryQuestionService.getMandatoryQuestionByScheme(scheme, applicantUserId))
+            when(grantMandatoryQuestionService.getMandatoryQuestionByScheme(123, applicantUserId))
                     .thenReturn(grantMandatoryQuestions);
             when(mapper.mapGrantMandatoryQuestionToGetGrantMandatoryQuestionDTO(grantMandatoryQuestions))
                     .thenReturn(grantMandatoryQuestionDto);
@@ -181,7 +181,7 @@ class GrantAdvertControllerTest {
                     .thenReturn(grantAdvert);
             when(grantMandatoryQuestionService.existsBySchemeIdAndApplicantId(scheme.getId(), applicant.getId()))
                     .thenReturn(true);
-            when(grantMandatoryQuestionService.getMandatoryQuestionByScheme(scheme, applicantUserId))
+            when(grantMandatoryQuestionService.getMandatoryQuestionByScheme(123, applicantUserId))
                     .thenReturn(grantMandatoryQuestions);
             when(mapper.mapGrantMandatoryQuestionToGetGrantMandatoryQuestionDTO(grantMandatoryQuestions))
                     .thenReturn(grantMandatoryQuestionDto);

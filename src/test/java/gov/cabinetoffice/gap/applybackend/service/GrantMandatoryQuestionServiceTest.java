@@ -193,10 +193,10 @@ class GrantMandatoryQuestionServiceTest {
             final GrantScheme scheme = new GrantScheme();
             final String applicantSub = "valid-applicant-id";
 
-            when(grantMandatoryQuestionRepository.findByGrantScheme(scheme))
+            when(grantMandatoryQuestionRepository.findByGrantSchemeId(1))
                     .thenReturn(Optional.empty());
 
-            assertThrows(NotFoundException.class, () -> serviceUnderTest.getMandatoryQuestionByScheme(scheme, applicantSub));
+            assertThrows(NotFoundException.class, () -> serviceUnderTest.getMandatoryQuestionByScheme(1, applicantSub));
         }
 
         @Test
@@ -207,10 +207,10 @@ class GrantMandatoryQuestionServiceTest {
             final GrantApplicant createdByOtherUser = GrantApplicant.builder().userId("other-user-id").build();
             final GrantMandatoryQuestions mandatoryQuestions = GrantMandatoryQuestions.builder().createdBy(createdByOtherUser).build();
 
-            when(grantMandatoryQuestionRepository.findByGrantScheme(scheme))
+            when(grantMandatoryQuestionRepository.findByGrantSchemeId(1))
                     .thenReturn(Optional.of(mandatoryQuestions));
 
-            assertThrows(ForbiddenException.class, () -> serviceUnderTest.getMandatoryQuestionByScheme(scheme, applicantSub));
+            assertThrows(ForbiddenException.class, () -> serviceUnderTest.getMandatoryQuestionByScheme(1, applicantSub));
         }
 
         @Test
@@ -221,10 +221,10 @@ class GrantMandatoryQuestionServiceTest {
             final GrantApplicant createdByValidUser = GrantApplicant.builder().userId(applicantSub).build();
             final GrantMandatoryQuestions mandatoryQuestions = GrantMandatoryQuestions.builder().createdBy(createdByValidUser).build();
 
-            when(grantMandatoryQuestionRepository.findByGrantScheme(scheme))
+            when(grantMandatoryQuestionRepository.findByGrantSchemeId(1))
                     .thenReturn(Optional.of(mandatoryQuestions));
 
-            final GrantMandatoryQuestions methodResponse = serviceUnderTest.getMandatoryQuestionByScheme(scheme, applicantSub);
+            final GrantMandatoryQuestions methodResponse = serviceUnderTest.getMandatoryQuestionByScheme(1, applicantSub);
 
             assertThat(methodResponse).isEqualTo(mandatoryQuestions);
         }
