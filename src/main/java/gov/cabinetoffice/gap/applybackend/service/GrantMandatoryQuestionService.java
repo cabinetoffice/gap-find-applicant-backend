@@ -6,14 +6,27 @@ import gov.cabinetoffice.gap.applybackend.enums.SubmissionSectionStatus;
 import gov.cabinetoffice.gap.applybackend.exception.ForbiddenException;
 import gov.cabinetoffice.gap.applybackend.exception.NotFoundException;
 import gov.cabinetoffice.gap.applybackend.mapper.GrantApplicantOrganisationProfileMapper;
-import gov.cabinetoffice.gap.applybackend.model.*;
+import gov.cabinetoffice.gap.applybackend.model.GrantApplicant;
+import gov.cabinetoffice.gap.applybackend.model.GrantApplicantOrganisationProfile;
+import gov.cabinetoffice.gap.applybackend.model.GrantMandatoryQuestions;
+import gov.cabinetoffice.gap.applybackend.model.GrantScheme;
+import gov.cabinetoffice.gap.applybackend.model.Submission;
+import gov.cabinetoffice.gap.applybackend.model.SubmissionQuestion;
+import gov.cabinetoffice.gap.applybackend.model.SubmissionQuestionValidation;
+import gov.cabinetoffice.gap.applybackend.model.SubmissionSection;
 import gov.cabinetoffice.gap.applybackend.repository.GrantMandatoryQuestionRepository;
-import static java.util.Optional.ofNullable;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
-import java.util.*;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.UUID;
+
+import static java.util.Optional.ofNullable;
 
 @RequiredArgsConstructor
 @Service
@@ -33,19 +46,30 @@ public class GrantMandatoryQuestionService {
         return grantMandatoryQuestion.get();
     }
 
-    public GrantMandatoryQuestions getGrantMandatoryQuestionBySubmissionId(UUID id, String applicantSub) {
-        final Optional<GrantMandatoryQuestions> grantMandatoryQuestion = ofNullable(grantMandatoryQuestionRepository.findBySubmissionId(id)
-                .orElseThrow(() -> new NotFoundException(String.format("No Mandatory Question with ID %s was found", id))));
+    public GrantMandatoryQuestions getGrantMandatoryQuestionBySubmissionId(UUID submissionId, String applicantSub) {
+        final Optional<GrantMandatoryQuestions> grantMandatoryQuestion = ofNullable(grantMandatoryQuestionRepository.findBySubmissionId(submissionId)
+                .orElseThrow(() -> new NotFoundException(String.format("No Mandatory Question with submission id %s was found", submissionId))));
 
         if (!grantMandatoryQuestion.get().getCreatedBy().getUserId().equals(applicantSub)) {
-            throw new ForbiddenException(String.format("Mandatory Question with ID %s was not created by %s", id, applicantSub));
+            throw new ForbiddenException(String.format("Mandatory Question with id % and submission ID %s was not created by %s", grantMandatoryQuestion.get().getId(), submissionId, applicantSub));
+        }
+
+        return grantMandatoryQuestion.get();
+    }
+
+    public GrantMandatoryQuestions getMandatoryQuestionByScheme(GrantScheme scheme, String applicantSub) {
+        final Optional<GrantMandatoryQuestions> grantMandatoryQuestion = ofNullable(grantMandatoryQuestionRepository.findByGrantScheme(scheme)
+                .orElseThrow(() -> new NotFoundException(String.format("No Mandatory Question with scheme id  %s was found", scheme.getId()))));
+
+        if (!grantMandatoryQuestion.get().getCreatedBy().getUserId().equals(applicantSub)) {
+            throw new ForbiddenException(String.format("Mandatory Question with id % and scheme ID %s was not created by %s", grantMandatoryQuestion.get().getId(), scheme.getId(), applicantSub));
         }
 
         return grantMandatoryQuestion.get();
     }
 
     public GrantMandatoryQuestions createMandatoryQuestion(GrantScheme scheme, GrantApplicant applicant) {
-        if (doesMandatoryQuestionAlreadyExist(scheme, applicant)) {
+        if (existsBySchemeIdAndApplicantId(scheme.getId(), applicant.getId())) {
             log.debug("Mandatory question for scheme {}, and applicant {} already exist", scheme.getId(), applicant.getId());
             return grantMandatoryQuestionRepository.findByGrantSchemeAndCreatedBy(scheme, applicant).get(0);
         }
@@ -71,7 +95,7 @@ public class GrantMandatoryQuestionService {
     public String generateNextPageUrl(String url, UUID mandatoryQuestionId) {
         final Map<String, String> mapper = new HashMap<>();
         String mandatoryQuestionsUrlStart = "/mandatory-questions/" + mandatoryQuestionId;
-        mapper.put("organisation-name", mandatoryQuestionsUrlStart  + "/organisation-address");
+        mapper.put("organisation-name", mandatoryQuestionsUrlStart + "/organisation-address");
         mapper.put("organisation-address", mandatoryQuestionsUrlStart + "/organisation-type");
         mapper.put("organisation-type", mandatoryQuestionsUrlStart + "/organisation-companies-house-number");
         mapper.put("organisation-companies-house-number", mandatoryQuestionsUrlStart + "/organisation-charity-commission-number");
@@ -82,7 +106,7 @@ public class GrantMandatoryQuestionService {
         final String[] urlParts = url.split("/");
         //takes the last part of the url and strips it of eventual queryParams
         final String questionPage = urlParts[urlParts.length - 1].split("\\?")[0];
-        if(mapper.get(questionPage) == null){
+        if (mapper.get(questionPage) == null) {
             log.info("No next page found for question page {}", questionPage);
             return "";
         }
@@ -171,6 +195,10 @@ public class GrantMandatoryQuestionService {
             default:
                 throw new IllegalArgumentException("There is no method to process this question");
         }
+    }
+
+    public boolean existsBySchemeIdAndApplicantId(Integer schemeId, Long applicantId) {
+        return grantMandatoryQuestionRepository.existsByGrantScheme_IdAndCreatedBy_Id(schemeId, applicantId);
     }
 
     private SubmissionQuestion buildOrganisationNameQuestion(final GrantMandatoryQuestions mandatoryQuestions) {
@@ -291,7 +319,7 @@ public class GrantMandatoryQuestionService {
 
     private SubmissionQuestion buildOrganisationAddressQuestion(final GrantMandatoryQuestions mandatoryQuestions) {
         // TODO check whether other address to String array logic uses values directly or converts nulls to empty strings
-        final String[] address = new String[] {
+        final String[] address = new String[]{
                 mandatoryQuestions.getAddressLine1(),
                 mandatoryQuestions.getAddressLine2(),
                 mandatoryQuestions.getCity(),
@@ -312,10 +340,6 @@ public class GrantMandatoryQuestionService {
                 .multiResponse(address)
                 .validation(validation)
                 .build();
-    }
-
-    private boolean doesMandatoryQuestionAlreadyExist(GrantScheme scheme, GrantApplicant applicant) {
-        return !grantMandatoryQuestionRepository.findByGrantSchemeAndCreatedBy(scheme, applicant).isEmpty();
     }
 
 

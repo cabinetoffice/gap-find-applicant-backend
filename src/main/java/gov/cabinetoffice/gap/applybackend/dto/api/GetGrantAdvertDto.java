@@ -29,4 +29,6 @@ public class GetGrantAdvertDto {
 
     @JsonProperty("isAdvertInDatabase")
     private boolean isAdvertInDatabase;
+
+    private GetGrantMandatoryQuestionDto mandatoryQuestionsDto;
 }

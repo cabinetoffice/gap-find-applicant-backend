@@ -2,9 +2,16 @@ package gov.cabinetoffice.gap.applybackend.web;
 
 import gov.cabinetoffice.gap.applybackend.dto.GetContentfulAdvertExistsDto;
 import gov.cabinetoffice.gap.applybackend.dto.api.GetGrantAdvertDto;
+import gov.cabinetoffice.gap.applybackend.dto.api.GetGrantMandatoryQuestionDto;
+import gov.cabinetoffice.gap.applybackend.dto.api.JwtPayload;
 import gov.cabinetoffice.gap.applybackend.exception.NotFoundException;
+import gov.cabinetoffice.gap.applybackend.mapper.GrantMandatoryQuestionMapper;
 import gov.cabinetoffice.gap.applybackend.model.GrantAdvert;
+import gov.cabinetoffice.gap.applybackend.model.GrantApplicant;
+import gov.cabinetoffice.gap.applybackend.model.GrantMandatoryQuestions;
 import gov.cabinetoffice.gap.applybackend.service.GrantAdvertService;
+import gov.cabinetoffice.gap.applybackend.service.GrantApplicantService;
+import gov.cabinetoffice.gap.applybackend.service.GrantMandatoryQuestionService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -12,7 +19,12 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
 
 import javax.validation.constraints.NotBlank;
 
@@ -23,6 +35,9 @@ import javax.validation.constraints.NotBlank;
 public class GrantAdvertController {
 
     private final GrantAdvertService grantAdvertService;
+    private final GrantMandatoryQuestionService grantMandatoryQuestionService;
+    private final GrantApplicantService grantApplicantService;
+    private final GrantMandatoryQuestionMapper mapper;
 
     @GetMapping
     @Operation(summary = "Get the grant advert with the given contentful slug")
@@ -34,14 +49,24 @@ public class GrantAdvertController {
                     content = @Content(mediaType = "application/json"))
     })
     public ResponseEntity<GetGrantAdvertDto> generateGetGrantAdvertDtoFromAdvertSlug(@RequestParam @NotBlank String contentfulSlug) {
-
+        final JwtPayload jwtPayload = (JwtPayload) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
         GetGrantAdvertDto grantAdvertDto = GetGrantAdvertDto.builder()
                 .isAdvertInDatabase(false)
                 .build();
 
         try {
-           final GrantAdvert grantAdvert = grantAdvertService.getAdvertByContentfulSlug(contentfulSlug);
-            grantAdvertDto = grantAdvertService.generateGetGrantAdvertDto(grantAdvert);
+            final GrantApplicant grantApplicant = grantApplicantService.getApplicantById(jwtPayload.getSub());
+            final GrantAdvert advert = grantAdvertService.getAdvertByContentfulSlug(contentfulSlug);
+
+            GetGrantMandatoryQuestionDto mandatoryQuestionsDto = null;
+
+            if (grantMandatoryQuestionService.existsBySchemeIdAndApplicantId(advert.getScheme().getId(), grantApplicant.getId())) {
+                final GrantMandatoryQuestions grantMandatoryQuestions = grantMandatoryQuestionService.getMandatoryQuestionByScheme(advert.getScheme(), jwtPayload.getSub());
+                mandatoryQuestionsDto = mapper.mapGrantMandatoryQuestionToGetGrantMandatoryQuestionDTO(grantMandatoryQuestions);
+            }
+
+            grantAdvertDto = grantAdvertService.generateGetGrantAdvertDto(advert, mandatoryQuestionsDto);
+
         } catch (NotFoundException e) {
             log.info("Advert with slug " + contentfulSlug + " not found");
         }
@@ -59,8 +84,18 @@ public class GrantAdvertController {
                     content = @Content(mediaType = "application/json"))
     })
     public ResponseEntity<GetGrantAdvertDto> generateGetGrantAdvertDtoFromSchemeId(@PathVariable final String schemeId) {
+        final JwtPayload jwtPayload = (JwtPayload) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        final GrantApplicant grantApplicant = grantApplicantService.getApplicantById(jwtPayload.getSub());
         final GrantAdvert advert = grantAdvertService.getAdvertBySchemeId(schemeId);
-        return ResponseEntity.ok(grantAdvertService.generateGetGrantAdvertDto(advert));
+
+        GetGrantMandatoryQuestionDto mandatoryQuestionsDto = null;
+
+        if (grantMandatoryQuestionService.existsBySchemeIdAndApplicantId(advert.getScheme().getId(), grantApplicant.getId())) {
+            final GrantMandatoryQuestions grantMandatoryQuestions = grantMandatoryQuestionService.getMandatoryQuestionByScheme(advert.getScheme(), jwtPayload.getSub());
+            mandatoryQuestionsDto = mapper.mapGrantMandatoryQuestionToGetGrantMandatoryQuestionDTO(grantMandatoryQuestions);
+        }
+
+        return ResponseEntity.ok(grantAdvertService.generateGetGrantAdvertDto(advert, mandatoryQuestionsDto));
     }
 
 
@@ -76,9 +111,9 @@ public class GrantAdvertController {
 
         return ResponseEntity.ok(
                 GetContentfulAdvertExistsDto
-                .builder()
-                .isAdvertInContentful(advertExists)
-                .build()
+                        .builder()
+                        .isAdvertInContentful(advertExists)
+                        .build()
         );
     }
 }

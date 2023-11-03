@@ -5,6 +5,7 @@ import gov.cabinetoffice.gap.applybackend.dto.api.UpdateGrantMandatoryQuestionDt
 import gov.cabinetoffice.gap.applybackend.enums.GrantMandatoryQuestionFundingLocation;
 import gov.cabinetoffice.gap.applybackend.enums.GrantMandatoryQuestionOrgType;
 import gov.cabinetoffice.gap.applybackend.model.GrantMandatoryQuestions;
+import gov.cabinetoffice.gap.applybackend.model.Submission;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.mapstruct.factory.Mappers;
@@ -12,6 +13,7 @@ import org.mapstruct.factory.Mappers;
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -22,8 +24,13 @@ class GrantMandatoryQuestionMapperTest {
     class mapGrantMandatoryQuestionToGetGrantMandatoryQuestionDTO {
         @Test
         void grantMandatoryQuestionIsFilled() {
+            final UUID uuid = UUID.randomUUID();
+            final Submission submission = Submission.builder()
+                    .id(uuid)
+                    .build();
             final GrantMandatoryQuestions grantMandatoryQuestions = GrantMandatoryQuestions.builder()
                     .name("name")
+                    .submission(submission)
                     .addressLine1("addressLine1")
                     .addressLine2("addressLine2")
                     .city("city")
@@ -49,6 +56,7 @@ class GrantMandatoryQuestionMapperTest {
             assertThat(result.getCharityCommissionNumber()).isEqualTo(grantMandatoryQuestions.getCharityCommissionNumber());
             assertThat(result.getFundingAmount()).isEqualTo(grantMandatoryQuestions.getFundingAmount().toString());
             assertThat(result.getFundingLocation()).isEqualTo(List.of(grantMandatoryQuestions.getFundingLocation()[0].getName()));
+            assertThat(result.getSubmissionId()).isEqualTo(uuid);
         }
 
         @Test

@@ -6,6 +6,7 @@ import com.contentful.java.cda.CDAClient;
 import com.contentful.java.cda.CDAEntry;
 import com.contentful.java.cda.CDAResourceNotFoundException;
 import gov.cabinetoffice.gap.applybackend.dto.api.GetGrantAdvertDto;
+import gov.cabinetoffice.gap.applybackend.dto.api.GetGrantMandatoryQuestionDto;
 import gov.cabinetoffice.gap.applybackend.exception.NotFoundException;
 import gov.cabinetoffice.gap.applybackend.model.GrantAdvert;
 import gov.cabinetoffice.gap.applybackend.model.GrantAdvertQuestionResponse;
@@ -43,9 +44,10 @@ public class GrantAdvertService {
         return advert;
     }
 
-    public GetGrantAdvertDto generateGetGrantAdvertDto(GrantAdvert advert) {
+    public GetGrantAdvertDto generateGetGrantAdvertDto(GrantAdvert advert, GetGrantMandatoryQuestionDto mandatoryQuestions) {
         final boolean isInternal = grantApplicationService.doesSchemeHaveApplication(advert.getScheme());
         final Integer grantApplicationId = grantApplicationService.getGrantApplicationId(advert.getScheme());
+
         return GetGrantAdvertDto.builder()
                 .id(advert.getId())
                 .version(advert.getVersion())
@@ -54,6 +56,7 @@ public class GrantAdvertService {
                 .grantApplicationId(grantApplicationId)
                 .grantSchemeId(advert.getScheme().getId())
                 .isAdvertInDatabase(true)
+                .mandatoryQuestionsDto(mandatoryQuestions)
                 .build();
     }
 
