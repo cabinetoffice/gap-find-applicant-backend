@@ -14,21 +14,13 @@ import gov.cabinetoffice.gap.applybackend.enums.SubmissionStatus;
 import gov.cabinetoffice.gap.applybackend.exception.NotFoundException;
 import gov.cabinetoffice.gap.applybackend.exception.SubmissionAlreadySubmittedException;
 import gov.cabinetoffice.gap.applybackend.exception.SubmissionNotReadyException;
-import gov.cabinetoffice.gap.applybackend.model.ApplicationDefinition;
-import gov.cabinetoffice.gap.applybackend.model.DiligenceCheck;
-import gov.cabinetoffice.gap.applybackend.model.GrantApplicant;
-import gov.cabinetoffice.gap.applybackend.model.GrantApplicantOrganisationProfile;
-import gov.cabinetoffice.gap.applybackend.model.GrantApplication;
-import gov.cabinetoffice.gap.applybackend.model.GrantBeneficiary;
-import gov.cabinetoffice.gap.applybackend.model.GrantScheme;
-import gov.cabinetoffice.gap.applybackend.model.Submission;
-import gov.cabinetoffice.gap.applybackend.model.SubmissionDefinition;
-import gov.cabinetoffice.gap.applybackend.model.SubmissionQuestion;
-import gov.cabinetoffice.gap.applybackend.model.SubmissionSection;
+import gov.cabinetoffice.gap.applybackend.model.*;
 import gov.cabinetoffice.gap.applybackend.repository.DiligenceCheckRepository;
 import gov.cabinetoffice.gap.applybackend.repository.GrantBeneficiaryRepository;
+import gov.cabinetoffice.gap.applybackend.repository.GrantMandatoryQuestionRepository;
 import gov.cabinetoffice.gap.applybackend.repository.SubmissionRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -37,14 +29,12 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.UUID;
+import java.util.*;
 import java.util.stream.Stream;
 
+import static java.util.Optional.ofNullable;
 
+@Slf4j
 @RequiredArgsConstructor
 @Service
 public class SubmissionService {
@@ -62,6 +52,7 @@ public class SubmissionService {
     private final SubmissionRepository submissionRepository;
     private final DiligenceCheckRepository diligenceCheckRepository;
     private final GrantBeneficiaryRepository grantBeneficiaryRepository;
+    private final GrantMandatoryQuestionRepository grantMandatoryQuestionRepository;
     private final GovNotifyClient notifyClient;
 
     private final Clock clock;
@@ -241,6 +232,17 @@ public class SubmissionService {
         }
 
         submission.setGapId(generateGapId(grantApplicant.getId()));
+        try {
+            final UUID submissionId = submission.getId();
+            Optional<GrantMandatoryQuestions> grantMandatoryQuestion = ofNullable(grantMandatoryQuestionRepository.findBySubmissionId(submissionId)
+                    .orElseThrow(() -> new NotFoundException(String.format("No mandatory questions with submission id %s was found", submissionId))));
+            grantMandatoryQuestion.get().setGapId(submission.getGapId());
+            grantMandatoryQuestionRepository.save(grantMandatoryQuestion.get());
+
+        } catch (NotFoundException e) {
+            log.info(e.getMessage());
+        }
+
         submitApplication(submission);
         notifyClient.sendConfirmationEmail(emailAddress, submission);
         createDiligenceCheckFromSubmission(submission);

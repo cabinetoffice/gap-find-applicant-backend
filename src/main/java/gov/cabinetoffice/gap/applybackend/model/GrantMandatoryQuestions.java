@@ -111,5 +111,7 @@ public class GrantMandatoryQuestions extends BaseEntity {
     @JoinColumn(name = "last_updated_by", referencedColumnName = "id")
     private GrantApplicant lastUpdatedBy;
 
+    @Column
+    private String gapId;
 
 }

@@ -1,20 +1,15 @@
 package gov.cabinetoffice.gap.applybackend.service;
 
+import gov.cabinetoffice.gap.applybackend.config.properties.EnvironmentProperties;
 import gov.cabinetoffice.gap.applybackend.constants.MandatoryQuestionConstants;
 import gov.cabinetoffice.gap.applybackend.enums.GrantMandatoryQuestionFundingLocation;
 import gov.cabinetoffice.gap.applybackend.enums.GrantMandatoryQuestionOrgType;
+import gov.cabinetoffice.gap.applybackend.enums.GrantMandatoryQuestionStatus;
 import gov.cabinetoffice.gap.applybackend.enums.SubmissionSectionStatus;
 import gov.cabinetoffice.gap.applybackend.exception.ForbiddenException;
 import gov.cabinetoffice.gap.applybackend.exception.NotFoundException;
 import gov.cabinetoffice.gap.applybackend.mapper.GrantApplicantOrganisationProfileMapper;
-import gov.cabinetoffice.gap.applybackend.model.GrantApplicant;
-import gov.cabinetoffice.gap.applybackend.model.GrantApplicantOrganisationProfile;
-import gov.cabinetoffice.gap.applybackend.model.GrantMandatoryQuestions;
-import gov.cabinetoffice.gap.applybackend.model.GrantScheme;
-import gov.cabinetoffice.gap.applybackend.model.Submission;
-import gov.cabinetoffice.gap.applybackend.model.SubmissionDefinition;
-import gov.cabinetoffice.gap.applybackend.model.SubmissionQuestion;
-import gov.cabinetoffice.gap.applybackend.model.SubmissionSection;
+import gov.cabinetoffice.gap.applybackend.model.*;
 import gov.cabinetoffice.gap.applybackend.repository.GrantMandatoryQuestionRepository;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -22,29 +17,17 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
-import org.mockito.ArgumentCaptor;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
-import org.mockito.Mockito;
-import org.mockito.Spy;
+import org.mockito.*;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.math.BigDecimal;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Optional;
-import java.util.UUID;
+import java.util.*;
 import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.mockito.Mockito.any;
-import static org.mockito.Mockito.doReturn;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class GrantMandatoryQuestionServiceTest {
@@ -52,6 +35,8 @@ class GrantMandatoryQuestionServiceTest {
     final ArgumentCaptor<GrantMandatoryQuestions> captor = ArgumentCaptor.forClass(GrantMandatoryQuestions.class);
     private final String applicantUserId = "75ab5fbd-0682-4d3d-a467-01c7a447f07c";
     private final UUID MANDATORY_QUESTION_ID = UUID.fromString("8e33d655-556e-49d5-bc46-3cfa4fdfa00f");
+
+    private final GrantApplicant grantApplicant = GrantApplicant.builder().id(1).build();
 
     private final GrantApplicantOrganisationProfile organisationProfile = GrantApplicantOrganisationProfile
             .builder()
@@ -65,6 +50,8 @@ class GrantMandatoryQuestionServiceTest {
     private GrantMandatoryQuestionRepository grantMandatoryQuestionRepository;
     @Mock
     private GrantApplicantOrganisationProfileMapper organisationProfileMapper;
+    @Mock
+    private EnvironmentProperties envProperties;
 
     @Spy
     @InjectMocks
@@ -318,13 +305,12 @@ class GrantMandatoryQuestionServiceTest {
             when(grantMandatoryQuestionRepository.findById(mandatoryQuestionsId))
                     .thenReturn(Optional.empty());
 
-            assertThrows(NotFoundException.class, () -> serviceUnderTest.updateMandatoryQuestion(grantMandatoryQuestions));
+            assertThrows(NotFoundException.class, () -> serviceUnderTest.updateMandatoryQuestion(grantMandatoryQuestions, grantApplicant));
         }
 
         @Test
         void updateMandatoryQuestion_UpdatesExpectedMandatoryQuestions() {
             final UUID mandatoryQuestionsId = UUID.randomUUID();
-
             final GrantMandatoryQuestions grantMandatoryQuestions = GrantMandatoryQuestions
                     .builder()
                     .id(mandatoryQuestionsId)
@@ -332,14 +318,60 @@ class GrantMandatoryQuestionServiceTest {
 
             when(grantMandatoryQuestionRepository.findById(mandatoryQuestionsId))
                     .thenReturn(Optional.of(grantMandatoryQuestions));
-
             when(grantMandatoryQuestionRepository.save(grantMandatoryQuestions))
                     .thenReturn(grantMandatoryQuestions);
 
-            final GrantMandatoryQuestions methodResponse = serviceUnderTest.updateMandatoryQuestion(grantMandatoryQuestions);
+            final GrantMandatoryQuestions methodResponse = serviceUnderTest.updateMandatoryQuestion(grantMandatoryQuestions, grantApplicant);
 
             verify(grantMandatoryQuestionRepository).save(grantMandatoryQuestions);
             assertThat(methodResponse).isEqualTo(grantMandatoryQuestions);
+        }
+
+        @Test
+        void updateMandatoryQuestion_UpdatesExpectedMandatoryQuestionsAndSetsGapId() {
+            final UUID mandatoryQuestionsId = UUID.randomUUID();
+            final GrantMandatoryQuestions grantMandatoryQuestions = GrantMandatoryQuestions
+                    .builder()
+                    .id(mandatoryQuestionsId)
+                    .status(GrantMandatoryQuestionStatus.COMPLETED)
+                    .build();
+
+            when(envProperties.getEnvironmentName()).thenReturn("local");
+            when(grantMandatoryQuestionRepository.findById(mandatoryQuestionsId))
+                    .thenReturn(Optional.of(grantMandatoryQuestions));
+            when(grantMandatoryQuestionRepository.save(grantMandatoryQuestions))
+                    .thenReturn(grantMandatoryQuestions);
+            when(grantMandatoryQuestionRepository.count()).thenReturn(Long.valueOf(2));
+
+            final GrantMandatoryQuestions methodResponse = serviceUnderTest.updateMandatoryQuestion(grantMandatoryQuestions, grantApplicant);
+
+            verify(grantMandatoryQuestionRepository).save(grantMandatoryQuestions);
+            assertThat(methodResponse).isEqualTo(grantMandatoryQuestions);
+            assertThat(methodResponse.getGapId()).contains("GAP-local-MQ-");
+            assertThat(methodResponse.getGapId()).isEqualTo(grantMandatoryQuestions.getGapId());
+        }
+
+        @Test
+        void updateMandatoryQuestion_UpdatesExpectedMandatoryQuestionsAndSetsGapIdBySubmission() {
+            final UUID mandatoryQuestionsId = UUID.randomUUID();
+            final Submission submission = Submission.builder().gapId("GAP-ID").build();
+            final GrantMandatoryQuestions grantMandatoryQuestions = GrantMandatoryQuestions
+                    .builder()
+                    .id(mandatoryQuestionsId)
+                    .status(GrantMandatoryQuestionStatus.COMPLETED)
+                    .submission(submission)
+                    .build();
+
+            when(grantMandatoryQuestionRepository.findById(mandatoryQuestionsId))
+                    .thenReturn(Optional.of(grantMandatoryQuestions));
+            when(grantMandatoryQuestionRepository.save(grantMandatoryQuestions))
+                    .thenReturn(grantMandatoryQuestions);
+
+            final GrantMandatoryQuestions methodResponse = serviceUnderTest.updateMandatoryQuestion(grantMandatoryQuestions, grantApplicant);
+
+            verify(grantMandatoryQuestionRepository).save(grantMandatoryQuestions);
+            assertThat(methodResponse).isEqualTo(grantMandatoryQuestions);
+            assertThat(methodResponse.getGapId()).isEqualTo(submission.getGapId());
         }
     }
 

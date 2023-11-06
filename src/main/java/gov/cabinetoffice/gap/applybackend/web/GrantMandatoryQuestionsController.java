@@ -121,7 +121,7 @@ public class GrantMandatoryQuestionsController {
         grantMandatoryQuestions.setLastUpdated(Instant.now());
 
         grantMandatoryQuestionService.addMandatoryQuestionsToSubmissionObject(grantMandatoryQuestions);
-        grantMandatoryQuestionService.updateMandatoryQuestion(grantMandatoryQuestions);
+        grantMandatoryQuestionService.updateMandatoryQuestion(grantMandatoryQuestions, applicant);
 
         log.info("Mandatory question with ID {} has been updated.", grantMandatoryQuestions.getId());
 

@@ -1,30 +1,22 @@
 package gov.cabinetoffice.gap.applybackend.service;
 
+import gov.cabinetoffice.gap.applybackend.config.properties.EnvironmentProperties;
 import gov.cabinetoffice.gap.applybackend.constants.MandatoryQuestionConstants;
+import gov.cabinetoffice.gap.applybackend.enums.GrantMandatoryQuestionStatus;
 import gov.cabinetoffice.gap.applybackend.enums.SubmissionQuestionResponseType;
 import gov.cabinetoffice.gap.applybackend.enums.SubmissionSectionStatus;
 import gov.cabinetoffice.gap.applybackend.exception.ForbiddenException;
 import gov.cabinetoffice.gap.applybackend.exception.NotFoundException;
 import gov.cabinetoffice.gap.applybackend.mapper.GrantApplicantOrganisationProfileMapper;
-import gov.cabinetoffice.gap.applybackend.model.GrantApplicant;
-import gov.cabinetoffice.gap.applybackend.model.GrantApplicantOrganisationProfile;
-import gov.cabinetoffice.gap.applybackend.model.GrantMandatoryQuestions;
-import gov.cabinetoffice.gap.applybackend.model.GrantScheme;
-import gov.cabinetoffice.gap.applybackend.model.Submission;
-import gov.cabinetoffice.gap.applybackend.model.SubmissionQuestion;
-import gov.cabinetoffice.gap.applybackend.model.SubmissionQuestionValidation;
-import gov.cabinetoffice.gap.applybackend.model.SubmissionSection;
+import gov.cabinetoffice.gap.applybackend.model.*;
 import gov.cabinetoffice.gap.applybackend.repository.GrantMandatoryQuestionRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.UUID;
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
+import java.util.*;
 
 import static java.util.Optional.ofNullable;
 
@@ -34,6 +26,7 @@ import static java.util.Optional.ofNullable;
 public class GrantMandatoryQuestionService {
     private final GrantMandatoryQuestionRepository grantMandatoryQuestionRepository;
     private final GrantApplicantOrganisationProfileMapper organisationProfileMapper;
+    private final EnvironmentProperties envProperties;
 
     public GrantMandatoryQuestions getGrantMandatoryQuestionById(UUID id, String applicantSub) {
         final Optional<GrantMandatoryQuestions> grantMandatoryQuestion = ofNullable(grantMandatoryQuestionRepository.findById(id)
@@ -84,11 +77,36 @@ public class GrantMandatoryQuestionService {
     }
 
 
-    public GrantMandatoryQuestions updateMandatoryQuestion(GrantMandatoryQuestions grantMandatoryQuestions) {
+    public GrantMandatoryQuestions updateMandatoryQuestion(GrantMandatoryQuestions grantMandatoryQuestions, GrantApplicant grantApplicant) {
+        if(grantMandatoryQuestions.getStatus().equals(GrantMandatoryQuestionStatus.COMPLETED)) {
+            final Submission submission = grantMandatoryQuestions.getSubmission();
+            grantMandatoryQuestions.setGapId(submission == null ? generateGapId(grantApplicant.getId()) : submission.getGapId());
+        }
         return grantMandatoryQuestionRepository
                 .findById(grantMandatoryQuestions.getId()) //TODO there is no need for the additional database call here
                 .map(mandatoryQuestion -> grantMandatoryQuestionRepository.save(grantMandatoryQuestions))
                 .orElseThrow(() -> new NotFoundException(String.format("No Mandatory Question with ID %s was found", grantMandatoryQuestions.getId())));
+    }
+
+    private String generateGapId(final Long userId) {
+        final String env = envProperties.getEnvironmentName();
+        final LocalDate currentDate = LocalDate.now();
+        final DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyyMMdd");
+        final String date = currentDate.format(formatter);
+        final long recordNumber = grantMandatoryQuestionRepository.count();
+
+        return "GAP" +
+                "-" +
+                env +
+                "-" +
+                "MQ" +
+                "-" +
+                date +
+                "-" +
+                recordNumber +
+                "-" +
+                userId
+                ;
     }
 
 
@@ -341,6 +359,5 @@ public class GrantMandatoryQuestionService {
                 .validation(validation)
                 .build();
     }
-
 
 }
