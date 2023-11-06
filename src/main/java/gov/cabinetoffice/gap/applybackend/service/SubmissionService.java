@@ -14,17 +14,7 @@ import gov.cabinetoffice.gap.applybackend.enums.SubmissionStatus;
 import gov.cabinetoffice.gap.applybackend.exception.NotFoundException;
 import gov.cabinetoffice.gap.applybackend.exception.SubmissionAlreadySubmittedException;
 import gov.cabinetoffice.gap.applybackend.exception.SubmissionNotReadyException;
-import gov.cabinetoffice.gap.applybackend.model.ApplicationDefinition;
-import gov.cabinetoffice.gap.applybackend.model.DiligenceCheck;
-import gov.cabinetoffice.gap.applybackend.model.GrantApplicant;
-import gov.cabinetoffice.gap.applybackend.model.GrantApplicantOrganisationProfile;
-import gov.cabinetoffice.gap.applybackend.model.GrantApplication;
-import gov.cabinetoffice.gap.applybackend.model.GrantBeneficiary;
-import gov.cabinetoffice.gap.applybackend.model.GrantScheme;
-import gov.cabinetoffice.gap.applybackend.model.Submission;
-import gov.cabinetoffice.gap.applybackend.model.SubmissionDefinition;
-import gov.cabinetoffice.gap.applybackend.model.SubmissionQuestion;
-import gov.cabinetoffice.gap.applybackend.model.SubmissionSection;
+import gov.cabinetoffice.gap.applybackend.model.*;
 import gov.cabinetoffice.gap.applybackend.repository.DiligenceCheckRepository;
 import gov.cabinetoffice.gap.applybackend.repository.GrantBeneficiaryRepository;
 import gov.cabinetoffice.gap.applybackend.repository.SubmissionRepository;
@@ -38,8 +28,6 @@ import java.time.LocalDateTime;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
-import java.util.function.Predicate;
-import java.util.stream.Stream;
 
 
 @RequiredArgsConstructor
@@ -134,7 +122,7 @@ public class SubmissionService {
         }
 
         if (sectionId.equals(ELIGIBILITY)) {
-            HandleEligibilitySection(questionResponse, submission);
+            handleEligibilitySection(questionResponse, submission);
         }
 
         submissionRepository.save(submission);
@@ -519,7 +507,7 @@ public class SubmissionService {
         return definition;
     }
 
-    private void HandleEligibilitySection(CreateQuestionResponseDto questionResponse, Submission submission) {
+    private void handleEligibilitySection(CreateQuestionResponseDto questionResponse, Submission submission) {
         if (questionResponse.getResponse().equals("Yes")) {
             final int schemeVersion = submission.getApplication()
                     .getGrantScheme()
@@ -553,8 +541,6 @@ public class SubmissionService {
         sectionIds.add(ELIGIBILITY);
 
         if (schemeVersion > 1) {
-            sectionIds.add(ORGANISATION_DETAILS);
-            sectionIds.add(FUNDING_DETAILS);
             sectionIds.add(ORGANISATION_DETAILS);
             sectionIds.add(FUNDING_DETAILS);
         }
