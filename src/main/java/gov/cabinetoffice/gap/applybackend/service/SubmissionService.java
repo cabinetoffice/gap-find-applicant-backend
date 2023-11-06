@@ -224,7 +224,7 @@ public class SubmissionService {
         submission.setGapId(generateGapId(grantApplicant.getId()));
         try {
             final UUID submissionId = submission.getId();
-            Optional<GrantMandatoryQuestions> grantMandatoryQuestion = ofNullable(grantMandatoryQuestionRepository.findBySubmissionId(submissionId)
+            final Optional<GrantMandatoryQuestions> grantMandatoryQuestion = ofNullable(grantMandatoryQuestionRepository.findBySubmissionId(submissionId)
                     .orElseThrow(() -> new NotFoundException(String.format("No mandatory questions with submission id %s was found", submissionId))));
             grantMandatoryQuestion.get().setGapId(submission.getGapId());
             grantMandatoryQuestionRepository.save(grantMandatoryQuestion.get());
