@@ -520,11 +520,6 @@ public class SubmissionService {
     }
 
     private void HandleEligibilitySection(CreateQuestionResponseDto questionResponse, Submission submission) {
-
-        // defaulting the code to handle "no" then handling "yes" explicitly means less duplication of streams etc
-        SubmissionSectionStatus status = SubmissionSectionStatus.CANNOT_START_YET;
-        Predicate<SubmissionSection> filter = section -> !section.getSectionId().equals(ELIGIBILITY);
-
         if (questionResponse.getResponse().equals("Yes")) {
             final int schemeVersion = submission.getApplication()
                     .getGrantScheme()
@@ -535,20 +530,21 @@ public class SubmissionService {
                 submission.getSection(FUNDING_DETAILS).setSectionStatus(SubmissionSectionStatus.IN_PROGRESS);
             }
 
-            status = SubmissionSectionStatus.NOT_STARTED;
-            filter = section -> !getSectionIdsToSkipAfterEligibilitySectionCompleted(schemeVersion)
-                    .contains(section.getSectionId());
+            submission.getDefinition()
+                    .getSections()
+                    .stream()
+                    .filter(section -> section.getSectionStatus().equals(SubmissionSectionStatus.CANNOT_START_YET))
+                    .filter(section -> !getSectionIdsToSkipAfterEligibilitySectionCompleted(schemeVersion)
+                            .contains(section.getSectionId()))
+                    .forEach(section -> section.setSectionStatus(SubmissionSectionStatus.NOT_STARTED));
+        } else {
+            submission.getDefinition()
+                    .getSections()
+                    .stream()
+                    .filter(section -> section.getSectionStatus().equals(SubmissionSectionStatus.NOT_STARTED))
+                    .filter(section -> !section.getSectionId().equals(ELIGIBILITY))
+                    .forEach(section -> section.setSectionStatus(SubmissionSectionStatus.CANNOT_START_YET));
         }
-
-        setSectionStatuses(submission, status, filter);
-    }
-
-    private void setSectionStatuses(Submission submission, SubmissionSectionStatus status, Predicate<SubmissionSection> filter) {
-        submission.getDefinition()
-                .getSections()
-                .stream()
-                .filter(filter)
-                .forEach(section -> section.setSectionStatus(status));
     }
 
     private List<String> getSectionIdsToSkipAfterEligibilitySectionCompleted(final int schemeVersion) {
