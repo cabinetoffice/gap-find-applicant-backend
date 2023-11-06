@@ -180,10 +180,10 @@ class GrantMandatoryQuestionServiceTest {
             final GrantScheme scheme = new GrantScheme();
             final String applicantSub = "valid-applicant-id";
 
-            when(grantMandatoryQuestionRepository.findByGrantScheme(scheme))
+            when(grantMandatoryQuestionRepository.findByGrantScheme_IdAndCreatedBy_UserId(1, applicantSub))
                     .thenReturn(Optional.empty());
 
-            assertThrows(NotFoundException.class, () -> serviceUnderTest.getMandatoryQuestionByScheme(scheme, applicantSub));
+            assertThrows(NotFoundException.class, () -> serviceUnderTest.getMandatoryQuestionBySchemeId(1, applicantSub));
         }
 
         @Test
@@ -194,10 +194,10 @@ class GrantMandatoryQuestionServiceTest {
             final GrantApplicant createdByOtherUser = GrantApplicant.builder().userId("other-user-id").build();
             final GrantMandatoryQuestions mandatoryQuestions = GrantMandatoryQuestions.builder().createdBy(createdByOtherUser).build();
 
-            when(grantMandatoryQuestionRepository.findByGrantScheme(scheme))
+            when(grantMandatoryQuestionRepository.findByGrantScheme_IdAndCreatedBy_UserId(1, applicantSub))
                     .thenReturn(Optional.of(mandatoryQuestions));
 
-            assertThrows(ForbiddenException.class, () -> serviceUnderTest.getMandatoryQuestionByScheme(scheme, applicantSub));
+            assertThrows(ForbiddenException.class, () -> serviceUnderTest.getMandatoryQuestionBySchemeId(1, applicantSub));
         }
 
         @Test
@@ -208,10 +208,10 @@ class GrantMandatoryQuestionServiceTest {
             final GrantApplicant createdByValidUser = GrantApplicant.builder().userId(applicantSub).build();
             final GrantMandatoryQuestions mandatoryQuestions = GrantMandatoryQuestions.builder().createdBy(createdByValidUser).build();
 
-            when(grantMandatoryQuestionRepository.findByGrantScheme(scheme))
+            when(grantMandatoryQuestionRepository.findByGrantScheme_IdAndCreatedBy_UserId(1, applicantSub))
                     .thenReturn(Optional.of(mandatoryQuestions));
 
-            final GrantMandatoryQuestions methodResponse = serviceUnderTest.getMandatoryQuestionByScheme(scheme, applicantSub);
+            final GrantMandatoryQuestions methodResponse = serviceUnderTest.getMandatoryQuestionBySchemeId(1, applicantSub);
 
             assertThat(methodResponse).isEqualTo(mandatoryQuestions);
         }
@@ -287,6 +287,56 @@ class GrantMandatoryQuestionServiceTest {
             verify(organisationProfileMapper).mapOrgProfileToGrantMandatoryQuestion(organisationProfile);
             verify(grantMandatoryQuestionRepository).save(any());
             assertThat(methodResponse).isEqualTo(grantMandatoryQuestions);
+        }
+
+        @Test
+        void createMandatoryQuestion_NullsCCandCH_ifTooLong() {
+
+            final GrantScheme scheme = GrantScheme
+                    .builder()
+                    .id(1)
+                    .build();
+
+            final GrantApplicantOrganisationProfile orgProfileWithLongCCandCH = GrantApplicantOrganisationProfile
+                    .builder()
+                    .id(1)
+                    .legalName("legalName")
+                    .addressLine1("addressLine1")
+                    .town("town")
+                    .postcode("postcode")
+                    .companiesHouseNumber("THIS IS A REALLY LONG COMPANIES HOUSE NUMEBR")
+                    .charityCommissionNumber("THIS IS A REALLY LONG CHARITY COMISSION NUMBE")
+                    .build();
+
+            final GrantApplicant applicant = GrantApplicant
+                    .builder()
+                    .userId(applicantUserId)
+                    .organisationProfile(orgProfileWithLongCCandCH)
+                    .build();
+
+            final GrantMandatoryQuestions grantMandatoryQuestions = GrantMandatoryQuestions.builder()
+                    .grantScheme(scheme)
+                    .createdBy(applicant)
+                    .city(orgProfileWithLongCCandCH.getTown())
+                    .name(orgProfileWithLongCCandCH.getLegalName())
+                    .postcode(orgProfileWithLongCCandCH.getPostcode())
+                    .addressLine1(orgProfileWithLongCCandCH.getAddressLine1())
+                    .companiesHouseNumber(orgProfileWithLongCCandCH.getCompaniesHouseNumber())
+                    .charityCommissionNumber(orgProfileWithLongCCandCH.getCharityCommissionNumber())
+                    .build();
+
+            when(grantMandatoryQuestionRepository.save(Mockito.any()))
+                    .thenReturn(grantMandatoryQuestions);
+
+            when(organisationProfileMapper.mapOrgProfileToGrantMandatoryQuestion(orgProfileWithLongCCandCH))
+                    .thenReturn(grantMandatoryQuestions);
+
+            final GrantMandatoryQuestions methodResponse = serviceUnderTest.createMandatoryQuestion(scheme, applicant);
+
+            verify(organisationProfileMapper).mapOrgProfileToGrantMandatoryQuestion(orgProfileWithLongCCandCH);
+            verify(grantMandatoryQuestionRepository).save(any());
+            assertThat(methodResponse.getCharityCommissionNumber()).isEqualTo(null);
+            assertThat(methodResponse.getCompaniesHouseNumber()).isEqualTo(null);
         }
 
     }

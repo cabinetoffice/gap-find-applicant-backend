@@ -50,12 +50,14 @@ public class GrantMandatoryQuestionService {
         return grantMandatoryQuestion.get();
     }
 
-    public GrantMandatoryQuestions getMandatoryQuestionByScheme(GrantScheme scheme, String applicantSub) {
-        final Optional<GrantMandatoryQuestions> grantMandatoryQuestion = ofNullable(grantMandatoryQuestionRepository.findByGrantScheme(scheme)
-                .orElseThrow(() -> new NotFoundException(String.format("No Mandatory Question with scheme id  %s was found", scheme.getId()))));
+    public GrantMandatoryQuestions getMandatoryQuestionBySchemeId(Integer schemeId, String applicantSub) {
+        final Optional<GrantMandatoryQuestions> grantMandatoryQuestion = ofNullable(grantMandatoryQuestionRepository
+                .findByGrantScheme_IdAndCreatedBy_UserId(schemeId, applicantSub)
+                .orElseThrow(() -> new NotFoundException(String.format("No Mandatory Question with scheme id  %s was found", schemeId))));
 
         if (!grantMandatoryQuestion.get().getCreatedBy().getUserId().equals(applicantSub)) {
-            throw new ForbiddenException(String.format("Mandatory Question with id % and scheme ID %s was not created by %s", grantMandatoryQuestion.get().getId(), scheme.getId(), applicantSub));
+            throw new ForbiddenException(String.format("Mandatory Question with id % and scheme ID %s was not created by %s",
+                    grantMandatoryQuestion.get().getId(), schemeId, applicantSub));
         }
 
         return grantMandatoryQuestion.get();
@@ -70,6 +72,16 @@ public class GrantMandatoryQuestionService {
         final GrantApplicantOrganisationProfile organisationProfile = applicant.getOrganisationProfile();
 
         final GrantMandatoryQuestions grantMandatoryQuestions = organisationProfileMapper.mapOrgProfileToGrantMandatoryQuestion(organisationProfile);
+
+        //Fix to exclude any existing Charity Comission Number or Companies House Number which have invalid lengths,
+        //This will force the applicant to go through the MQ journey and update their details with a valid length number
+        if(grantMandatoryQuestions.getCharityCommissionNumber() != null && grantMandatoryQuestions.getCharityCommissionNumber().length() > MandatoryQuestionConstants.CHARITY_COMMISSION_NUMBER_MAX_LENGTH){
+            grantMandatoryQuestions.setCharityCommissionNumber(null);
+        }
+        if(grantMandatoryQuestions.getCompaniesHouseNumber() != null && grantMandatoryQuestions.getCompaniesHouseNumber().length() > MandatoryQuestionConstants.COMPANIES_HOUSE_NUMBER_MAX_LENGTH){
+            grantMandatoryQuestions.setCompaniesHouseNumber(null);
+        }
+
         grantMandatoryQuestions.setGrantScheme(scheme);
         grantMandatoryQuestions.setCreatedBy(applicant);
 
@@ -85,7 +97,7 @@ public class GrantMandatoryQuestionService {
         return grantMandatoryQuestionRepository
                 .findById(grantMandatoryQuestions.getId()) //TODO there is no need for the additional database call here
                 .map(mandatoryQuestion -> grantMandatoryQuestionRepository.save(grantMandatoryQuestions))
-                .orElseThrow(() -> new NotFoundException(String.format("No Mandatory Question with ID %s was found", grantMandatoryQuestions.getId())));
+                .orElseThrow(() -> new NotFoundException(String.format("No Mandatory Question with id %s was found", grantMandatoryQuestions.getId())));
     }
 
     private String generateGapId(final Long userId) {

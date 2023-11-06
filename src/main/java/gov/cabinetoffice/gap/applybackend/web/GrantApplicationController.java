@@ -29,4 +29,16 @@ public class GrantApplicationController {
         GrantApplication grantApplication = grantApplicationService.getGrantApplicationByGrantScheme(schemeId);
         return ResponseEntity.ok(grantApplication.getApplicationStatus().toString());
     }
+
+    @GetMapping("/{applicationId}")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Grant Application Found", content = @Content(mediaType = "application/json", schema = @Schema(implementation = GetGrantApplicantDto.class))),
+            @ApiResponse(responseCode = "404", description = "No Grant Application found", content = @Content(mediaType = "application/json")),
+    })
+    public ResponseEntity<GrantApplication> getApplicationByApplicationId(
+            @PathVariable("applicationId") int applicationId
+    ) {
+        GrantApplication grantApplication = grantApplicationService.getGrantApplicationById(applicationId);
+        return ResponseEntity.ok(grantApplication);
+    }
 }

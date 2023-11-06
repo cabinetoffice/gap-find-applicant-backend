@@ -67,7 +67,7 @@ public class GrantMandatoryQuestionsController {
     public ResponseEntity<GetGrantMandatoryQuestionDto> getGrantMandatoryQuestionsById(@PathVariable final UUID mandatoryQuestionId) {
         final JwtPayload jwtPayload = (JwtPayload) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
         final GrantMandatoryQuestions grantMandatoryQuestions = grantMandatoryQuestionService.getGrantMandatoryQuestionById(mandatoryQuestionId, jwtPayload.getSub());
-        log.info("Mandatory question with ID {} has been grabbed.", grantMandatoryQuestions.getId());
+        log.info("Mandatory question with ID {} has been retrieved.", grantMandatoryQuestions.getId());
 
         final GetGrantMandatoryQuestionDto getGrantMandatoryQuestionDto = grantMandatoryQuestionMapper.mapGrantMandatoryQuestionToGetGrantMandatoryQuestionDTO(grantMandatoryQuestions);
         return ResponseEntity.ok(getGrantMandatoryQuestionDto);
@@ -82,10 +82,39 @@ public class GrantMandatoryQuestionsController {
     public ResponseEntity<GetGrantMandatoryQuestionDto> getGrantMandatoryQuestionsBySubmissionId(@PathVariable final UUID submissionId) {
         final JwtPayload jwtPayload = (JwtPayload) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
         final GrantMandatoryQuestions grantMandatoryQuestions = grantMandatoryQuestionService.getGrantMandatoryQuestionBySubmissionId(submissionId, jwtPayload.getSub());
-        log.info("Mandatory question with ID {} has been grabbed.", grantMandatoryQuestions.getId());
+        log.info("Mandatory question with ID {} has been retrieved.", grantMandatoryQuestions.getId());
 
         final GetGrantMandatoryQuestionDto getGrantMandatoryQuestionBySubmissionDto = grantMandatoryQuestionMapper.mapGrantMandatoryQuestionToGetGrantMandatoryQuestionDTO(grantMandatoryQuestions);
         return ResponseEntity.ok(getGrantMandatoryQuestionBySubmissionDto);
+    }
+
+    @GetMapping("/scheme/{schemeId}")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Grant Mandatory found", content = @Content(mediaType = "application/json", schema = @Schema(implementation = GrantMandatoryQuestions.class))),
+            @ApiResponse(responseCode = "403", description = "User cannot access this mandatory question", content = @Content(mediaType = "application/json")),
+            @ApiResponse(responseCode = "404", description = "No Grant Mandatory question found", content = @Content(mediaType = "application/json")),
+    })
+    public ResponseEntity<GetGrantMandatoryQuestionDto> getGrantMandatoryQuestionsBySchemeId(@PathVariable final Integer schemeId) {
+        final JwtPayload jwtPayload = (JwtPayload) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        final GrantMandatoryQuestions grantMandatoryQuestions = grantMandatoryQuestionService.getMandatoryQuestionBySchemeId(schemeId, jwtPayload.getSub());
+
+        log.info("Mandatory question with ID {} has been retrieved", grantMandatoryQuestions.getId());
+
+        final GetGrantMandatoryQuestionDto getGrantMandatoryQuestionBySubmissionDto = grantMandatoryQuestionMapper.mapGrantMandatoryQuestionToGetGrantMandatoryQuestionDTO(grantMandatoryQuestions);
+        return ResponseEntity.ok(getGrantMandatoryQuestionBySubmissionDto);
+    }
+
+    @GetMapping("/scheme/{schemeId}/exists")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Grant Mandatory found", content = @Content(mediaType = "application/json", schema = @Schema(implementation = Boolean.class))),
+            @ApiResponse(responseCode = "403", description = "User cannot access this mandatory question", content = @Content(mediaType = "application/json")),
+            @ApiResponse(responseCode = "404", description = "No Grant Mandatory question found", content = @Content(mediaType = "application/json")),
+    })
+    public ResponseEntity<Boolean> existsBySchemeIdAndApplicantId (@PathVariable final Integer schemeId) {
+        final JwtPayload jwtPayload = (JwtPayload) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        final GrantApplicant applicant = grantApplicantService.getApplicantById(jwtPayload.getSub());
+
+        return ResponseEntity.ok(grantMandatoryQuestionService.existsBySchemeIdAndApplicantId(schemeId, applicant.getId()));
     }
 
 

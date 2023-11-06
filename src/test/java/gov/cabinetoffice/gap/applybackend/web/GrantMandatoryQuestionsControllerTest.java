@@ -31,6 +31,7 @@ import java.util.UUID;
 
 import static gov.cabinetoffice.gap.applybackend.enums.GrantMandatoryQuestionFundingLocation.SCOTLAND;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.InstanceOfAssertFactories.BOOLEAN;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -289,6 +290,63 @@ class GrantMandatoryQuestionsControllerTest {
         assertThat(methodResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(methodResponse.getBody()).isEqualTo("nextPageUrl");
         assertThat(mandatoryQuestions.getStatus()).isEqualTo(GrantMandatoryQuestionStatus.COMPLETED);
+
+    }
+
+    @Test
+    void shouldReturnMandatoryQuestionsIfValidSchemeAndUserIdIsGiven() {
+        final GrantMandatoryQuestions mandatoryQuestions = GrantMandatoryQuestions.builder()
+                .id(MANDATORY_QUESTION_ID)
+                .createdBy(applicant)
+                .grantScheme(scheme)
+                .name("AND Digital")
+                .fundingAmount(new BigDecimal("50000.00"))
+                .addressLine1("215 Bothwell Street")
+                .city("Glasgow")
+                .postcode("G2 7EZ")
+                .companiesHouseNumber("08761455")
+                .orgType(GrantMandatoryQuestionOrgType.LIMITED_COMPANY)
+                .build();
+
+        final GetGrantMandatoryQuestionDto mandatoryQuestionsDto = GetGrantMandatoryQuestionDto.builder()
+                .name("AND Digital")
+                .fundingAmount("50000.00")
+                .addressLine1("215 Bothwell Street")
+                .city("Glasgow")
+                .postcode("G2 7EZ")
+                .fundingLocation(List.of("Scotland"))
+                .companiesHouseNumber("08761455")
+                .orgType("Limited company")
+                .schemeId(scheme.getId())
+                .build();
+
+        when(grantMandatoryQuestionService.getMandatoryQuestionBySchemeId(1, jwtPayload.getSub()))
+                .thenReturn(mandatoryQuestions);
+        when(grantMandatoryQuestionMapper.mapGrantMandatoryQuestionToGetGrantMandatoryQuestionDTO(mandatoryQuestions))
+                .thenReturn(mandatoryQuestionsDto);
+
+        final ResponseEntity<GetGrantMandatoryQuestionDto> methodResponse = controllerUnderTest
+                .getGrantMandatoryQuestionsBySchemeId(1);
+
+        verify(grantMandatoryQuestionService).getMandatoryQuestionBySchemeId(1, jwtPayload.getSub());
+        assertThat(methodResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(methodResponse.getBody()).isEqualTo(mandatoryQuestionsDto);
+
+    }
+
+    @Test
+    void shouldReturnTrueIfUserHasMandatoryQuestionsForValidSchemeId() {
+
+        when(grantApplicantService.getApplicantById(jwtPayload.getSub())).thenReturn(applicant);
+
+        when(grantMandatoryQuestionService.existsBySchemeIdAndApplicantId(1, 1L)).thenReturn(true);
+
+        final ResponseEntity<Boolean> methodResponse = controllerUnderTest
+                .existsBySchemeIdAndApplicantId(1);
+
+        verify(grantMandatoryQuestionService).existsBySchemeIdAndApplicantId(1, 1L);
+        assertThat(methodResponse.getBody()).isEqualTo(Boolean.TRUE);
+        assertThat(methodResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
 
     }
 
