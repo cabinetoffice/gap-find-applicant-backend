@@ -14,17 +14,7 @@ import gov.cabinetoffice.gap.applybackend.enums.SubmissionStatus;
 import gov.cabinetoffice.gap.applybackend.exception.NotFoundException;
 import gov.cabinetoffice.gap.applybackend.exception.SubmissionAlreadySubmittedException;
 import gov.cabinetoffice.gap.applybackend.exception.SubmissionNotReadyException;
-import gov.cabinetoffice.gap.applybackend.model.ApplicationDefinition;
-import gov.cabinetoffice.gap.applybackend.model.DiligenceCheck;
-import gov.cabinetoffice.gap.applybackend.model.GrantApplicant;
-import gov.cabinetoffice.gap.applybackend.model.GrantApplicantOrganisationProfile;
-import gov.cabinetoffice.gap.applybackend.model.GrantApplication;
-import gov.cabinetoffice.gap.applybackend.model.GrantBeneficiary;
-import gov.cabinetoffice.gap.applybackend.model.GrantScheme;
-import gov.cabinetoffice.gap.applybackend.model.Submission;
-import gov.cabinetoffice.gap.applybackend.model.SubmissionDefinition;
-import gov.cabinetoffice.gap.applybackend.model.SubmissionQuestion;
-import gov.cabinetoffice.gap.applybackend.model.SubmissionSection;
+import gov.cabinetoffice.gap.applybackend.model.*;
 import gov.cabinetoffice.gap.applybackend.repository.DiligenceCheckRepository;
 import gov.cabinetoffice.gap.applybackend.repository.GrantBeneficiaryRepository;
 import gov.cabinetoffice.gap.applybackend.repository.SubmissionRepository;
@@ -37,12 +27,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.UUID;
-import java.util.stream.Stream;
+import java.util.*;
 
 
 @RequiredArgsConstructor
@@ -137,21 +122,9 @@ public class SubmissionService {
         }
 
         if (sectionId.equals(ELIGIBILITY)) {
-            Stream<SubmissionSection> nonEligibilitySections = submission.getDefinition()
-                    .getSections()
-                    .stream()
-                    .filter(section -> !section.getSectionId().equals(ELIGIBILITY));
-
-            if (questionResponse.getResponse().equals("Yes")) {
-                nonEligibilitySections
-                        .filter(section -> section.getSectionStatus().equals(SubmissionSectionStatus.CANNOT_START_YET))
-                        .forEach(section -> section.setSectionStatus(SubmissionSectionStatus.NOT_STARTED));
-            } else {
-                nonEligibilitySections
-                        .filter(section -> section.getSectionStatus().equals(SubmissionSectionStatus.NOT_STARTED))
-                        .forEach(section -> section.setSectionStatus(SubmissionSectionStatus.CANNOT_START_YET));
-            }
+            handleEligibilitySection(questionResponse, submission);
         }
+
         submissionRepository.save(submission);
     }
 
@@ -207,8 +180,9 @@ public class SubmissionService {
 
         boolean sectionAreAllCompleted = sections.stream()
                 .allMatch(section -> section.getSectionStatus().equals(SubmissionSectionStatus.COMPLETED));
-// we check also the questions response to cover the edge scenario in case an applicant somehow skips the questions and goes directly
-//to the section summary page to set the status of the section.
+
+        // we check also the questions response to cover the edge scenario in case an applicant somehow skips the questions and goes directly
+        // to the section summary page to set the status of the section.
         final boolean questionsAreAllAnswered = sections
                 .stream()
                 .flatMap(section -> section.getQuestions().stream())
@@ -531,6 +505,47 @@ public class SubmissionService {
         );
 
         return definition;
+    }
+
+    private void handleEligibilitySection(CreateQuestionResponseDto questionResponse, Submission submission) {
+        if (questionResponse.getResponse().equals("Yes")) {
+            final int schemeVersion = submission.getApplication()
+                    .getGrantScheme()
+                    .getVersion();
+
+            if (schemeVersion > 1) {
+                submission.getSection(ORGANISATION_DETAILS).setSectionStatus(SubmissionSectionStatus.IN_PROGRESS);
+                submission.getSection(FUNDING_DETAILS).setSectionStatus(SubmissionSectionStatus.IN_PROGRESS);
+            }
+
+            submission.getDefinition()
+                    .getSections()
+                    .stream()
+                    .filter(section -> section.getSectionStatus().equals(SubmissionSectionStatus.CANNOT_START_YET))
+                    .filter(section -> !getSectionIdsToSkipAfterEligibilitySectionCompleted(schemeVersion)
+                            .contains(section.getSectionId()))
+                    .forEach(section -> section.setSectionStatus(SubmissionSectionStatus.NOT_STARTED));
+        } else {
+            submission.getDefinition()
+                    .getSections()
+                    .stream()
+                    .filter(section -> section.getSectionStatus().equals(SubmissionSectionStatus.NOT_STARTED))
+                    .filter(section -> !section.getSectionId().equals(ELIGIBILITY))
+                    .forEach(section -> section.setSectionStatus(SubmissionSectionStatus.CANNOT_START_YET));
+        }
+    }
+
+    private List<String> getSectionIdsToSkipAfterEligibilitySectionCompleted(final int schemeVersion) {
+        final List<String> sectionIds = new ArrayList<>();
+
+        sectionIds.add(ELIGIBILITY);
+
+        if (schemeVersion > 1) {
+            sectionIds.add(ORGANISATION_DETAILS);
+            sectionIds.add(FUNDING_DETAILS);
+        }
+
+        return sectionIds;
     }
 }
 
