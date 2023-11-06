@@ -31,6 +31,7 @@ import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.stream.Stream;
+import java.util.*;
 
 import static java.util.Optional.ofNullable;
 
@@ -128,21 +129,9 @@ public class SubmissionService {
         }
 
         if (sectionId.equals(ELIGIBILITY)) {
-            Stream<SubmissionSection> nonEligibilitySections = submission.getDefinition()
-                    .getSections()
-                    .stream()
-                    .filter(section -> !section.getSectionId().equals(ELIGIBILITY));
-
-            if (questionResponse.getResponse().equals("Yes")) {
-                nonEligibilitySections
-                        .filter(section -> section.getSectionStatus().equals(SubmissionSectionStatus.CANNOT_START_YET))
-                        .forEach(section -> section.setSectionStatus(SubmissionSectionStatus.NOT_STARTED));
-            } else {
-                nonEligibilitySections
-                        .filter(section -> section.getSectionStatus().equals(SubmissionSectionStatus.NOT_STARTED))
-                        .forEach(section -> section.setSectionStatus(SubmissionSectionStatus.CANNOT_START_YET));
-            }
+            handleEligibilitySection(questionResponse, submission);
         }
+
         submissionRepository.save(submission);
     }
 
@@ -198,8 +187,9 @@ public class SubmissionService {
 
         boolean sectionAreAllCompleted = sections.stream()
                 .allMatch(section -> section.getSectionStatus().equals(SubmissionSectionStatus.COMPLETED));
-// we check also the questions response to cover the edge scenario in case an applicant somehow skips the questions and goes directly
-//to the section summary page to set the status of the section.
+
+        // we check also the questions response to cover the edge scenario in case an applicant somehow skips the questions and goes directly
+        // to the section summary page to set the status of the section.
         final boolean questionsAreAllAnswered = sections
                 .stream()
                 .flatMap(section -> section.getQuestions().stream())
@@ -533,6 +523,47 @@ public class SubmissionService {
         );
 
         return definition;
+    }
+
+    private void handleEligibilitySection(CreateQuestionResponseDto questionResponse, Submission submission) {
+        if (questionResponse.getResponse().equals("Yes")) {
+            final int schemeVersion = submission.getApplication()
+                    .getGrantScheme()
+                    .getVersion();
+
+            if (schemeVersion > 1) {
+                submission.getSection(ORGANISATION_DETAILS).setSectionStatus(SubmissionSectionStatus.IN_PROGRESS);
+                submission.getSection(FUNDING_DETAILS).setSectionStatus(SubmissionSectionStatus.IN_PROGRESS);
+            }
+
+            submission.getDefinition()
+                    .getSections()
+                    .stream()
+                    .filter(section -> section.getSectionStatus().equals(SubmissionSectionStatus.CANNOT_START_YET))
+                    .filter(section -> !getSectionIdsToSkipAfterEligibilitySectionCompleted(schemeVersion)
+                            .contains(section.getSectionId()))
+                    .forEach(section -> section.setSectionStatus(SubmissionSectionStatus.NOT_STARTED));
+        } else {
+            submission.getDefinition()
+                    .getSections()
+                    .stream()
+                    .filter(section -> section.getSectionStatus().equals(SubmissionSectionStatus.NOT_STARTED))
+                    .filter(section -> !section.getSectionId().equals(ELIGIBILITY))
+                    .forEach(section -> section.setSectionStatus(SubmissionSectionStatus.CANNOT_START_YET));
+        }
+    }
+
+    private List<String> getSectionIdsToSkipAfterEligibilitySectionCompleted(final int schemeVersion) {
+        final List<String> sectionIds = new ArrayList<>();
+
+        sectionIds.add(ELIGIBILITY);
+
+        if (schemeVersion > 1) {
+            sectionIds.add(ORGANISATION_DETAILS);
+            sectionIds.add(FUNDING_DETAILS);
+        }
+
+        return sectionIds;
     }
 }
 
