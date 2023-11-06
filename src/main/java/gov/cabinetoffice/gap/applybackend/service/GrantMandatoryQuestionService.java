@@ -57,7 +57,7 @@ public class GrantMandatoryQuestionService {
         return grantMandatoryQuestion.get();
     }
 
-    public GrantMandatoryQuestions getMandatoryQuestionByScheme(Integer schemeId, String applicantSub) {
+    public GrantMandatoryQuestions getMandatoryQuestionBySchemeId(Integer schemeId, String applicantSub) {
         final Optional<GrantMandatoryQuestions> grantMandatoryQuestion = ofNullable(grantMandatoryQuestionRepository
                 .findByGrantScheme_IdAndCreatedBy_UserId(schemeId, applicantSub)
                 .orElseThrow(() -> new NotFoundException(String.format("No Mandatory Question with scheme id  %s was found", schemeId))));
@@ -93,19 +93,19 @@ public class GrantMandatoryQuestionService {
                 .orElseThrow(() -> new NotFoundException(String.format("No Mandatory Question with id %s was found", grantMandatoryQuestions.getId())));
     }
 
-    public GrantMandatoryQuestions getMandatoryQuestionBySchemeId(Integer schemeId, String applicantSub) {
-        final Optional<GrantMandatoryQuestions> grantMandatoryQuestion =
-                ofNullable(grantMandatoryQuestionRepository.findByGrantScheme_Id(schemeId)
-                .orElseThrow(() -> new NotFoundException(String.format("No Mandatory Question with scheme id %s was found", schemeId))));
-
-        if (!grantMandatoryQuestion.get().getCreatedBy().getUserId().equals(applicantSub)) {
-            throw new ForbiddenException(
-                    String.format("Mandatory Question with id % and scheme ID %s was not created by %s",
-                            grantMandatoryQuestion.get().getId(), schemeId, applicantSub));
-        }
-
-        return grantMandatoryQuestion.get();
-    }
+//    public GrantMandatoryQuestions getMandatoryQuestionBySchemeId(Integer schemeId, String applicantSub) {
+//        final Optional<GrantMandatoryQuestions> grantMandatoryQuestion =
+//                ofNullable(grantMandatoryQuestionRepository.findByGrantScheme_Id(schemeId)
+//                .orElseThrow(() -> new NotFoundException(String.format("No Mandatory Question with scheme id %s was found", schemeId))));
+//
+//        if (!grantMandatoryQuestion.get().getCreatedBy().getUserId().equals(applicantSub)) {
+//            throw new ForbiddenException(
+//                    String.format("Mandatory Question with id % and scheme ID %s was not created by %s",
+//                            grantMandatoryQuestion.get().getId(), schemeId, applicantSub));
+//        }
+//
+//        return grantMandatoryQuestion.get();
+//    }
 
     public String generateNextPageUrl(String url, UUID mandatoryQuestionId) {
         final Map<String, String> mapper = new HashMap<>();
