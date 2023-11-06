@@ -17,6 +17,4 @@ public interface GrantMandatoryQuestionRepository extends JpaRepository<GrantMan
     Optional<GrantMandatoryQuestions> findByGrantScheme_IdAndCreatedBy_UserId(Integer schemeId, String sub);
 
     boolean existsByGrantScheme_IdAndCreatedBy_Id(Integer schemeId, long applicantId);
-
-    Optional<GrantMandatoryQuestions> findByGrantScheme_Id(Integer schemeId);
 }
