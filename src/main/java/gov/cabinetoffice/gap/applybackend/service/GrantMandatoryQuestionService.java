@@ -79,6 +79,16 @@ public class GrantMandatoryQuestionService {
         final GrantApplicantOrganisationProfile organisationProfile = applicant.getOrganisationProfile();
 
         final GrantMandatoryQuestions grantMandatoryQuestions = organisationProfileMapper.mapOrgProfileToGrantMandatoryQuestion(organisationProfile);
+
+        //Fix to exclude any existing Charity Comission Number or Companies House Number which have invalid lengths,
+        //This will force the applicant to go through the MQ journey and update their details with a valid length number
+        if(grantMandatoryQuestions.getCharityCommissionNumber() != null && grantMandatoryQuestions.getCharityCommissionNumber().length() > MandatoryQuestionConstants.CHARITY_COMMISSION_NUMBER_MAX_LENGTH){
+            grantMandatoryQuestions.setCharityCommissionNumber(null);
+        }
+        if(grantMandatoryQuestions.getCompaniesHouseNumber() != null && grantMandatoryQuestions.getCompaniesHouseNumber().length() > MandatoryQuestionConstants.COMPANIES_HOUSE_NUMBER_MAX_LENGTH){
+            grantMandatoryQuestions.setCompaniesHouseNumber(null);
+        }
+
         grantMandatoryQuestions.setGrantScheme(scheme);
         grantMandatoryQuestions.setCreatedBy(applicant);
 
