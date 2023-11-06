@@ -37,11 +37,8 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.UUID;
+import java.util.*;
+import java.util.function.Predicate;
 import java.util.stream.Stream;
 
 
@@ -137,21 +134,9 @@ public class SubmissionService {
         }
 
         if (sectionId.equals(ELIGIBILITY)) {
-            Stream<SubmissionSection> nonEligibilitySections = submission.getDefinition()
-                    .getSections()
-                    .stream()
-                    .filter(section -> !section.getSectionId().equals(ELIGIBILITY));
-
-            if (questionResponse.getResponse().equals("Yes")) {
-                nonEligibilitySections
-                        .filter(section -> section.getSectionStatus().equals(SubmissionSectionStatus.CANNOT_START_YET))
-                        .forEach(section -> section.setSectionStatus(SubmissionSectionStatus.NOT_STARTED));
-            } else {
-                nonEligibilitySections
-                        .filter(section -> section.getSectionStatus().equals(SubmissionSectionStatus.NOT_STARTED))
-                        .forEach(section -> section.setSectionStatus(SubmissionSectionStatus.CANNOT_START_YET));
-            }
+            HandleEligibilitySection(questionResponse, submission);
         }
+
         submissionRepository.save(submission);
     }
 
@@ -207,8 +192,9 @@ public class SubmissionService {
 
         boolean sectionAreAllCompleted = sections.stream()
                 .allMatch(section -> section.getSectionStatus().equals(SubmissionSectionStatus.COMPLETED));
-// we check also the questions response to cover the edge scenario in case an applicant somehow skips the questions and goes directly
-//to the section summary page to set the status of the section.
+
+        // we check also the questions response to cover the edge scenario in case an applicant somehow skips the questions and goes directly
+        // to the section summary page to set the status of the section.
         final boolean questionsAreAllAnswered = sections
                 .stream()
                 .flatMap(section -> section.getQuestions().stream())
@@ -531,6 +517,53 @@ public class SubmissionService {
         );
 
         return definition;
+    }
+
+    private void HandleEligibilitySection(CreateQuestionResponseDto questionResponse, Submission submission) {
+
+        // defaulting the code to handle "no" then handling "yes" explicitly means less duplication of streams etc
+        SubmissionSectionStatus status = SubmissionSectionStatus.CANNOT_START_YET;
+        Predicate<SubmissionSection> filter = section -> !section.getSectionId().equals(ELIGIBILITY);
+
+        if (questionResponse.getResponse().equals("Yes")) {
+            final int schemeVersion = submission.getApplication()
+                    .getGrantScheme()
+                    .getVersion();
+
+            if (schemeVersion > 1) {
+                submission.getSection(ORGANISATION_DETAILS).setSectionStatus(SubmissionSectionStatus.IN_PROGRESS);
+                submission.getSection(FUNDING_DETAILS).setSectionStatus(SubmissionSectionStatus.IN_PROGRESS);
+            }
+
+            status = SubmissionSectionStatus.NOT_STARTED;
+            filter = section -> !getSectionIdsToSkipAfterEligibilitySectionCompleted(schemeVersion)
+                    .contains(section.getSectionId());
+        }
+
+        setSectionStatuses(submission, status, filter);
+    }
+
+    private void setSectionStatuses(Submission submission, SubmissionSectionStatus status, Predicate<SubmissionSection> filter) {
+        submission.getDefinition()
+                .getSections()
+                .stream()
+                .filter(filter)
+                .forEach(section -> section.setSectionStatus(status));
+    }
+
+    private List<String> getSectionIdsToSkipAfterEligibilitySectionCompleted(final int schemeVersion) {
+        final List<String> sectionIds = new ArrayList<>();
+
+        sectionIds.add(ELIGIBILITY);
+
+        if (schemeVersion > 1) {
+            sectionIds.add(ORGANISATION_DETAILS);
+            sectionIds.add(FUNDING_DETAILS);
+            sectionIds.add(ORGANISATION_DETAILS);
+            sectionIds.add(FUNDING_DETAILS);
+        }
+
+        return sectionIds;
     }
 }
 

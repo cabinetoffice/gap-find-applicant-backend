@@ -565,7 +565,7 @@ class SubmissionServiceTest {
 
         @Test
         void saveEligibilityResponseToNoAltersStatus_SavesResponse() {
-//        Test checks that if Eligibility is Yes then Not Started is changed to Cannot Start Yet
+
             final CreateQuestionResponseDto questionResponse = CreateQuestionResponseDto.builder()
                     .questionId("ELIGIBILITY")
                     .submissionId(SUBMISSION_ID)
