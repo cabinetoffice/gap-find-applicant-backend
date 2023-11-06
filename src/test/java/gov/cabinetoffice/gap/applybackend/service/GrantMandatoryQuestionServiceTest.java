@@ -196,7 +196,7 @@ class GrantMandatoryQuestionServiceTest {
             when(grantMandatoryQuestionRepository.findByGrantScheme_IdAndCreatedBy_UserId(1, applicantSub))
                     .thenReturn(Optional.empty());
 
-            assertThrows(NotFoundException.class, () -> serviceUnderTest.getMandatoryQuestionByScheme(1, applicantSub));
+            assertThrows(NotFoundException.class, () -> serviceUnderTest.getMandatoryQuestionBySchemeId(1, applicantSub));
         }
 
         @Test
@@ -210,7 +210,7 @@ class GrantMandatoryQuestionServiceTest {
             when(grantMandatoryQuestionRepository.findByGrantScheme_IdAndCreatedBy_UserId(1, applicantSub))
                     .thenReturn(Optional.of(mandatoryQuestions));
 
-            assertThrows(ForbiddenException.class, () -> serviceUnderTest.getMandatoryQuestionByScheme(1, applicantSub));
+            assertThrows(ForbiddenException.class, () -> serviceUnderTest.getMandatoryQuestionBySchemeId(1, applicantSub));
         }
 
         @Test
@@ -224,7 +224,7 @@ class GrantMandatoryQuestionServiceTest {
             when(grantMandatoryQuestionRepository.findByGrantScheme_IdAndCreatedBy_UserId(1, applicantSub))
                     .thenReturn(Optional.of(mandatoryQuestions));
 
-            final GrantMandatoryQuestions methodResponse = serviceUnderTest.getMandatoryQuestionByScheme(1, applicantSub);
+            final GrantMandatoryQuestions methodResponse = serviceUnderTest.getMandatoryQuestionBySchemeId(1, applicantSub);
 
             assertThat(methodResponse).isEqualTo(mandatoryQuestions);
         }
