@@ -10,12 +10,11 @@ import gov.cabinetoffice.gap.applybackend.exception.NotFoundException;
 import gov.cabinetoffice.gap.applybackend.mapper.GrantApplicantOrganisationProfileMapper;
 import gov.cabinetoffice.gap.applybackend.model.*;
 import gov.cabinetoffice.gap.applybackend.repository.GrantMandatoryQuestionRepository;
+import gov.cabinetoffice.gap.applybackend.utils.GapIdGenerator;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
-import java.time.LocalDate;
-import java.time.format.DateTimeFormatter;
 import java.util.*;
 
 import static java.util.Optional.ofNullable;
@@ -75,10 +74,10 @@ public class GrantMandatoryQuestionService {
 
         //Fix to exclude any existing Charity Comission Number or Companies House Number which have invalid lengths,
         //This will force the applicant to go through the MQ journey and update their details with a valid length number
-        if(grantMandatoryQuestions.getCharityCommissionNumber() != null && grantMandatoryQuestions.getCharityCommissionNumber().length() > MandatoryQuestionConstants.CHARITY_COMMISSION_NUMBER_MAX_LENGTH){
+        if (grantMandatoryQuestions.getCharityCommissionNumber() != null && grantMandatoryQuestions.getCharityCommissionNumber().length() > MandatoryQuestionConstants.CHARITY_COMMISSION_NUMBER_MAX_LENGTH) {
             grantMandatoryQuestions.setCharityCommissionNumber(null);
         }
-        if(grantMandatoryQuestions.getCompaniesHouseNumber() != null && grantMandatoryQuestions.getCompaniesHouseNumber().length() > MandatoryQuestionConstants.COMPANIES_HOUSE_NUMBER_MAX_LENGTH){
+        if (grantMandatoryQuestions.getCompaniesHouseNumber() != null && grantMandatoryQuestions.getCompaniesHouseNumber().length() > MandatoryQuestionConstants.COMPANIES_HOUSE_NUMBER_MAX_LENGTH) {
             grantMandatoryQuestions.setCompaniesHouseNumber(null);
         }
 
@@ -90,37 +89,17 @@ public class GrantMandatoryQuestionService {
 
 
     public GrantMandatoryQuestions updateMandatoryQuestion(GrantMandatoryQuestions grantMandatoryQuestions, GrantApplicant grantApplicant) {
-        if(grantMandatoryQuestions.getStatus().equals(GrantMandatoryQuestionStatus.COMPLETED)) {
+        if (grantMandatoryQuestions.getStatus().equals(GrantMandatoryQuestionStatus.COMPLETED)) {
             final Submission submission = grantMandatoryQuestions.getSubmission();
-            grantMandatoryQuestions.setGapId(submission == null ? generateGapId(grantApplicant.getId()) : submission.getGapId());
+            final String gapId = submission == null ? GapIdGenerator
+                    .generateGapId(grantApplicant.getId(), envProperties.getEnvironmentName(), grantMandatoryQuestionRepository.count(), true) : submission.getGapId();
+            grantMandatoryQuestions.setGapId(gapId);
         }
         return grantMandatoryQuestionRepository
                 .findById(grantMandatoryQuestions.getId()) //TODO there is no need for the additional database call here
                 .map(mandatoryQuestion -> grantMandatoryQuestionRepository.save(grantMandatoryQuestions))
                 .orElseThrow(() -> new NotFoundException(String.format("No Mandatory Question with id %s was found", grantMandatoryQuestions.getId())));
     }
-
-    private String generateGapId(final Long userId) {
-        final String env = envProperties.getEnvironmentName();
-        final LocalDate currentDate = LocalDate.now();
-        final DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyyMMdd");
-        final String date = currentDate.format(formatter);
-        final long recordNumber = grantMandatoryQuestionRepository.count();
-
-        return "GAP" +
-                "-" +
-                env +
-                "-" +
-                "MQ" +
-                "-" +
-                date +
-                "-" +
-                recordNumber +
-                "-" +
-                userId
-                ;
-    }
-
 
     public String generateNextPageUrl(String url, UUID mandatoryQuestionId) {
         final Map<String, String> mapper = new HashMap<>();

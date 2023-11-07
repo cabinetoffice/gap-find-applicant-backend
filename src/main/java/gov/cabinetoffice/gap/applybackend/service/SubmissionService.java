@@ -19,6 +19,7 @@ import gov.cabinetoffice.gap.applybackend.repository.DiligenceCheckRepository;
 import gov.cabinetoffice.gap.applybackend.repository.GrantBeneficiaryRepository;
 import gov.cabinetoffice.gap.applybackend.repository.GrantMandatoryQuestionRepository;
 import gov.cabinetoffice.gap.applybackend.repository.SubmissionRepository;
+import gov.cabinetoffice.gap.applybackend.utils.GapIdGenerator;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -29,8 +30,6 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.*;
-import java.util.stream.Stream;
 import java.util.*;
 
 import static java.util.Optional.ofNullable;
@@ -221,7 +220,35 @@ public class SubmissionService {
                     String.format("Submission %s has already been submitted.", submission.getId()));
         }
 
-        submission.setGapId(generateGapId(grantApplicant.getId()));
+        final long diligenceCheckRecordsFromToday = getDiligenceCheckRecordsCountFromToday();
+
+        final String gapId = GapIdGenerator.generateGapId(
+                grantApplicant.getId(),
+                envProperties.getEnvironmentName(),
+                diligenceCheckRecordsFromToday + 1,
+                false
+        );
+        submission.setGapId(gapId);
+        if (submission.getScheme().getVersion() > 1) {
+            setMandatoryQuestionsGapId(submission);
+        }
+
+        submitApplication(submission);
+        notifyClient.sendConfirmationEmail(emailAddress, submission);
+        createDiligenceCheckFromSubmission(submission);
+        createGrantBeneficiary(submission);
+    }
+
+    private long getDiligenceCheckRecordsCountFromToday() {
+        final LocalDate currentDate = LocalDate.now();
+        final DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyyMMdd");
+        final String diligenceCheckDate = currentDate.format(formatter);
+        final long diligenceCheckRecordsFromToday = diligenceCheckRepository
+                .countDistinctByApplicationNumberContains(diligenceCheckDate);
+        return diligenceCheckRecordsFromToday;
+    }
+
+    private void setMandatoryQuestionsGapId(Submission submission) {
         try {
             final UUID submissionId = submission.getId();
             final Optional<GrantMandatoryQuestions> grantMandatoryQuestion = ofNullable(grantMandatoryQuestionRepository.findBySubmissionId(submissionId)
@@ -232,11 +259,6 @@ public class SubmissionService {
         } catch (NotFoundException e) {
             log.info(e.getMessage());
         }
-
-        submitApplication(submission);
-        notifyClient.sendConfirmationEmail(emailAddress, submission);
-        createDiligenceCheckFromSubmission(submission);
-        createGrantBeneficiary(submission);
     }
 
     private void submitApplication(final Submission submission) {
@@ -304,28 +326,6 @@ public class SubmissionService {
                         String.format("section %s does not contain a question with an ID of %s",
                                 essentialInfoSection.getSectionId(), questionId)))
                 .getMultiResponse();
-    }
-
-    private String generateGapId(final Long userId) {
-        final String env = envProperties.getEnvironmentName();
-        final LocalDate currentDate = LocalDate.now();
-        final DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyyMMdd");
-        final String diligenceCheckDate = currentDate.format(formatter);
-
-        final long diligenceCheckRecordsFromToday = diligenceCheckRepository
-                .countDistinctByApplicationNumberContains(diligenceCheckDate);
-
-        final long diligenceRecordNumber = diligenceCheckRecordsFromToday + 1;
-        return "GAP" +
-                "-" +
-                env +
-                "-" +
-                diligenceCheckDate +
-                "-" +
-                diligenceRecordNumber +
-                "-" +
-                userId
-                ;
     }
 
     private void createGrantBeneficiary(final Submission submission) {
@@ -420,8 +420,7 @@ public class SubmissionService {
                 } else {
                     final String organisationDefault = switch (question.getQuestionId()) {
                         case APPLICANT_ORG_NAME -> grantApplicantOrgProfile.getLegalName();
-                        case APPLICANT_ORG_TYPE ->
-                                grantApplicantOrgProfile.getType() != null ? grantApplicantOrgProfile.getType().toString() : null;
+                        case APPLICANT_ORG_TYPE -> grantApplicantOrgProfile.getType() != null ? grantApplicantOrgProfile.getType().toString() : null;
                         case APPLICANT_ORG_CHARITY_NUMBER -> grantApplicantOrgProfile.getCharityCommissionNumber();
                         case APPLICANT_ORG_COMPANIES_HOUSE -> grantApplicantOrgProfile.getCompaniesHouseNumber();
                         default -> null;
