@@ -13,21 +13,10 @@ import gov.cabinetoffice.gap.applybackend.enums.SubmissionStatus;
 import gov.cabinetoffice.gap.applybackend.exception.NotFoundException;
 import gov.cabinetoffice.gap.applybackend.exception.SubmissionAlreadySubmittedException;
 import gov.cabinetoffice.gap.applybackend.exception.SubmissionNotReadyException;
-import gov.cabinetoffice.gap.applybackend.model.ApplicationDefinition;
-import gov.cabinetoffice.gap.applybackend.model.ApplicationFormQuestion;
-import gov.cabinetoffice.gap.applybackend.model.ApplicationFormSection;
-import gov.cabinetoffice.gap.applybackend.model.DiligenceCheck;
-import gov.cabinetoffice.gap.applybackend.model.GrantApplicant;
-import gov.cabinetoffice.gap.applybackend.model.GrantApplication;
-import gov.cabinetoffice.gap.applybackend.model.GrantBeneficiary;
-import gov.cabinetoffice.gap.applybackend.model.GrantScheme;
-import gov.cabinetoffice.gap.applybackend.model.Submission;
-import gov.cabinetoffice.gap.applybackend.model.SubmissionDefinition;
-import gov.cabinetoffice.gap.applybackend.model.SubmissionQuestion;
-import gov.cabinetoffice.gap.applybackend.model.SubmissionQuestionValidation;
-import gov.cabinetoffice.gap.applybackend.model.SubmissionSection;
+import gov.cabinetoffice.gap.applybackend.model.*;
 import gov.cabinetoffice.gap.applybackend.repository.DiligenceCheckRepository;
 import gov.cabinetoffice.gap.applybackend.repository.GrantBeneficiaryRepository;
+import gov.cabinetoffice.gap.applybackend.repository.GrantMandatoryQuestionRepository;
 import gov.cabinetoffice.gap.applybackend.repository.SubmissionRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
@@ -41,29 +30,14 @@ import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import java.time.Clock;
-import java.time.Instant;
-import java.time.LocalDateTime;
-import java.time.ZoneId;
-import java.time.ZonedDateTime;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.UUID;
+import java.time.*;
+import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.junit.jupiter.api.Assertions.fail;
-import static org.mockito.Mockito.doReturn;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class SubmissionServiceTest {
@@ -90,6 +64,8 @@ class SubmissionServiceTest {
     @Mock
     private GrantBeneficiaryRepository grantBeneficiaryRepository;
     @Mock
+    private GrantMandatoryQuestionRepository grantMandatoryQuestionRepository;
+    @Mock
     private GovNotifyClient notifyClient;
     private SubmissionService serviceUnderTest;
     private SubmissionQuestion question;
@@ -107,7 +83,7 @@ class SubmissionServiceTest {
                 .build();
 
         serviceUnderTest = Mockito.spy(new SubmissionService(submissionRepository, diligenceCheckRepository,
-                grantBeneficiaryRepository, notifyClient, clock, envProperties));
+                grantBeneficiaryRepository,  grantMandatoryQuestionRepository,notifyClient, clock, envProperties));
 
         question = SubmissionQuestion.builder()
                 .questionId(QUESTION_ID)
@@ -1030,6 +1006,7 @@ class SubmissionServiceTest {
                     .build();
 
             final Submission submissionWithoutEssentialSection = Submission.builder()
+                    .scheme(scheme)
                     .definition(definitionWithNoEssentialSection)
                     .status(SubmissionStatus.IN_PROGRESS)
                     .id(SUBMISSION_ID)
@@ -1069,6 +1046,7 @@ class SubmissionServiceTest {
                     .build();
 
             final Submission submissionWithoutEssentialSection = Submission.builder()
+                    .scheme(scheme)
                     .definition(definitionWithNoEssentialSection)
                     .id(SUBMISSION_ID)
                     .status(SubmissionStatus.IN_PROGRESS)
@@ -1113,6 +1091,38 @@ class SubmissionServiceTest {
             assertThat(capturedBeneficiary.getLocationSeEng()).isFalse();
             assertThat(capturedBeneficiary.getLocationNwEng()).isFalse();
             assertThat(capturedBeneficiary.getGapId()).isEqualTo(submission.getGapId());
+        }
+
+        @Test
+        void submit_SubmitsTheApplicationFormAndUpdatesMandatoryQuestions() {
+            final String emailAddress = "test@email.com";
+            final ArgumentCaptor<Submission> submissionCaptor = ArgumentCaptor.forClass(Submission.class);
+            final GrantApplicant grantApplicant = GrantApplicant.builder()
+                    .userId(userId)
+                    .id(1)
+                    .build();
+            final GrantScheme scheme = GrantScheme.builder()
+                    .version(2)
+                    .build();
+
+            final GrantMandatoryQuestions grantMandatoryQuestions = GrantMandatoryQuestions.builder()
+                    .id(UUID.randomUUID())
+                    .gapId(null)
+                    .build();
+
+            submission.setScheme(scheme);
+
+            when(grantMandatoryQuestionRepository.findBySubmissionId(submission.getId())).thenReturn(Optional.of(grantMandatoryQuestions));
+            doReturn(true).when(serviceUnderTest).isSubmissionReadyToBeSubmitted(userId, SUBMISSION_ID);
+
+            serviceUnderTest.submit(submission, grantApplicant, emailAddress);
+
+            verify(notifyClient).sendConfirmationEmail(emailAddress, submission);
+            verify(submissionRepository).save(submissionCaptor.capture());
+
+            final Submission capturedSubmission = submissionCaptor.getValue();
+
+            assertThat(grantMandatoryQuestions.getGapId()).isEqualTo(capturedSubmission.getGapId());
         }
     }
 
