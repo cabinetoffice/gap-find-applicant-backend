@@ -25,8 +25,8 @@ class SpotlightServiceTest {
     @Mock
     private SpotlightSubmissionRepository spotlightSubmissionRepository;
 
-    private final String SPOOKY_OOO = "2023-10-31T12:00:00.00z";
-    private final Clock clock = Clock.fixed(Instant.parse(SPOOKY_OOO), ZoneId.of("UTC"));
+    private final String SPOOKY_DAY_OOOOO = "2023-10-31T12:00:00.00z";
+    private final Clock clock = Clock.fixed(Instant.parse(SPOOKY_DAY_OOOOO), ZoneId.of("UTC"));
 
     private SpotlightService serviceUnderTest;
 
