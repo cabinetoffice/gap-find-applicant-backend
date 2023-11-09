@@ -38,7 +38,11 @@ public class GrantMandatoryQuestionService {
         return grantMandatoryQuestion.get();
     }
 
-    public GrantMandatoryQuestions getGrantMandatoryQuestionBySubmissionId(UUID submissionId, String applicantSub) {
+    /*
+        TODO I think we should decouple access control and CRUD functionality.
+        These methods should not require an applicant ID to be passed in to confirm ownership.  
+     */
+    public GrantMandatoryQuestions getGrantMandatoryQuestionBySubmissionIdAndApplicantSub(UUID submissionId, String applicantSub) {
         final Optional<GrantMandatoryQuestions> grantMandatoryQuestion = ofNullable(grantMandatoryQuestionRepository.findBySubmissionId(submissionId)
                 .orElseThrow(() -> new NotFoundException(String.format("No Mandatory Question with submission id %s was found", submissionId))));
 
