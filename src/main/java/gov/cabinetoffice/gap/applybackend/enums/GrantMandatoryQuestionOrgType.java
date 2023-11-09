@@ -2,10 +2,9 @@ package gov.cabinetoffice.gap.applybackend.enums;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 
-public enum GrantApplicantOrganisationType {
+public enum GrantMandatoryQuestionOrgType {
     LIMITED_COMPANY("Limited company"),
     NON_LIMITED_COMPANY("Non-limited company"),
-    UNLIMITED_COMPANY("Unlimited company"),
     REGISTERED_CHARITY("Registered charity"),
     UNREGISTERED_CHARITY("Unregistered charity"),
     CHARITY("Charity"),
@@ -14,7 +13,7 @@ public enum GrantApplicantOrganisationType {
 
     private String name;
 
-    private GrantApplicantOrganisationType(String name) {
+    private GrantMandatoryQuestionOrgType(String name) {
         this.name = name;
     }
 
@@ -23,8 +22,8 @@ public enum GrantApplicantOrganisationType {
         return this.name;
     }
 
-    public static GrantApplicantOrganisationType valueOfName(String name) {
-        for (GrantApplicantOrganisationType type : values()) {
+    public static GrantMandatoryQuestionOrgType valueOfName(String name) {
+        for (GrantMandatoryQuestionOrgType type : values()) {
             if (type.name.equals(name)) {
                 return type;
             }
@@ -33,7 +32,7 @@ public enum GrantApplicantOrganisationType {
     }
 
     @JsonCreator
-    public static GrantApplicantOrganisationType getGrantApplicantOrganisationTypeFromName(String name) {
+    public static GrantMandatoryQuestionOrgType getGrantApplicantOrganisationTypeFromName(String name) {
 
         return valueOfName(name);
 

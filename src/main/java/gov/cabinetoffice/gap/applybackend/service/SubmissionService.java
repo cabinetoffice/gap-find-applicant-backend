@@ -1,6 +1,7 @@
 package gov.cabinetoffice.gap.applybackend.service;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import gov.cabinetoffice.gap.applybackend.client.GovNotifyClient;
 import gov.cabinetoffice.gap.applybackend.config.properties.EnvironmentProperties;
 import gov.cabinetoffice.gap.applybackend.constants.APIConstants;
@@ -13,16 +14,7 @@ import gov.cabinetoffice.gap.applybackend.enums.SubmissionStatus;
 import gov.cabinetoffice.gap.applybackend.exception.NotFoundException;
 import gov.cabinetoffice.gap.applybackend.exception.SubmissionAlreadySubmittedException;
 import gov.cabinetoffice.gap.applybackend.exception.SubmissionNotReadyException;
-import gov.cabinetoffice.gap.applybackend.model.DiligenceCheck;
-import gov.cabinetoffice.gap.applybackend.model.GrantApplicant;
-import gov.cabinetoffice.gap.applybackend.model.GrantApplicantOrganisationProfile;
-import gov.cabinetoffice.gap.applybackend.model.GrantApplication;
-import gov.cabinetoffice.gap.applybackend.model.GrantBeneficiary;
-import gov.cabinetoffice.gap.applybackend.model.GrantScheme;
-import gov.cabinetoffice.gap.applybackend.model.Submission;
-import gov.cabinetoffice.gap.applybackend.model.SubmissionDefinition;
-import gov.cabinetoffice.gap.applybackend.model.SubmissionQuestion;
-import gov.cabinetoffice.gap.applybackend.model.SubmissionSection;
+import gov.cabinetoffice.gap.applybackend.model.*;
 import gov.cabinetoffice.gap.applybackend.repository.DiligenceCheckRepository;
 import gov.cabinetoffice.gap.applybackend.repository.GrantBeneficiaryRepository;
 import gov.cabinetoffice.gap.applybackend.repository.SubmissionRepository;
@@ -35,16 +27,14 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.Arrays;
-import java.util.Map;
-import java.util.Optional;
-import java.util.UUID;
-import java.util.stream.Stream;
+import java.util.*;
 
 
 @RequiredArgsConstructor
 @Service
 public class SubmissionService {
+    public static final String ORGANISATION_DETAILS = "ORGANISATION_DETAILS";
+    public static final String FUNDING_DETAILS = "FUNDING_DETAILS";
     private static final String ESSENTIAL_SECTION_ID = "ESSENTIAL";
     private static final String APPLICANT_ORG_NAME = "APPLICANT_ORG_NAME";
     private static final String APPLICANT_ORG_TYPE = "APPLICANT_ORG_TYPE";
@@ -54,8 +44,6 @@ public class SubmissionService {
     private static final String APPLICANT_ORG_CHARITY_NUMBER = "APPLICANT_ORG_CHARITY_NUMBER";
     private static final String BENEFITIARY_LOCATION = "BENEFITIARY_LOCATION";
     private static final String ELIGIBILITY = "ELIGIBILITY";
-
-
     private final SubmissionRepository submissionRepository;
     private final DiligenceCheckRepository diligenceCheckRepository;
     private final GrantBeneficiaryRepository grantBeneficiaryRepository;
@@ -70,7 +58,11 @@ public class SubmissionService {
                 .orElseThrow(() -> new NotFoundException(
                         String.format("No Submission with ID %s was found", submissionId)));
 
-        populateEssentialInformation(userId, submission);
+        // Don't love this. Begging for exceptions to be thrown.
+        if (submission.getApplication().getGrantScheme().getVersion() == 1) {
+            populateEssentialInformation(userId, submission);
+        }
+
         return submission;
     }
 
@@ -130,21 +122,9 @@ public class SubmissionService {
         }
 
         if (sectionId.equals(ELIGIBILITY)) {
-            Stream<SubmissionSection> nonEligibilitySections = submission.getDefinition()
-                    .getSections()
-                    .stream()
-                    .filter(section -> !section.getSectionId().equals(ELIGIBILITY));
-
-            if (questionResponse.getResponse().equals("Yes")) {
-                nonEligibilitySections
-                        .filter(section -> section.getSectionStatus().equals(SubmissionSectionStatus.CANNOT_START_YET))
-                        .forEach(section -> section.setSectionStatus(SubmissionSectionStatus.NOT_STARTED));
-            } else {
-                nonEligibilitySections
-                        .filter(section -> section.getSectionStatus().equals(SubmissionSectionStatus.NOT_STARTED))
-                        .forEach(section -> section.setSectionStatus(SubmissionSectionStatus.CANNOT_START_YET));
-            }
+            handleEligibilitySection(questionResponse, submission);
         }
+
         submissionRepository.save(submission);
     }
 
@@ -194,9 +174,16 @@ public class SubmissionService {
             return false;
         }
 
-        return submission
+        final List<SubmissionSection> sections = submission
                 .getDefinition()
-                .getSections()
+                .getSections();
+
+        boolean sectionAreAllCompleted = sections.stream()
+                .allMatch(section -> section.getSectionStatus().equals(SubmissionSectionStatus.COMPLETED));
+
+        // we check also the questions response to cover the edge scenario in case an applicant somehow skips the questions and goes directly
+        // to the section summary page to set the status of the section.
+        final boolean questionsAreAllAnswered = sections
                 .stream()
                 .flatMap(section -> section.getQuestions().stream())
                 .filter(question -> {
@@ -210,6 +197,8 @@ public class SubmissionService {
                 })
                 .toList()
                 .isEmpty();
+
+        return questionsAreAllAnswered && sectionAreAllCompleted;
     }
 
     @Transactional
@@ -243,24 +232,11 @@ public class SubmissionService {
     }
 
     private void createDiligenceCheckFromSubmission(final Submission submission) {
-        final SubmissionSection essentialInfoSection = submission.getDefinition().getSections()
-                .stream()
-                .filter(section -> section.getSectionId().equals(ESSENTIAL_SECTION_ID))
-                .findAny()
-                .orElseThrow(
-                        () -> new IllegalArgumentException(
-                                "submission does not contain an essential info section"));
-
-        final String organisationName = getResponseBySectionAndQuestionId(essentialInfoSection,
-                APPLICANT_ORG_NAME);
-        final String[] organisationAddress = getMultiResponseBySectionAndQuestionId(essentialInfoSection,
-                APPLICANT_ORG_ADDRESS);
-        final String applicationAmount = getResponseBySectionAndQuestionId(essentialInfoSection,
-                APPLICANT_AMOUNT);
-        final String companiesHouseNumber = getResponseBySectionAndQuestionId(essentialInfoSection,
-                APPLICANT_ORG_COMPANIES_HOUSE);
-        final String charitiesCommissionNumber = getResponseBySectionAndQuestionId(essentialInfoSection,
-                APPLICANT_ORG_CHARITY_NUMBER);
+        final String organisationName = getQuestionResponseByQuestionId(submission, APPLICANT_ORG_NAME);
+        final String[] organisationAddress = getQuestionMultiResponseByQuestionId(submission, APPLICANT_ORG_ADDRESS);
+        final String applicationAmount = getQuestionResponseByQuestionId(submission, APPLICANT_AMOUNT);
+        final String companiesHouseNumber = getQuestionResponseByQuestionId(submission, APPLICANT_ORG_COMPANIES_HOUSE);
+        final String charitiesCommissionNumber = getQuestionResponseByQuestionId(submission, APPLICANT_ORG_CHARITY_NUMBER);
 
         diligenceCheckRepository.save(DiligenceCheck.builder()
                 .submissionId(submission.getId())
@@ -276,16 +252,28 @@ public class SubmissionService {
                 .build());
     }
 
-    private String getResponseBySectionAndQuestionId(final SubmissionSection essentialInfoSection,
-                                                     final String questionId) {
-        return essentialInfoSection.getQuestions()
+    private String getQuestionResponseByQuestionId(final Submission submission, final String questionId) {
+        return submission.getDefinition().getSections()
                 .stream()
+                .flatMap(s -> s.getQuestions().stream())
                 .filter(question -> question.getQuestionId().equals(questionId))
                 .findAny()
                 .orElseThrow(() -> new IllegalArgumentException(
-                        String.format("section %s does not contain a question with an ID of %s",
-                                essentialInfoSection.getSectionId(), questionId)))
+                        String.format("submission %s does not contain a question with an ID of %s",
+                                submission.getId(), questionId)))
                 .getResponse();
+    }
+
+    private String[] getQuestionMultiResponseByQuestionId(final Submission submission, final String questionId) {
+        return submission.getDefinition().getSections()
+                .stream()
+                .flatMap(s -> s.getQuestions().stream())
+                .filter(question -> question.getQuestionId().equals(questionId))
+                .findAny()
+                .orElseThrow(() -> new IllegalArgumentException(
+                        String.format("submission %s does not contain a question with an ID of %s",
+                                submission.getId(), questionId)))
+                .getMultiResponse();
     }
 
     private String[] getMultiResponseBySectionAndQuestionId(final SubmissionSection essentialInfoSection,
@@ -323,22 +311,7 @@ public class SubmissionService {
     }
 
     private void createGrantBeneficiary(final Submission submission) {
-        final SubmissionSection essentialInfoSection = submission.getDefinition().getSections()
-                .stream()
-                .filter(section -> section.getSectionId().equals(ESSENTIAL_SECTION_ID))
-                .findAny()
-                .orElseThrow(
-                        () -> new IllegalArgumentException(
-                                "submission does not contain an essential info section"));
-
-        String[] locations = essentialInfoSection.getQuestions()
-                .stream()
-                .filter(question -> question.getQuestionId().equals(BENEFITIARY_LOCATION))
-                .findAny()
-                .orElseThrow(
-                        () -> new IllegalArgumentException(
-                                "Essential information does not contain a Beneficiary location question"))
-                .getMultiResponse();
+        final String[] locations = getQuestionMultiResponseByQuestionId(submission, BENEFITIARY_LOCATION);
 
         grantBeneficiaryRepository.save(GrantBeneficiary.builder()
                 .schemeId(submission.getScheme().getId())
@@ -373,6 +346,11 @@ public class SubmissionService {
                 .anyMatch(submission -> submission.getApplication().getId().equals(grantApplication.getId()));
     }
 
+    public Optional<Submission> getSubmissionByApplicantAndApplicationId(GrantApplicant grantApplicant,
+                                                                         GrantApplication grantApplication) {
+        return submissionRepository.findByApplicantIdAndApplicationId(grantApplicant.getId(), grantApplication.getId());
+    }
+
 
     public CreateSubmissionResponseDto createSubmissionFromApplication(final String userId,
                                                                        final GrantApplicant grantApplicant,
@@ -380,10 +358,9 @@ public class SubmissionService {
         final GrantScheme grantScheme = grantApplication.getGrantScheme();
         final int version = grantApplication.getVersion();
         final String applicationName = grantApplication.getApplicationName();
-        SubmissionDefinition definition =
-                SubmissionDefinition.transformApplicationDefinitionToSubmissionOne(grantApplication.getDefinition());
+        final SubmissionDefinition definition = this.transformApplicationDefinitionToSubmissionDefinition(grantApplication.getDefinition(), grantScheme.getVersion());
 
-        LocalDateTime now = LocalDateTime.now(clock);
+        final LocalDateTime now = LocalDateTime.now(clock);
 
         final Submission newSubmission = Submission.builder()
                 .scheme(grantScheme)
@@ -401,12 +378,14 @@ public class SubmissionService {
 
         final Submission submission = submissionRepository.save(newSubmission);
         final UUID submissionId = submission.getId();
-        CreateSubmissionResponseDto submissionResponseDto = CreateSubmissionResponseDto.builder()
+        final CreateSubmissionResponseDto submissionResponseDto = CreateSubmissionResponseDto.builder()
                 .submissionCreated(true)
                 .submissionId(submissionId)
                 .build();
 
-        populateEssentialInformation(userId, submission);
+        if (grantScheme.getVersion() == 1) {
+            populateEssentialInformation(userId, submission);
+        }
 
         return submissionResponseDto;
     }
@@ -495,6 +474,78 @@ public class SubmissionService {
                 .setSectionStatus(sectionStatus);
         submissionRepository.save(submission);
         return sectionStatus;
+    }
+
+    public SubmissionDefinition transformApplicationDefinitionToSubmissionDefinition(ApplicationDefinition applicationDefinition, int schemeVersion) throws JsonProcessingException {
+        final ObjectMapper objectMapper = new ObjectMapper();
+        final String applicationDefinitionJson = objectMapper.writeValueAsString(applicationDefinition);
+        final SubmissionDefinition definition = objectMapper.readValue(applicationDefinitionJson, SubmissionDefinition.class);
+
+        // If scheme version is > 1 then the ESSENTIAL section needs to be split into 2 new sections: ORGANISATION_DETAILS and FUNDING_DETAILS
+        // At this stage it's fine if the Question arrays are empty since we'll be re-building them based on mandatory question responses.
+        if (schemeVersion > 1) {
+            definition.getSections().removeIf(section -> section.getSectionId().equals(ESSENTIAL_SECTION_ID));
+            definition.getSections().add(1,
+                    SubmissionSection.builder()
+                            .sectionId(ORGANISATION_DETAILS)
+                            .build()
+            );
+            definition.getSections().add(2,
+                    SubmissionSection.builder()
+                            .sectionId(FUNDING_DETAILS)
+                            .build()
+            );
+        }
+
+
+        definition.getSections().forEach(section -> {
+                    final SubmissionSectionStatus status = section.getSectionId().equals(ELIGIBILITY) ? SubmissionSectionStatus.NOT_STARTED : SubmissionSectionStatus.CANNOT_START_YET;
+                    section.setSectionStatus(status);
+                }
+        );
+
+        return definition;
+    }
+
+    private void handleEligibilitySection(CreateQuestionResponseDto questionResponse, Submission submission) {
+        if (questionResponse.getResponse().equals("Yes")) {
+            final int schemeVersion = submission.getApplication()
+                    .getGrantScheme()
+                    .getVersion();
+
+            if (schemeVersion > 1) {
+                submission.getSection(ORGANISATION_DETAILS).setSectionStatus(SubmissionSectionStatus.IN_PROGRESS);
+                submission.getSection(FUNDING_DETAILS).setSectionStatus(SubmissionSectionStatus.IN_PROGRESS);
+            }
+
+            submission.getDefinition()
+                    .getSections()
+                    .stream()
+                    .filter(section -> section.getSectionStatus().equals(SubmissionSectionStatus.CANNOT_START_YET))
+                    .filter(section -> !getSectionIdsToSkipAfterEligibilitySectionCompleted(schemeVersion)
+                            .contains(section.getSectionId()))
+                    .forEach(section -> section.setSectionStatus(SubmissionSectionStatus.NOT_STARTED));
+        } else {
+            submission.getDefinition()
+                    .getSections()
+                    .stream()
+                    .filter(section -> section.getSectionStatus().equals(SubmissionSectionStatus.NOT_STARTED))
+                    .filter(section -> !section.getSectionId().equals(ELIGIBILITY))
+                    .forEach(section -> section.setSectionStatus(SubmissionSectionStatus.CANNOT_START_YET));
+        }
+    }
+
+    private List<String> getSectionIdsToSkipAfterEligibilitySectionCompleted(final int schemeVersion) {
+        final List<String> sectionIds = new ArrayList<>();
+
+        sectionIds.add(ELIGIBILITY);
+
+        if (schemeVersion > 1) {
+            sectionIds.add(ORGANISATION_DETAILS);
+            sectionIds.add(FUNDING_DETAILS);
+        }
+
+        return sectionIds;
     }
 }
 

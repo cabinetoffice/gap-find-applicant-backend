@@ -98,7 +98,7 @@ public class Submission extends BaseEntity {
     public SubmissionSection getSection(String sectionId) {
         return this.getDefinition()
                 .getSections()
-                .stream().filter(_section -> _section.getSectionId().equals(sectionId))
+                .stream().filter(section -> section.getSectionId().equals(sectionId))
                 .findAny()
                 .orElseThrow(() -> new NotFoundException(String.format("No Section with ID %s was found", sectionId)));
     }
@@ -106,8 +106,14 @@ public class Submission extends BaseEntity {
     public SubmissionQuestion getQuestion(String sectionId, String questionId) {
         return this.getSection(sectionId)
                 .getQuestions()
-                .stream().filter(_question -> _question.getQuestionId().equals(questionId))
+                .stream().filter(question -> question.getQuestionId().equals(questionId))
                 .findAny()
                 .orElseThrow(() -> new NotFoundException(String.format("No question with ID %s was found", questionId)));
+    }
+
+    public void removeSection(String sectionId) {
+        this.getDefinition()
+                .getSections()
+                .removeIf(section -> section.getSectionId().equals(sectionId));
     }
 }

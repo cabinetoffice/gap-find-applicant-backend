@@ -6,6 +6,7 @@ import gov.cabinetoffice.gap.applybackend.exception.NotFoundException;
 import gov.cabinetoffice.gap.applybackend.exception.SubmissionAlreadyCreatedException;
 import gov.cabinetoffice.gap.applybackend.exception.SubmissionNotReadyException;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.tomcat.util.http.fileupload.impl.FileSizeLimitExceededException;
 import org.springframework.http.HttpStatus;
 import org.springframework.validation.FieldError;
@@ -20,6 +21,7 @@ import java.time.Clock;
 import java.time.ZonedDateTime;
 import java.util.List;
 
+@Slf4j
 @RestControllerAdvice
 @RequiredArgsConstructor
 public class ControllerExceptionHandler {
@@ -32,6 +34,7 @@ public class ControllerExceptionHandler {
     })
     @ResponseStatus(value = HttpStatus.NOT_FOUND)
     public ErrorMessage handle404s(Exception ex, WebRequest request) {
+        log.error("Exception thrown: ", ex.getStackTrace());
         return ErrorMessage.builder()
                 .status(HttpStatus.NOT_FOUND)
                 .date(ZonedDateTime.now(clock))
@@ -44,6 +47,7 @@ public class ControllerExceptionHandler {
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ErrorResponseBody handleValidationExceptions(
             MethodArgumentNotValidException ex) {
+        log.error("MethodArgumentNotValidException thrown: ", ex.getStackTrace());
         return ErrorResponseBody.builder()
                 .responseAccepted(Boolean.FALSE)
                 .message("Validation failure")
@@ -67,6 +71,7 @@ public class ControllerExceptionHandler {
             SubmissionNotReadyException.class,
     })
     public ErrorMessage handleBadRequest(RuntimeException ex, WebRequest request) {
+        log.error("SubmissionNotReadyException thrown: ", ex.getStackTrace());
         return ErrorMessage.builder()
                 .status(HttpStatus.BAD_REQUEST)
                 .date(ZonedDateTime.now(clock))
@@ -80,6 +85,7 @@ public class ControllerExceptionHandler {
     })
     @ResponseStatus(value = HttpStatus.BAD_REQUEST)
     public ErrorResponseBody handleAttachment(Exception ex) {
+        log.error("AttachmentException thrown: ", ex.getStackTrace());
         return ErrorResponseBody.builder()
                 .responseAccepted(Boolean.FALSE)
                 .message("Validation failure")
@@ -107,6 +113,7 @@ public class ControllerExceptionHandler {
             GrantApplicationNotPublishedException.class,
     })
     public ErrorMessage handleGrantNotPublished(GrantApplicationNotPublishedException ex, WebRequest request) {
+        log.error("GrantApplicationNotPublishedException thrown: ", ex.getStackTrace());
         return ErrorMessage.builder()
                 .status(HttpStatus.BAD_REQUEST)
                 .date(ZonedDateTime.now(clock))
@@ -121,7 +128,8 @@ public class ControllerExceptionHandler {
     @ExceptionHandler({
             SubmissionAlreadyCreatedException.class,
     })
-    public ErrorMessage handleSubmissionAlreadyCreated(RuntimeException ex, WebRequest request) {
+    public ErrorMessage handleSubmissionAlreadyCreated(SubmissionAlreadyCreatedException ex, WebRequest request) {
+        log.error("SubmissionAlreadyCreatedException thrown: ", ex.getStackTrace());
         return ErrorMessage.builder()
                 .status(HttpStatus.BAD_REQUEST)
                 .date(ZonedDateTime.now(clock))
