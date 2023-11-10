@@ -1,6 +1,7 @@
 name: Push Image Workflow
 
 on:
+  create:
   push:
     branches:
       - release/**
@@ -15,7 +16,7 @@ jobs:
   test:
     runs-on: ubuntu-latest
 
-    # Need to check here as create event can't be filtered by branch name...
+    # Need to check here as create event can't be filtered by branch name: https://github.com/orgs/community/discussions/54860
     if: github.ref == 'refs/heads/develop' || startsWith(github.ref, 'refs/heads/release')
 
     steps:
@@ -51,6 +52,9 @@ jobs:
 
   build:
     runs-on: ubuntu-latest
+
+    # Need to check here as create event can't be filtered by branch name: https://github.com/orgs/community/discussions/54860
+    if: github.ref == 'refs/heads/develop' || startsWith(github.ref, 'refs/heads/release')
 
     outputs:
       docker-image-name: ${{ steps.docker-image-name.outputs.name }}
