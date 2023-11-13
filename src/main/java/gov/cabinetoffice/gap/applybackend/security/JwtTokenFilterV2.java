@@ -3,6 +3,12 @@ package gov.cabinetoffice.gap.applybackend.security;
 import com.auth0.jwt.interfaces.DecodedJWT;
 import gov.cabinetoffice.gap.applybackend.dto.api.JwtPayload;
 import gov.cabinetoffice.gap.applybackend.exception.ForbiddenException;
+import gov.cabinetoffice.gap.applybackend.model.GrantApplicant;
+import gov.cabinetoffice.gap.applybackend.model.GrantApplicantOrganisationProfile;
+import gov.cabinetoffice.gap.applybackend.repository.GrantApplicantOrganisationProfileRepository;
+import gov.cabinetoffice.gap.applybackend.repository.GrantApplicantRepository;
+import gov.cabinetoffice.gap.applybackend.service.GrantApplicantOrganisationProfileService;
+import gov.cabinetoffice.gap.applybackend.service.GrantApplicantService;
 import gov.cabinetoffice.gap.applybackend.service.JwtService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpHeaders;
@@ -17,6 +23,7 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.util.Collections;
+import java.util.Optional;
 
 import static org.springframework.util.ObjectUtils.isEmpty;
 
@@ -28,6 +35,9 @@ import static org.springframework.util.ObjectUtils.isEmpty;
 public class JwtTokenFilterV2 extends OncePerRequestFilter {
 
     private final JwtService jwtService;
+    private final GrantApplicantRepository grantApplicantRepository;
+    private final GrantApplicantService grantApplicantService;
+    private final GrantApplicantOrganisationProfileRepository grantApplicantOrganisationProfileRepository;
 
     @Override
     protected void doFilterInternal(HttpServletRequest request,
@@ -56,6 +66,11 @@ public class JwtTokenFilterV2 extends OncePerRequestFilter {
             throw new ForbiddenException("User is not an applicant");
         }
 
+        final boolean grantApplicantExists = grantApplicantRepository.existsByUserId(jwtPayload.getSub());
+        if (!grantApplicantExists) {
+            createNewApplicant(jwtPayload.getSub());
+        }
+
         UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
                 jwtPayload,
                 null,
@@ -65,4 +80,16 @@ public class JwtTokenFilterV2 extends OncePerRequestFilter {
         chain.doFilter(request, response);
     }
 
+    private void createNewApplicant(final String sub) {
+        final GrantApplicant grantApplicant = grantApplicantRepository.save(GrantApplicant.builder().userId(sub).build());
+        final GrantApplicantOrganisationProfile profile = GrantApplicantOrganisationProfile
+                .builder()
+                .build();
+        profile.setApplicant(grantApplicant);
+
+        final GrantApplicantOrganisationProfile savedProfile = grantApplicantOrganisationProfileRepository.save(profile);
+        grantApplicant.setOrganisationProfile(savedProfile);
+
+        grantApplicantService.saveApplicant(grantApplicant);
+    }
 }

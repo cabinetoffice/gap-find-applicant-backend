@@ -1,5 +1,8 @@
 package gov.cabinetoffice.gap.applybackend.security;
 
+import gov.cabinetoffice.gap.applybackend.repository.GrantApplicantOrganisationProfileRepository;
+import gov.cabinetoffice.gap.applybackend.repository.GrantApplicantRepository;
+import gov.cabinetoffice.gap.applybackend.service.GrantApplicantService;
 import gov.cabinetoffice.gap.applybackend.service.JwtService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
@@ -22,6 +25,9 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 public class WebSecurityConfig {
 
     private final JwtService jwtService;
+    private final GrantApplicantRepository grantApplicantRepository;
+    private final GrantApplicantService grantApplicantService;
+    private final GrantApplicantOrganisationProfileRepository grantApplicantOrganisationProfileRepository;
 
     @Value("${feature.onelogin.enabled}")
     private boolean oneLoginEnabled;
@@ -63,7 +69,7 @@ public class WebSecurityConfig {
 
         if(oneLoginEnabled) {
             http
-                .addFilterBefore(new JwtTokenFilterV2(jwtService), UsernamePasswordAuthenticationFilter.class);
+                .addFilterBefore(new JwtTokenFilterV2(jwtService, grantApplicantRepository, grantApplicantService, grantApplicantOrganisationProfileRepository), UsernamePasswordAuthenticationFilter.class);
         } else {
             http
                 .addFilterBefore(new JwtTokenFilter(jwtService), UsernamePasswordAuthenticationFilter.class);
