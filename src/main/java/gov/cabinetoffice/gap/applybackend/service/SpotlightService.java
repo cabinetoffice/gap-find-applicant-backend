@@ -47,9 +47,10 @@ public class SpotlightService {
                 .withStringValue(savedSpotlightSubmission.getId().toString());
 
         final SendMessageRequest messageRequest = new SendMessageRequest()
-                .withQueueUrl(spotlightQueueProperties.getSpotlightQueue())
+                .withQueueUrl(spotlightQueueProperties.getQueueUrl())
                 .withMessageGroupId(messageId.toString())
                 .withMessageBody(messageId.toString()) //TODO should we send the Spotlight Submission ID in this field instead?
+                .withMessageDeduplicationId(messageId.toString())
                 .addMessageAttributesEntry(SPOTLIGHT_SUBMISSION_ID, spotlightSubmissionIdAttribute);
 
         amazonSqs.sendMessage(messageRequest);

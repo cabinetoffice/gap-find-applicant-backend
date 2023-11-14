@@ -16,6 +16,6 @@ import javax.validation.constraints.NotNull;
 public class SpotlightQueueConfigProperties {
 
     @NotNull
-    private String spotlightQueue;
+    private String queueUrl;
 
 }

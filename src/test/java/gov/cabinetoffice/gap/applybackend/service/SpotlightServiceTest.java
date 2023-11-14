@@ -43,7 +43,7 @@ class SpotlightServiceTest {
     @BeforeEach
     void setup() {
         spotlightQueueProperties = SpotlightQueueConfigProperties.builder()
-                .spotlightQueue("a-queue-url")
+                .queueUrl("a-queue-url")
                 .build();
 
         serviceUnderTest = new SpotlightService(spotlightSubmissionRepository, amazonSqs, spotlightQueueProperties, clock);
@@ -88,7 +88,7 @@ class SpotlightServiceTest {
         final SendMessageRequest sqsRequest = sqsRequestCaptor.getValue();
 
         assertThat(sqsRequest.getMessageBody()).isNotNull();
-        assertThat(sqsRequest.getQueueUrl()).isEqualTo(spotlightQueueProperties.getSpotlightQueue());
+        assertThat(sqsRequest.getQueueUrl()).isEqualTo(spotlightQueueProperties.getQueueUrl());
         assertThat(sqsRequest.getMessageAttributes().get(SpotlightService.SPOTLIGHT_SUBMISSION_ID).getStringValue()).isEqualTo(submissionAfterSave.getId().toString());
     }
 }
