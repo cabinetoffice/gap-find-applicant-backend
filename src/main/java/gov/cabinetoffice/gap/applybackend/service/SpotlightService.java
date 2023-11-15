@@ -22,6 +22,7 @@ import java.util.UUID;
 public class SpotlightService {
 
     public static final String SPOTLIGHT_SUBMISSION_ID = "spotlightSubmissionId";
+    public static final int SPOTLIGHT_SUBSCRIPTION_VERSION = 1;
     private final SpotlightSubmissionRepository spotlightSubmissionRepository;
     private final AmazonSQS amazonSqs;
     private final SpotlightQueueConfigProperties spotlightQueueProperties;
@@ -33,7 +34,7 @@ public class SpotlightService {
         final SpotlightSubmission spotlightSubmission = SpotlightSubmission.builder()
                 .mandatoryQuestions(mandatoryQuestions)
                 .grantScheme(scheme)
-                .version(scheme.getVersion()) //TODO is this how we want to set the version?
+                .version(SPOTLIGHT_SUBSCRIPTION_VERSION)
                 .lastUpdated(Instant.now(clock))
                 .build();
 
@@ -42,16 +43,11 @@ public class SpotlightService {
         // send that object to SQS for processing
         final UUID messageId = UUID.randomUUID();
 
-        final MessageAttributeValue spotlightSubmissionIdAttribute =  new MessageAttributeValue()
-                .withDataType("String")
-                .withStringValue(savedSpotlightSubmission.getId().toString());
-
         final SendMessageRequest messageRequest = new SendMessageRequest()
                 .withQueueUrl(spotlightQueueProperties.getQueueUrl())
                 .withMessageGroupId(messageId.toString())
-                .withMessageBody(messageId.toString()) //TODO should we send the Spotlight Submission ID in this field instead?
-                .withMessageDeduplicationId(messageId.toString())
-                .addMessageAttributesEntry(SPOTLIGHT_SUBMISSION_ID, spotlightSubmissionIdAttribute);
+                .withMessageBody(savedSpotlightSubmission.getId().toString())
+                .withMessageDeduplicationId(messageId.toString());
 
         amazonSqs.sendMessage(messageRequest);
     }

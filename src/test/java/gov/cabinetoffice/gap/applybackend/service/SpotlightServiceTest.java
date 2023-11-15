@@ -77,7 +77,7 @@ class SpotlightServiceTest {
 
         assertThat(spotlightSubmission.getMandatoryQuestions()).isEqualTo(mqs);
         assertThat(spotlightSubmission.getGrantScheme()).isEqualTo(scheme);
-        assertThat(spotlightSubmission.getVersion()).isEqualTo(2);
+        assertThat(spotlightSubmission.getVersion()).isEqualTo(SpotlightService.SPOTLIGHT_SUBSCRIPTION_VERSION);
         assertThat(spotlightSubmission.getLastUpdated()).isEqualTo(Instant.now(clock));
         assertThat(spotlightSubmission.getStatus()).isEqualTo(SpotlightSubmissionStatus.QUEUED.toString());
 
@@ -89,6 +89,6 @@ class SpotlightServiceTest {
 
         assertThat(sqsRequest.getMessageBody()).isNotNull();
         assertThat(sqsRequest.getQueueUrl()).isEqualTo(spotlightQueueProperties.getQueueUrl());
-        assertThat(sqsRequest.getMessageAttributes().get(SpotlightService.SPOTLIGHT_SUBMISSION_ID).getStringValue()).isEqualTo(submissionAfterSave.getId().toString());
+        assertThat(sqsRequest.getMessageBody()).isEqualTo(submissionAfterSave.getId().toString());
     }
 }
