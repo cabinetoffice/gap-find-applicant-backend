@@ -110,7 +110,7 @@ public class GrantMandatoryQuestionsController {
             @ApiResponse(responseCode = "403", description = "User cannot access this mandatory question", content = @Content(mediaType = "application/json")),
             @ApiResponse(responseCode = "404", description = "No Grant Mandatory question found", content = @Content(mediaType = "application/json")),
     })
-    public ResponseEntity<Boolean> existsBySchemeIdAndApplicantId (@PathVariable final Integer schemeId) {
+    public ResponseEntity<Boolean> existsBySchemeIdAndApplicantId(@PathVariable final Integer schemeId) {
         final JwtPayload jwtPayload = (JwtPayload) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
         final GrantApplicant applicant = grantApplicantService.getApplicantById(jwtPayload.getSub());
 
@@ -150,7 +150,7 @@ public class GrantMandatoryQuestionsController {
         grantMandatoryQuestions.setLastUpdated(Instant.now());
 
         grantMandatoryQuestionService.addMandatoryQuestionsToSubmissionObject(grantMandatoryQuestions);
-        grantMandatoryQuestionService.updateMandatoryQuestion(grantMandatoryQuestions);
+        grantMandatoryQuestionService.updateMandatoryQuestion(grantMandatoryQuestions, applicant);
 
         log.info("Mandatory question with ID {} has been updated.", grantMandatoryQuestions.getId());
 

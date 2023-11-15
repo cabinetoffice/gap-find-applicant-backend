@@ -1,30 +1,21 @@
 package gov.cabinetoffice.gap.applybackend.service;
 
+import gov.cabinetoffice.gap.applybackend.config.properties.EnvironmentProperties;
 import gov.cabinetoffice.gap.applybackend.constants.MandatoryQuestionConstants;
+import gov.cabinetoffice.gap.applybackend.enums.GrantMandatoryQuestionStatus;
 import gov.cabinetoffice.gap.applybackend.enums.SubmissionQuestionResponseType;
 import gov.cabinetoffice.gap.applybackend.enums.SubmissionSectionStatus;
 import gov.cabinetoffice.gap.applybackend.exception.ForbiddenException;
 import gov.cabinetoffice.gap.applybackend.exception.NotFoundException;
 import gov.cabinetoffice.gap.applybackend.mapper.GrantApplicantOrganisationProfileMapper;
-import gov.cabinetoffice.gap.applybackend.model.GrantApplicant;
-import gov.cabinetoffice.gap.applybackend.model.GrantApplicantOrganisationProfile;
-import gov.cabinetoffice.gap.applybackend.model.GrantMandatoryQuestions;
-import gov.cabinetoffice.gap.applybackend.model.GrantScheme;
-import gov.cabinetoffice.gap.applybackend.model.Submission;
-import gov.cabinetoffice.gap.applybackend.model.SubmissionQuestion;
-import gov.cabinetoffice.gap.applybackend.model.SubmissionQuestionValidation;
-import gov.cabinetoffice.gap.applybackend.model.SubmissionSection;
+import gov.cabinetoffice.gap.applybackend.model.*;
 import gov.cabinetoffice.gap.applybackend.repository.GrantMandatoryQuestionRepository;
+import gov.cabinetoffice.gap.applybackend.utils.GapIdGenerator;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.UUID;
+import java.util.*;
 
 import static java.util.Optional.ofNullable;
 
@@ -34,6 +25,7 @@ import static java.util.Optional.ofNullable;
 public class GrantMandatoryQuestionService {
     private final GrantMandatoryQuestionRepository grantMandatoryQuestionRepository;
     private final GrantApplicantOrganisationProfileMapper organisationProfileMapper;
+    private final EnvironmentProperties envProperties;
 
     public GrantMandatoryQuestions getGrantMandatoryQuestionById(UUID id, String applicantSub) {
         final Optional<GrantMandatoryQuestions> grantMandatoryQuestion = ofNullable(grantMandatoryQuestionRepository.findById(id)
@@ -82,10 +74,10 @@ public class GrantMandatoryQuestionService {
 
         //Fix to exclude any existing Charity Comission Number or Companies House Number which have invalid lengths,
         //This will force the applicant to go through the MQ journey and update their details with a valid length number
-        if(grantMandatoryQuestions.getCharityCommissionNumber() != null && grantMandatoryQuestions.getCharityCommissionNumber().length() > MandatoryQuestionConstants.CHARITY_COMMISSION_NUMBER_MAX_LENGTH){
+        if (grantMandatoryQuestions.getCharityCommissionNumber() != null && grantMandatoryQuestions.getCharityCommissionNumber().length() > MandatoryQuestionConstants.CHARITY_COMMISSION_NUMBER_MAX_LENGTH) {
             grantMandatoryQuestions.setCharityCommissionNumber(null);
         }
-        if(grantMandatoryQuestions.getCompaniesHouseNumber() != null && grantMandatoryQuestions.getCompaniesHouseNumber().length() > MandatoryQuestionConstants.COMPANIES_HOUSE_NUMBER_MAX_LENGTH){
+        if (grantMandatoryQuestions.getCompaniesHouseNumber() != null && grantMandatoryQuestions.getCompaniesHouseNumber().length() > MandatoryQuestionConstants.COMPANIES_HOUSE_NUMBER_MAX_LENGTH) {
             grantMandatoryQuestions.setCompaniesHouseNumber(null);
         }
 
@@ -96,7 +88,13 @@ public class GrantMandatoryQuestionService {
     }
 
 
-    public GrantMandatoryQuestions updateMandatoryQuestion(GrantMandatoryQuestions grantMandatoryQuestions) {
+    public GrantMandatoryQuestions updateMandatoryQuestion(GrantMandatoryQuestions grantMandatoryQuestions, GrantApplicant grantApplicant) {
+        if (grantMandatoryQuestions.getStatus().equals(GrantMandatoryQuestionStatus.COMPLETED)) {
+            final Submission submission = grantMandatoryQuestions.getSubmission();
+            final String gapId = submission == null ? GapIdGenerator
+                    .generateGapId(grantApplicant.getId(), envProperties.getEnvironmentName(), grantMandatoryQuestionRepository.count(), true) : submission.getGapId();
+            grantMandatoryQuestions.setGapId(gapId);
+        }
         return grantMandatoryQuestionRepository
                 .findById(grantMandatoryQuestions.getId()) //TODO there is no need for the additional database call here
                 .map(mandatoryQuestion -> grantMandatoryQuestionRepository.save(grantMandatoryQuestions))
@@ -352,6 +350,5 @@ public class GrantMandatoryQuestionService {
                 .validation(validation)
                 .build();
     }
-
 
 }

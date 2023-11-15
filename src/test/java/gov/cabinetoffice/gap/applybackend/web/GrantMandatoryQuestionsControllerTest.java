@@ -15,10 +15,8 @@ import gov.cabinetoffice.gap.applybackend.service.SubmissionService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -71,7 +69,6 @@ class GrantMandatoryQuestionsControllerTest {
     private Authentication authentication;
     @Mock
     private SecurityContext securityContext;
-
     @Mock
     private SubmissionService submissionService;
 
@@ -194,7 +191,7 @@ class GrantMandatoryQuestionsControllerTest {
         when(grantMandatoryQuestionMapper.mapUpdateGrantMandatoryQuestionDtoToGrantMandatoryQuestion(updateDto, mandatoryQuestions))
                 .thenReturn(mandatoryQuestions);
 
-        when(grantMandatoryQuestionService.updateMandatoryQuestion(mandatoryQuestions))
+        when(grantMandatoryQuestionService.updateMandatoryQuestion(mandatoryQuestions, applicant))
                 .thenReturn(mandatoryQuestions);
 
         when(grantMandatoryQuestionService.generateNextPageUrl("url", MANDATORY_QUESTION_ID))
@@ -204,7 +201,7 @@ class GrantMandatoryQuestionsControllerTest {
         final ResponseEntity<String> methodResponse = controllerUnderTest.updateMandatoryQuestion(MANDATORY_QUESTION_ID, updateDto, "url");
 
         verify(grantMandatoryQuestionService).addMandatoryQuestionsToSubmissionObject(mandatoryQuestions);
-        verify(grantMandatoryQuestionService).updateMandatoryQuestion(mandatoryQuestions);
+        verify(grantMandatoryQuestionService).updateMandatoryQuestion(mandatoryQuestions, applicant);
         assertThat(methodResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(methodResponse.getBody()).isEqualTo("nextPageUrl");
 
@@ -235,7 +232,7 @@ class GrantMandatoryQuestionsControllerTest {
         when(grantMandatoryQuestionMapper.mapUpdateGrantMandatoryQuestionDtoToGrantMandatoryQuestion(updateDto, mandatoryQuestions))
                 .thenReturn(mandatoryQuestions);
 
-        when(grantMandatoryQuestionService.updateMandatoryQuestion(mandatoryQuestions))
+        when(grantMandatoryQuestionService.updateMandatoryQuestion(mandatoryQuestions, applicant))
                 .thenReturn(mandatoryQuestions);
 
         when(grantMandatoryQuestionService.generateNextPageUrl("url", MANDATORY_QUESTION_ID))
@@ -249,29 +246,26 @@ class GrantMandatoryQuestionsControllerTest {
 
 
         verify(submissionService).getSubmissionFromDatabaseBySubmissionId(jwtPayload.getSub(), submissionId);
-        verify(grantMandatoryQuestionService).updateMandatoryQuestion(mandatoryQuestions);
+        verify(grantMandatoryQuestionService).updateMandatoryQuestion(mandatoryQuestions, applicant);
         assertThat(methodResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(methodResponse.getBody()).isEqualTo("nextPageUrl");
     }
 
     @Test
     void updateMandatoryQuestion_SetsStatusToComplete() {
-
-        final UUID submissionId = UUID.randomUUID();
+        final Optional<String> updatedValue = Optional.of("AND Digital updated");
         final UpdateGrantMandatoryQuestionDto updateDto = UpdateGrantMandatoryQuestionDto.builder()
-                .submissionId(submissionId)
+                .name(updatedValue)
                 .mandatoryQuestionsComplete(true)
                 .build();
 
         final GrantMandatoryQuestions mandatoryQuestions = GrantMandatoryQuestions.builder()
                 .id(MANDATORY_QUESTION_ID)
+                .createdBy(applicant)
+                .grantScheme(scheme)
+                .name("AND Digital")
+                .status(GrantMandatoryQuestionStatus.IN_PROGRESS)
                 .build();
-
-        final Submission submission = Submission.builder()
-                .id(submissionId)
-                .build();
-
-        final ArgumentCaptor<GrantMandatoryQuestions> mandatoryQuestionsCaptor = ArgumentCaptor.forClass(GrantMandatoryQuestions.class);
 
         when(grantApplicantService.getApplicantById(jwtPayload.getSub()))
                 .thenReturn(applicant);
@@ -282,70 +276,21 @@ class GrantMandatoryQuestionsControllerTest {
         when(grantMandatoryQuestionMapper.mapUpdateGrantMandatoryQuestionDtoToGrantMandatoryQuestion(updateDto, mandatoryQuestions))
                 .thenReturn(mandatoryQuestions);
 
-        when(grantMandatoryQuestionService.updateMandatoryQuestion(mandatoryQuestions))
+        when(grantMandatoryQuestionService.updateMandatoryQuestion(mandatoryQuestions, applicant))
                 .thenReturn(mandatoryQuestions);
 
         when(grantMandatoryQuestionService.generateNextPageUrl("url", MANDATORY_QUESTION_ID))
                 .thenReturn("nextPageUrl");
 
-        when(submissionService.getSubmissionFromDatabaseBySubmissionId(jwtPayload.getSub(), submissionId))
-                .thenReturn(submission);
-
 
         final ResponseEntity<String> methodResponse = controllerUnderTest.updateMandatoryQuestion(MANDATORY_QUESTION_ID, updateDto, "url");
 
-
-        verify(submissionService).getSubmissionFromDatabaseBySubmissionId(jwtPayload.getSub(), submissionId);
-        verify(grantMandatoryQuestionService).updateMandatoryQuestion(mandatoryQuestionsCaptor.capture());
-
-        assertThat(mandatoryQuestionsCaptor.getValue().getStatus()).isEqualTo(GrantMandatoryQuestionStatus.COMPLETED);
-
+        verify(grantMandatoryQuestionService).addMandatoryQuestionsToSubmissionObject(mandatoryQuestions);
+        verify(grantMandatoryQuestionService).updateMandatoryQuestion(mandatoryQuestions, applicant);
         assertThat(methodResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(methodResponse.getBody()).isEqualTo("nextPageUrl");
-    }
+        assertThat(mandatoryQuestions.getStatus()).isEqualTo(GrantMandatoryQuestionStatus.COMPLETED);
 
-    @Test
-    void getGrantMandatoryQuestionsBySubmissionId_ReturnsExpectedMandatoryQuestions() {
-        final UUID submissionId = UUID.randomUUID();
-
-        final GrantMandatoryQuestionFundingLocation[] fundingLocations = new GrantMandatoryQuestionFundingLocation[]{SCOTLAND};
-        final GrantMandatoryQuestions mandatoryQuestions = GrantMandatoryQuestions.builder()
-                .id(MANDATORY_QUESTION_ID)
-                .createdBy(applicant)
-                .grantScheme(scheme)
-                .name("AND Digital")
-                .fundingAmount(new BigDecimal("50000.00"))
-                .addressLine1("215 Bothwell Street")
-                .city("Glasgow")
-                .postcode("G2 7EZ")
-                .fundingLocation(fundingLocations)
-                .companiesHouseNumber("08761455")
-                .orgType(GrantMandatoryQuestionOrgType.LIMITED_COMPANY)
-                .build();
-
-        final GetGrantMandatoryQuestionDto mandatoryQuestionsDto = GetGrantMandatoryQuestionDto.builder()
-                .name("AND Digital")
-                .fundingAmount("50000.00")
-                .addressLine1("215 Bothwell Street")
-                .city("Glasgow")
-                .postcode("G2 7EZ")
-                .fundingLocation(List.of("Scotland"))
-                .companiesHouseNumber("08761455")
-                .orgType("Limited company")
-                .schemeId(scheme.getId())
-                .build();
-
-        when(grantMandatoryQuestionService.getGrantMandatoryQuestionBySubmissionId(submissionId, jwtPayload.getSub()))
-                .thenReturn(mandatoryQuestions);
-
-        when(grantMandatoryQuestionMapper.mapGrantMandatoryQuestionToGetGrantMandatoryQuestionDTO(mandatoryQuestions))
-                .thenReturn(mandatoryQuestionsDto);
-
-        final ResponseEntity<GetGrantMandatoryQuestionDto> methodResponse = controllerUnderTest.getGrantMandatoryQuestionsBySubmissionId(submissionId);
-
-        verify(grantMandatoryQuestionService).getGrantMandatoryQuestionBySubmissionId(submissionId, jwtPayload.getSub());
-        assertThat(methodResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
-        assertThat(methodResponse.getBody()).isEqualTo(mandatoryQuestionsDto);
     }
 
     @Test
