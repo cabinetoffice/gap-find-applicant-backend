@@ -194,7 +194,7 @@ class GrantMandatoryQuestionsControllerTest {
         when(grantMandatoryQuestionService.updateMandatoryQuestion(mandatoryQuestions, applicant))
                 .thenReturn(mandatoryQuestions);
 
-        when(grantMandatoryQuestionService.generateNextPageUrl("url", MANDATORY_QUESTION_ID))
+        when(grantMandatoryQuestionService.generateNextPageUrl("url", MANDATORY_QUESTION_ID, "sub"))
                 .thenReturn("nextPageUrl");
 
 
@@ -235,7 +235,7 @@ class GrantMandatoryQuestionsControllerTest {
         when(grantMandatoryQuestionService.updateMandatoryQuestion(mandatoryQuestions, applicant))
                 .thenReturn(mandatoryQuestions);
 
-        when(grantMandatoryQuestionService.generateNextPageUrl("url", MANDATORY_QUESTION_ID))
+        when(grantMandatoryQuestionService.generateNextPageUrl("url", MANDATORY_QUESTION_ID, "sub"))
                 .thenReturn("nextPageUrl");
 
         when(submissionService.getSubmissionFromDatabaseBySubmissionId(jwtPayload.getSub(), submissionId))
@@ -279,9 +279,8 @@ class GrantMandatoryQuestionsControllerTest {
         when(grantMandatoryQuestionService.updateMandatoryQuestion(mandatoryQuestions, applicant))
                 .thenReturn(mandatoryQuestions);
 
-        when(grantMandatoryQuestionService.generateNextPageUrl("url", MANDATORY_QUESTION_ID))
+        when(grantMandatoryQuestionService.generateNextPageUrl("url", MANDATORY_QUESTION_ID, "sub"))
                 .thenReturn("nextPageUrl");
-
 
         final ResponseEntity<String> methodResponse = controllerUnderTest.updateMandatoryQuestion(MANDATORY_QUESTION_ID, updateDto, "url");
 

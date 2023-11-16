@@ -154,6 +154,6 @@ public class GrantMandatoryQuestionsController {
 
         log.info("Mandatory question with ID {} has been updated.", grantMandatoryQuestions.getId());
 
-        return ResponseEntity.ok(grantMandatoryQuestionService.generateNextPageUrl(url, mandatoryQuestionId));
+        return ResponseEntity.ok(grantMandatoryQuestionService.generateNextPageUrl(url, mandatoryQuestionId, jwtPayload.getSub()));
     }
 }
