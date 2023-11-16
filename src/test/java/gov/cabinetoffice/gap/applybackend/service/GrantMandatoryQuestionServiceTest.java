@@ -496,7 +496,7 @@ class GrantMandatoryQuestionServiceTest {
         }
 
         @Test
-        public void testGenerateNextPageUrl_UrlNotInMapper() {
+        void testGenerateNextPageUrl_UrlNotInMapper() {
             final GrantApplicant applicant = GrantApplicant
                     .builder()
                     .userId(applicantUserId)
