@@ -36,6 +36,8 @@ public class SubmissionController {
     private final GrantApplicantService grantApplicantService;
     private final GrantAttachmentService grantAttachmentService;
     private final GrantApplicationService grantApplicationService;
+    private final SpotlightService spotlightService;
+    private final GrantMandatoryQuestionService mandatoryQuestionService;
 
     private final SecretAuthService secretAuthService;
     private final AttachmentService attachmentService;
@@ -179,7 +181,14 @@ public class SubmissionController {
         final JwtPayload jwtPayload = (JwtPayload) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
         final GrantApplicant grantApplicant = grantApplicantService.getApplicantFromPrincipal();
         final Submission submission = submissionService.getSubmissionFromDatabaseBySubmissionId(grantApplicant.getUserId(), applicationSubmission.getSubmissionId());
+        final GrantScheme scheme = submission.getScheme();
+
         submissionService.submit(submission, grantApplicant, jwtPayload.getEmail());
+
+        if (scheme.getVersion() > 1) {
+            final GrantMandatoryQuestions mandatoryQuestions = mandatoryQuestionService.getGrantMandatoryQuestionBySubmissionIdAndApplicantSub(submission.getId(), grantApplicant.getUserId());
+            spotlightService.createSpotlightCheck(mandatoryQuestions, scheme);
+        }
 
         return ResponseEntity.ok("Submitted");
     }

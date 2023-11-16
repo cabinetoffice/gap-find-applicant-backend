@@ -124,7 +124,7 @@ class GrantMandatoryQuestionServiceTest {
             when(grantMandatoryQuestionRepository.findBySubmissionId(submissionId))
                     .thenThrow(NotFoundException.class);
 
-            assertThrows(NotFoundException.class, () -> serviceUnderTest.getGrantMandatoryQuestionBySubmissionId(submissionId, applicantUserId));
+            assertThrows(NotFoundException.class, () -> serviceUnderTest.getGrantMandatoryQuestionBySubmissionIdAndApplicantSub(submissionId, applicantUserId));
         }
 
         @Test
@@ -146,7 +146,7 @@ class GrantMandatoryQuestionServiceTest {
             when(grantMandatoryQuestionRepository.findBySubmissionId(submissionId))
                     .thenReturn(mandatoryQuestions);
 
-            assertThrows(ForbiddenException.class, () -> serviceUnderTest.getGrantMandatoryQuestionBySubmissionId(submissionId, invalidUserId));
+            assertThrows(ForbiddenException.class, () -> serviceUnderTest.getGrantMandatoryQuestionBySubmissionIdAndApplicantSub(submissionId, invalidUserId));
         }
 
         @Test
@@ -167,7 +167,7 @@ class GrantMandatoryQuestionServiceTest {
             when(grantMandatoryQuestionRepository.findBySubmissionId(submissionId))
                     .thenReturn(mandatoryQuestions);
 
-            final GrantMandatoryQuestions methodResponse = serviceUnderTest.getGrantMandatoryQuestionBySubmissionId(submissionId, applicantUserId);
+            final GrantMandatoryQuestions methodResponse = serviceUnderTest.getGrantMandatoryQuestionBySubmissionIdAndApplicantSub(submissionId, applicantUserId);
 
             assertThat(methodResponse).isEqualTo(mandatoryQuestions.get());
         }
@@ -335,8 +335,9 @@ class GrantMandatoryQuestionServiceTest {
 
             verify(organisationProfileMapper).mapOrgProfileToGrantMandatoryQuestion(orgProfileWithLongCCandCH);
             verify(grantMandatoryQuestionRepository).save(any());
-            assertThat(methodResponse.getCharityCommissionNumber()).isEqualTo(null);
-            assertThat(methodResponse.getCompaniesHouseNumber()).isEqualTo(null);
+
+            assertThat(methodResponse.getCharityCommissionNumber()).isNull();
+            assertThat(methodResponse.getCompaniesHouseNumber()).isNull();
         }
 
     }
