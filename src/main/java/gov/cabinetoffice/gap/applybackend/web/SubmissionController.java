@@ -4,6 +4,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import gov.cabinetoffice.gap.applybackend.constants.APIConstants;
 import gov.cabinetoffice.gap.applybackend.dto.api.*;
 import gov.cabinetoffice.gap.applybackend.enums.GrantAttachmentStatus;
+import gov.cabinetoffice.gap.applybackend.enums.GrantMandatoryQuestionOrgType;
 import gov.cabinetoffice.gap.applybackend.enums.SubmissionSectionStatus;
 import gov.cabinetoffice.gap.applybackend.exception.AttachmentException;
 import gov.cabinetoffice.gap.applybackend.exception.GrantApplicationNotPublishedException;
@@ -187,10 +188,19 @@ public class SubmissionController {
 
         if (scheme.getVersion() > 1) {
             final GrantMandatoryQuestions mandatoryQuestions = mandatoryQuestionService.getGrantMandatoryQuestionBySubmissionIdAndApplicantSub(submission.getId(), grantApplicant.getUserId());
-            spotlightService.createSpotlightCheck(mandatoryQuestions, scheme);
+            final boolean shouldSendToSpotlight = !isOrganisationIndividualOrOther(mandatoryQuestions);
+
+            if (shouldSendToSpotlight) {
+                spotlightService.createSpotlightCheck(mandatoryQuestions, scheme);
+            }
         }
 
         return ResponseEntity.ok("Submitted");
+    }
+
+    private boolean isOrganisationIndividualOrOther(GrantMandatoryQuestions mandatoryQuestions) {
+        return mandatoryQuestions.getOrgType().equals(GrantMandatoryQuestionOrgType.INDIVIDUAL) ||
+                mandatoryQuestions.getOrgType().equals(GrantMandatoryQuestionOrgType.OTHER);
     }
 
     @PostMapping("/createSubmission/{applicationId}")
