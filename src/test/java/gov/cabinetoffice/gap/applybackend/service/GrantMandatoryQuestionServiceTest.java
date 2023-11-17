@@ -652,7 +652,7 @@ class GrantMandatoryQuestionServiceTest {
     class buildOrganisationDetailsSubmissionSection {
 
         @Test
-        void addsCorrectDetails() {
+        void addsCorrectDetailsForLimitedCompany() {
 
             final SubmissionSectionStatus status = SubmissionSectionStatus.IN_PROGRESS;
 
@@ -677,6 +677,7 @@ class GrantMandatoryQuestionServiceTest {
                     .build();
 
             final GrantMandatoryQuestions mandatoryQuestions = GrantMandatoryQuestions.builder()
+                    .orgType(GrantMandatoryQuestionOrgType.LIMITED_COMPANY)
                     .submission(submission)
                     .build();
 
@@ -723,11 +724,139 @@ class GrantMandatoryQuestionServiceTest {
             assertThat(orgDetailsSection.getSectionTitle()).isEqualTo(MandatoryQuestionConstants.ORGANISATION_DETAILS_SECTION_TITLE);
             assertThat(orgDetailsSection.getSectionStatus()).isEqualTo(status);
             assertThat(orgDetailsSection.getQuestions()).containsExactlyElementsOf(List.of(
-                    orgName,
                     applicantType,
+                    orgName,
                     orgAddress,
                     charityNumber,
                     companiesHouse
+            ));
+        }
+
+        @Test
+        void addsCorrectDetailsForNonLimitedCompany() {
+
+            final SubmissionSectionStatus status = SubmissionSectionStatus.IN_PROGRESS;
+
+            final SubmissionSection eligibility = SubmissionSection.builder()
+                    .sectionId("ELIGIBILITY")
+                    .build();
+
+            final SubmissionSection organisationDetails = SubmissionSection.builder()
+                    .sectionId("ORGANISATION_DETAILS")
+                    .build();
+
+            final SubmissionSection fundingDetails = SubmissionSection.builder()
+                    .sectionId("FUNDING_DETAILS")
+                    .build();
+
+            final SubmissionDefinition definition = SubmissionDefinition.builder()
+                    .sections(new ArrayList(List.of(eligibility, organisationDetails, fundingDetails)))
+                    .build();
+
+            final Submission submission = Submission.builder()
+                    .definition(definition)
+                    .build();
+
+            final GrantMandatoryQuestions mandatoryQuestions = GrantMandatoryQuestions.builder()
+                    .orgType(GrantMandatoryQuestionOrgType.NON_LIMITED_COMPANY)
+                    .submission(submission)
+                    .build();
+
+            final SubmissionQuestion orgName = SubmissionQuestion.builder()
+                    .questionId(MandatoryQuestionConstants.SUBMISSION_QUESTION_IDS.APPLICANT_ORG_NAME.toString())
+                    .build();
+
+            final SubmissionQuestion applicantType = SubmissionQuestion.builder()
+                    .questionId(MandatoryQuestionConstants.SUBMISSION_QUESTION_IDS.APPLICANT_TYPE.toString())
+                    .build();
+
+            final SubmissionQuestion orgAddress = SubmissionQuestion.builder()
+                    .questionId(MandatoryQuestionConstants.SUBMISSION_QUESTION_IDS.APPLICANT_ORG_ADDRESS.toString())
+                    .build();
+
+            doReturn(orgName)
+                    .when(serviceUnderTest).mandatoryQuestionToSubmissionQuestion(MandatoryQuestionConstants.SUBMISSION_QUESTION_IDS.APPLICANT_ORG_NAME.toString(), mandatoryQuestions);
+
+            doReturn(applicantType)
+                    .when(serviceUnderTest).mandatoryQuestionToSubmissionQuestion(MandatoryQuestionConstants.SUBMISSION_QUESTION_IDS.APPLICANT_TYPE.toString(), mandatoryQuestions);
+
+            doReturn(orgAddress)
+                    .when(serviceUnderTest).mandatoryQuestionToSubmissionQuestion(MandatoryQuestionConstants.SUBMISSION_QUESTION_IDS.APPLICANT_ORG_ADDRESS.toString(), mandatoryQuestions);
+
+            final SubmissionSection orgDetailsSection = serviceUnderTest.buildOrganisationDetailsSubmissionSection(mandatoryQuestions, status);
+
+
+            assertThat(orgDetailsSection.getSectionId()).isEqualTo(MandatoryQuestionConstants.ORGANISATION_DETAILS_SECTION_ID);
+            assertThat(orgDetailsSection.getSectionTitle()).isEqualTo(MandatoryQuestionConstants.ORGANISATION_DETAILS_SECTION_TITLE);
+            assertThat(orgDetailsSection.getSectionStatus()).isEqualTo(status);
+            assertThat(orgDetailsSection.getQuestions()).containsExactlyElementsOf(List.of(
+                    applicantType,
+                    orgName,
+                    orgAddress
+            ));
+        }
+
+        @Test
+        void addsCorrectDetailsForIndividual() {
+
+            final SubmissionSectionStatus status = SubmissionSectionStatus.IN_PROGRESS;
+
+            final SubmissionSection eligibility = SubmissionSection.builder()
+                    .sectionId("ELIGIBILITY")
+                    .build();
+
+            final SubmissionSection organisationDetails = SubmissionSection.builder()
+                    .sectionId("ORGANISATION_DETAILS")
+                    .build();
+
+            final SubmissionSection fundingDetails = SubmissionSection.builder()
+                    .sectionId("FUNDING_DETAILS")
+                    .build();
+
+            final SubmissionDefinition definition = SubmissionDefinition.builder()
+                    .sections(new ArrayList(List.of(eligibility, organisationDetails, fundingDetails)))
+                    .build();
+
+            final Submission submission = Submission.builder()
+                    .definition(definition)
+                    .build();
+
+            final GrantMandatoryQuestions mandatoryQuestions = GrantMandatoryQuestions.builder()
+                    .orgType(GrantMandatoryQuestionOrgType.INDIVIDUAL)
+                    .submission(submission)
+                    .build();
+
+            final SubmissionQuestion orgName = SubmissionQuestion.builder()
+                    .questionId(MandatoryQuestionConstants.SUBMISSION_QUESTION_IDS.APPLICANT_ORG_NAME.toString())
+                    .build();
+
+            final SubmissionQuestion applicantType = SubmissionQuestion.builder()
+                    .questionId(MandatoryQuestionConstants.SUBMISSION_QUESTION_IDS.APPLICANT_TYPE.toString())
+                    .build();
+
+            final SubmissionQuestion orgAddress = SubmissionQuestion.builder()
+                    .questionId(MandatoryQuestionConstants.SUBMISSION_QUESTION_IDS.APPLICANT_ORG_ADDRESS.toString())
+                    .build();
+
+            doReturn(orgName)
+                    .when(serviceUnderTest).mandatoryQuestionToSubmissionQuestion(MandatoryQuestionConstants.SUBMISSION_QUESTION_IDS.APPLICANT_ORG_NAME.toString(), mandatoryQuestions);
+
+            doReturn(applicantType)
+                    .when(serviceUnderTest).mandatoryQuestionToSubmissionQuestion(MandatoryQuestionConstants.SUBMISSION_QUESTION_IDS.APPLICANT_TYPE.toString(), mandatoryQuestions);
+
+            doReturn(orgAddress)
+                    .when(serviceUnderTest).mandatoryQuestionToSubmissionQuestion(MandatoryQuestionConstants.SUBMISSION_QUESTION_IDS.APPLICANT_ORG_ADDRESS.toString(), mandatoryQuestions);
+
+            final SubmissionSection orgDetailsSection = serviceUnderTest.buildOrganisationDetailsSubmissionSection(mandatoryQuestions, status);
+
+
+            assertThat(orgDetailsSection.getSectionId()).isEqualTo(MandatoryQuestionConstants.ORGANISATION_DETAILS_SECTION_ID);
+            assertThat(orgDetailsSection.getSectionTitle()).isEqualTo(MandatoryQuestionConstants.ORGANISATION_INDIVIDUAL_DETAILS_SECTION_TITLE);
+            assertThat(orgDetailsSection.getSectionStatus()).isEqualTo(status);
+            assertThat(orgDetailsSection.getQuestions()).containsExactlyElementsOf(List.of(
+                    applicantType,
+                    orgName,
+                    orgAddress
             ));
         }
     }

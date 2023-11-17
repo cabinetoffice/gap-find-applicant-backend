@@ -161,22 +161,45 @@ public class GrantMandatoryQuestionService {
     }
 
     public SubmissionSection buildOrganisationDetailsSubmissionSection(final GrantMandatoryQuestions mandatoryQuestions, final SubmissionSectionStatus sectionStatus) {
-        final SubmissionQuestion organisationName = mandatoryQuestionToSubmissionQuestion(MandatoryQuestionConstants.SUBMISSION_QUESTION_IDS.APPLICANT_ORG_NAME.toString(), mandatoryQuestions);
-        final SubmissionQuestion applicantType = mandatoryQuestionToSubmissionQuestion(MandatoryQuestionConstants.SUBMISSION_QUESTION_IDS.APPLICANT_TYPE.toString(), mandatoryQuestions);
-        final SubmissionQuestion organisationAddress = mandatoryQuestionToSubmissionQuestion(MandatoryQuestionConstants.SUBMISSION_QUESTION_IDS.APPLICANT_ORG_ADDRESS.toString(), mandatoryQuestions);
-        final SubmissionQuestion charityCommissionNumber = mandatoryQuestionToSubmissionQuestion(MandatoryQuestionConstants.SUBMISSION_QUESTION_IDS.APPLICANT_ORG_CHARITY_NUMBER.toString(), mandatoryQuestions);
-        final SubmissionQuestion companiesHouseNumber = mandatoryQuestionToSubmissionQuestion(MandatoryQuestionConstants.SUBMISSION_QUESTION_IDS.APPLICANT_ORG_COMPANIES_HOUSE.toString(), mandatoryQuestions);
+        final boolean isNonLimitedCompany = Objects.equals(mandatoryQuestions.getOrgType().toString(), "Non-limited company");
+        final boolean isIndividual = Objects.equals(mandatoryQuestions.getOrgType().toString(), "I am applying as an individual");
+        final String sectionTitle = isIndividual
+                ? MandatoryQuestionConstants.ORGANISATION_INDIVIDUAL_DETAILS_SECTION_TITLE
+                : MandatoryQuestionConstants.ORGANISATION_DETAILS_SECTION_TITLE;
+        final SubmissionQuestion organisationName = mandatoryQuestionToSubmissionQuestion(
+                MandatoryQuestionConstants.SUBMISSION_QUESTION_IDS.APPLICANT_ORG_NAME.toString(),
+                mandatoryQuestions
+        );
+        final SubmissionQuestion applicantType = mandatoryQuestionToSubmissionQuestion(
+                MandatoryQuestionConstants.SUBMISSION_QUESTION_IDS.APPLICANT_TYPE.toString(),
+                mandatoryQuestions
+        );
+        final SubmissionQuestion organisationAddress = mandatoryQuestionToSubmissionQuestion(
+                MandatoryQuestionConstants.SUBMISSION_QUESTION_IDS.APPLICANT_ORG_ADDRESS.toString(),
+                mandatoryQuestions
+        );
+
+        List<SubmissionQuestion> questions = new ArrayList<>();
+        questions.add(applicantType);
+        questions.add(organisationName);
+        questions.add(organisationAddress);
+        if (!isIndividual && !isNonLimitedCompany) {
+            final SubmissionQuestion charityCommissionNumber = mandatoryQuestionToSubmissionQuestion(
+                    MandatoryQuestionConstants.SUBMISSION_QUESTION_IDS.APPLICANT_ORG_CHARITY_NUMBER.toString(),
+                    mandatoryQuestions
+            );
+            final SubmissionQuestion companiesHouseNumber = mandatoryQuestionToSubmissionQuestion(
+                    MandatoryQuestionConstants.SUBMISSION_QUESTION_IDS.APPLICANT_ORG_COMPANIES_HOUSE.toString(),
+                    mandatoryQuestions
+            );
+            questions.add(charityCommissionNumber);
+            questions.add(companiesHouseNumber);
+        }
 
         return SubmissionSection.builder()
                 .sectionId(MandatoryQuestionConstants.ORGANISATION_DETAILS_SECTION_ID)
-                .sectionTitle(MandatoryQuestionConstants.ORGANISATION_DETAILS_SECTION_TITLE)
-                .questions(List.of(
-                        organisationName,
-                        applicantType,
-                        organisationAddress,
-                        charityCommissionNumber,
-                        companiesHouseNumber
-                ))
+                .sectionTitle(sectionTitle)
+                .questions(questions)
                 .sectionStatus(sectionStatus)
                 .build();
     }
@@ -230,7 +253,7 @@ public class GrantMandatoryQuestionService {
 
         return SubmissionQuestion.builder()
                 .questionId(MandatoryQuestionConstants.SUBMISSION_QUESTION_IDS.APPLICANT_ORG_NAME.toString())
-                .fieldTitle(MandatoryQuestionConstants.APPLICANT_ORG_NAME_TITLE)
+                .fieldTitle(MandatoryQuestionConstants.APPLICANT_SUBMISSION_ORG_NAME_TITLE)
                 .profileField(MandatoryQuestionConstants.APPLICANT_ORG_NAME_PROFILE_FIELD)
                 .hintText(MandatoryQuestionConstants.APPLICANT_ORG_NAME_HINT)
                 .adminSummary(MandatoryQuestionConstants.APPLICANT_ORG_NAME_ADMIN_SUMMARY)
@@ -245,9 +268,13 @@ public class GrantMandatoryQuestionService {
                 .mandatory(true)
                 .build();
 
+        final String title = Objects.equals(mandatoryQuestions.getOrgType().toString(), "I am applying as an individual")
+                ? MandatoryQuestionConstants.APPLICANT_INDIVIDUAL_SUBMISSION_TYPE_TITLE
+                : MandatoryQuestionConstants.APPLICANT_SUBMISSION_TYPE_TITLE;
+
         return SubmissionQuestion.builder()
                 .questionId(MandatoryQuestionConstants.SUBMISSION_QUESTION_IDS.APPLICANT_TYPE.toString())
-                .fieldTitle(MandatoryQuestionConstants.APPLICANT_TYPE_TITLE)
+                .fieldTitle(title)
                 .profileField(MandatoryQuestionConstants.APPLICANT_TYPE_PROFILE_FIELD)
                 .hintText(MandatoryQuestionConstants.APPLICANT_ORG_NAME_HINT)
                 .adminSummary(MandatoryQuestionConstants.APPLICANT_TYPE_ADMIN_SUMMARY)
@@ -353,7 +380,7 @@ public class GrantMandatoryQuestionService {
 
         return SubmissionQuestion.builder()
                 .questionId(MandatoryQuestionConstants.SUBMISSION_QUESTION_IDS.APPLICANT_ORG_ADDRESS.toString())
-                .fieldTitle(MandatoryQuestionConstants.ORGANISATION_ADDRESS_TITLE)
+                .fieldTitle(MandatoryQuestionConstants.ORGANISATION_SUBMISSION_ADDRESS_TITLE)
                 .profileField(MandatoryQuestionConstants.ORGANISATION_ADDRESS_PROFILE_FIELD)
                 .adminSummary(MandatoryQuestionConstants.ORGANISATION_ADDRESS_ADMIN_SUMMARY)
                 .responseType(SubmissionQuestionResponseType.AddressInput)
