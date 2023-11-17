@@ -430,20 +430,90 @@ class GrantMandatoryQuestionServiceTest {
     class generateNextPageUrl {
         @Test
         void testGenerateNextPageUrl() {
-            final String url = "/any/url/organisation-address?some-param=some-value";
-            final String expectedNextPageUrl = "/mandatory-questions/" + MANDATORY_QUESTION_ID + "/organisation-type";
+            final GrantApplicant applicant = GrantApplicant
+                    .builder()
+                    .userId(applicantUserId)
+                    .build();
+            final GrantMandatoryQuestions grantMandatoryQuestions = GrantMandatoryQuestions
+                    .builder()
+                    .id(MANDATORY_QUESTION_ID)
+                    .createdBy(applicant)
+                    .build();
+            when(grantMandatoryQuestionRepository.findById(MANDATORY_QUESTION_ID))
+                    .thenReturn(Optional.of(grantMandatoryQuestions));
 
-            final String nextPageUrl = serviceUnderTest.generateNextPageUrl(url, MANDATORY_QUESTION_ID);
+            final String url = "/any/url/organisation-type?some-param=some-value";
+            final String expectedNextPageUrl = "/mandatory-questions/" + MANDATORY_QUESTION_ID + "/organisation-name";
+
+            final String nextPageUrl = serviceUnderTest.generateNextPageUrl(url, MANDATORY_QUESTION_ID, applicantUserId);
+
+            assertThat(nextPageUrl).isEqualTo(expectedNextPageUrl);
+        }
+
+        @Test
+        void testGenerateNextPageUrlForSkippingCompaniesHouseAndCharityCommission() {
+            final GrantApplicant applicant = GrantApplicant
+                    .builder()
+                    .userId(applicantUserId)
+                    .build();
+            final GrantMandatoryQuestions grantMandatoryQuestions = GrantMandatoryQuestions
+                    .builder()
+                    .id(MANDATORY_QUESTION_ID)
+                    .createdBy(applicant)
+                    .orgType(GrantMandatoryQuestionOrgType.INDIVIDUAL)
+                    .build();
+            when(grantMandatoryQuestionRepository.findById(MANDATORY_QUESTION_ID))
+                    .thenReturn(Optional.of(grantMandatoryQuestions));
+
+            final String url = "/any/url/organisation-address?some-param=some-value";
+            final String expectedNextPageUrl = "/mandatory-questions/" + MANDATORY_QUESTION_ID + "/organisation-funding-amount";
+
+            final String nextPageUrl = serviceUnderTest.generateNextPageUrl(url, MANDATORY_QUESTION_ID, applicantUserId);
+
+            assertThat(nextPageUrl).isEqualTo(expectedNextPageUrl);
+        }
+
+        @Test
+        void testGenerateNextPageUrlForNotSkippingCompaniesHouseAndCharityCommission() {
+            final GrantApplicant applicant = GrantApplicant
+                    .builder()
+                    .userId(applicantUserId)
+                    .build();
+            final GrantMandatoryQuestions grantMandatoryQuestions = GrantMandatoryQuestions
+                    .builder()
+                    .id(MANDATORY_QUESTION_ID)
+                    .createdBy(applicant)
+                    .orgType(GrantMandatoryQuestionOrgType.CHARITY)
+                    .build();
+            when(grantMandatoryQuestionRepository.findById(MANDATORY_QUESTION_ID))
+                    .thenReturn(Optional.of(grantMandatoryQuestions));
+
+            final String url = "/any/url/organisation-address?some-param=some-value";
+            final String expectedNextPageUrl = "/mandatory-questions/" + MANDATORY_QUESTION_ID + "/organisation-companies-house-number";
+
+            final String nextPageUrl = serviceUnderTest.generateNextPageUrl(url, MANDATORY_QUESTION_ID, applicantUserId);
 
             assertThat(nextPageUrl).isEqualTo(expectedNextPageUrl);
         }
 
         @Test
         void testGenerateNextPageUrl_UrlNotInMapper() {
+            final GrantApplicant applicant = GrantApplicant
+                    .builder()
+                    .userId(applicantUserId)
+                    .build();
+            final GrantMandatoryQuestions grantMandatoryQuestions = GrantMandatoryQuestions
+                    .builder()
+                    .id(MANDATORY_QUESTION_ID)
+                    .createdBy(applicant)
+                    .build();
+            when(grantMandatoryQuestionRepository.findById(MANDATORY_QUESTION_ID))
+                    .thenReturn(Optional.of(grantMandatoryQuestions));
+
             final String url = "/any/url/thatIsNotInMapper";
             final String expectedNextPageUrl = "";
 
-            final String nextPageUrl = serviceUnderTest.generateNextPageUrl(url, MANDATORY_QUESTION_ID);
+            final String nextPageUrl = serviceUnderTest.generateNextPageUrl(url, MANDATORY_QUESTION_ID, applicantUserId);
 
             assertThat(nextPageUrl).isEqualTo(expectedNextPageUrl);
         }

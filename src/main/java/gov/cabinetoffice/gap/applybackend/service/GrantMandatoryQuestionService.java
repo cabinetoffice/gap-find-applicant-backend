@@ -2,6 +2,7 @@ package gov.cabinetoffice.gap.applybackend.service;
 
 import gov.cabinetoffice.gap.applybackend.config.properties.EnvironmentProperties;
 import gov.cabinetoffice.gap.applybackend.constants.MandatoryQuestionConstants;
+import gov.cabinetoffice.gap.applybackend.enums.GrantMandatoryQuestionOrgType;
 import gov.cabinetoffice.gap.applybackend.enums.GrantMandatoryQuestionStatus;
 import gov.cabinetoffice.gap.applybackend.enums.SubmissionQuestionResponseType;
 import gov.cabinetoffice.gap.applybackend.enums.SubmissionSectionStatus;
@@ -105,14 +106,20 @@ public class GrantMandatoryQuestionService {
                 .orElseThrow(() -> new NotFoundException(String.format("No Mandatory Question with id %s was found", grantMandatoryQuestions.getId())));
     }
 
-    public String generateNextPageUrl(String url, UUID mandatoryQuestionId) {
+    public String generateNextPageUrl(String url, UUID mandatoryQuestionId, String applicantSub) {
+        final GrantMandatoryQuestions mqs = getGrantMandatoryQuestionById(mandatoryQuestionId, applicantSub);
         final Map<String, String> mapper = new HashMap<>();
         String mandatoryQuestionsUrlStart = "/mandatory-questions/" + mandatoryQuestionId;
+        mapper.put("organisation-type", mandatoryQuestionsUrlStart + "/organisation-name");
         mapper.put("organisation-name", mandatoryQuestionsUrlStart + "/organisation-address");
-        mapper.put("organisation-address", mandatoryQuestionsUrlStart + "/organisation-type");
-        mapper.put("organisation-type", mandatoryQuestionsUrlStart + "/organisation-companies-house-number");
-        mapper.put("organisation-companies-house-number", mandatoryQuestionsUrlStart + "/organisation-charity-commission-number");
-        mapper.put("organisation-charity-commission-number", mandatoryQuestionsUrlStart + "/organisation-funding-amount");
+        if (mqs.getOrgType() == GrantMandatoryQuestionOrgType.NON_LIMITED_COMPANY
+                || mqs.getOrgType() == GrantMandatoryQuestionOrgType.INDIVIDUAL) {
+            mapper.put("organisation-address", mandatoryQuestionsUrlStart + "/organisation-funding-amount");
+        } else {
+            mapper.put("organisation-address", mandatoryQuestionsUrlStart + "/organisation-companies-house-number");
+            mapper.put("organisation-companies-house-number", mandatoryQuestionsUrlStart + "/organisation-charity-commission-number");
+            mapper.put("organisation-charity-commission-number", mandatoryQuestionsUrlStart + "/organisation-funding-amount");
+        }
         mapper.put("organisation-funding-amount", mandatoryQuestionsUrlStart + "/organisation-funding-location");
         mapper.put("organisation-funding-location", mandatoryQuestionsUrlStart + "/organisation-summary");
 
