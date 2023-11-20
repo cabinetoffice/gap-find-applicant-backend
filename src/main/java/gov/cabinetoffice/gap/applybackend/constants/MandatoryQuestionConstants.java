@@ -1,5 +1,7 @@
 package gov.cabinetoffice.gap.applybackend.constants;
 
+import gov.cabinetoffice.gap.applybackend.enums.GrantMandatoryQuestionOrgType;
+
 public class MandatoryQuestionConstants {
 
     public static final String ORGANISATION_DETAILS_SECTION_ID = "ORGANISATION_DETAILS";
@@ -24,13 +26,13 @@ public class MandatoryQuestionConstants {
     public static final String APPLICANT_TYPE_HINT_TEXT = "Choose the option that best describes your organisation";
     public static final String APPLICANT_TYPE_ADMIN_SUMMARY = "organisation type (e.g. limited company)";
     public static final String[] APPLICANT_TYPE_OPTIONS = new String[] {
-            "Limited company",
-            "Non-limited company",
-            "Registered charity",
-            "Unregistered charity",
-            "Other",
-            "Charity",
-            "I am applying as an individual",
+            GrantMandatoryQuestionOrgType.LIMITED_COMPANY.toString(),
+            GrantMandatoryQuestionOrgType.NON_LIMITED_COMPANY.toString(),
+            GrantMandatoryQuestionOrgType.REGISTERED_CHARITY.toString(),
+            GrantMandatoryQuestionOrgType.UNREGISTERED_CHARITY.toString(),
+            GrantMandatoryQuestionOrgType.OTHER.toString(),
+            GrantMandatoryQuestionOrgType.CHARITY.toString(),
+            GrantMandatoryQuestionOrgType.INDIVIDUAL.toString(),
     };
 
     public static final String ORGANISATION_ADDRESS_TITLE = "Enter your organisations address";

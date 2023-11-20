@@ -161,8 +161,8 @@ public class GrantMandatoryQuestionService {
     }
 
     public SubmissionSection buildOrganisationDetailsSubmissionSection(final GrantMandatoryQuestions mandatoryQuestions, final SubmissionSectionStatus sectionStatus) {
-        final boolean isNonLimitedCompany = Objects.equals(mandatoryQuestions.getOrgType().toString(), "Non-limited company");
-        final boolean isIndividual = Objects.equals(mandatoryQuestions.getOrgType().toString(), "I am applying as an individual");
+        final boolean isNonLimitedCompany = Objects.equals(mandatoryQuestions.getOrgType().toString(), GrantMandatoryQuestionOrgType.NON_LIMITED_COMPANY.toString());
+        final boolean isIndividual = Objects.equals(mandatoryQuestions.getOrgType().toString(), GrantMandatoryQuestionOrgType.INDIVIDUAL.toString());
         final String sectionTitle = isIndividual
                 ? MandatoryQuestionConstants.ORGANISATION_INDIVIDUAL_DETAILS_SECTION_TITLE
                 : MandatoryQuestionConstants.ORGANISATION_DETAILS_SECTION_TITLE;
@@ -268,7 +268,7 @@ public class GrantMandatoryQuestionService {
                 .mandatory(true)
                 .build();
 
-        final String title = Objects.equals(mandatoryQuestions.getOrgType().toString(), "I am applying as an individual")
+        final String title = Objects.equals(mandatoryQuestions.getOrgType().toString(), GrantMandatoryQuestionOrgType.INDIVIDUAL.toString())
                 ? MandatoryQuestionConstants.APPLICANT_INDIVIDUAL_SUBMISSION_TYPE_TITLE
                 : MandatoryQuestionConstants.APPLICANT_SUBMISSION_TYPE_TITLE;
 
