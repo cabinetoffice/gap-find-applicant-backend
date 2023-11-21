@@ -272,36 +272,32 @@ public class SubmissionService {
     }
 
     private void createDiligenceCheckFromSubmission(final Submission submission) {
-        final String organisationName = getQuestionResponseByQuestionId(submission, APPLICANT_ORG_NAME);
+        final Optional<SubmissionQuestion> organisationName = getQuestionResponseByQuestionId(submission, APPLICANT_ORG_NAME);
         final String[] organisationAddress = getQuestionMultiResponseByQuestionId(submission, APPLICANT_ORG_ADDRESS);
-        final String applicationAmount = getQuestionResponseByQuestionId(submission, APPLICANT_AMOUNT);
-        final String companiesHouseNumber = getQuestionResponseByQuestionId(submission, APPLICANT_ORG_COMPANIES_HOUSE);
-        final String charitiesCommissionNumber = getQuestionResponseByQuestionId(submission, APPLICANT_ORG_CHARITY_NUMBER);
+        final Optional<SubmissionQuestion> applicationAmount = getQuestionResponseByQuestionId(submission, APPLICANT_AMOUNT);
+        final Optional<SubmissionQuestion> companiesHouseNumber = getQuestionResponseByQuestionId(submission, APPLICANT_ORG_COMPANIES_HOUSE);
+        final Optional<SubmissionQuestion> charitiesCommissionNumber = getQuestionResponseByQuestionId(submission, APPLICANT_ORG_CHARITY_NUMBER);
 
         diligenceCheckRepository.save(DiligenceCheck.builder()
                 .submissionId(submission.getId())
                 .applicationNumber(submission.getGapId())
-                .organisationName(organisationName)
+                .organisationName(organisationName.map(SubmissionQuestion::getResponse).orElse(null))
                 .addressStreet(organisationAddress[0])
                 .addressTown(organisationAddress[2])
                 .addressCounty(organisationAddress[3])
                 .addressPostcode(organisationAddress[4])
-                .applicationAmount(applicationAmount)
-                .companiesHouseNumber(companiesHouseNumber)
-                .charityNumber(charitiesCommissionNumber)
+                .applicationAmount(applicationAmount.map(SubmissionQuestion::getResponse).orElse(null))
+                .companiesHouseNumber(companiesHouseNumber.map(SubmissionQuestion::getResponse).orElse(null))
+                .charityNumber(charitiesCommissionNumber.map(SubmissionQuestion::getResponse).orElse(null))
                 .build());
     }
 
-    private String getQuestionResponseByQuestionId(final Submission submission, final String questionId) {
+    private Optional<SubmissionQuestion> getQuestionResponseByQuestionId(final Submission submission, final String questionId) {
         return submission.getDefinition().getSections()
                 .stream()
                 .flatMap(s -> s.getQuestions().stream())
                 .filter(question -> question.getQuestionId().equals(questionId))
-                .findAny()
-                .orElseThrow(() -> new IllegalArgumentException(
-                        String.format("submission %s does not contain a question with an ID of %s",
-                                submission.getId(), questionId)))
-                .getResponse();
+                .findAny();
     }
 
     private String[] getQuestionMultiResponseByQuestionId(final Submission submission, final String questionId) {
