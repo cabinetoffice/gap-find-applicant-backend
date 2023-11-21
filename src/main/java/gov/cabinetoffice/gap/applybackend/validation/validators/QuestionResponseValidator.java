@@ -216,7 +216,7 @@ public class QuestionResponseValidator implements ConstraintValidator<ValidQuest
     }
 
     private boolean containsSpecialCharacters(String response) {
-        return !response.matches("^[\\p{L}\\p{N}\\p{P}]");
+        return !response.matches("^(?![\\s\\S])|^[a-zA-Z0-9\\s',!@£$%^&*()_+=\\[\\];./?><:\"{}|-]+$");
     }
 
     private ValidationResult validateDate(final String[] dateComponents, final boolean isMandatory) {
