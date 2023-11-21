@@ -155,6 +155,18 @@ class QuestionResponseValidatorTest {
                         , "Answer must only include numeric values/ decimal",
                         SubmissionQuestionValidation.builder()
                                 .greaterThanZero(true)
+                                .build()),
+
+                // Special characters check should fail
+                Arguments.of(
+                        CreateQuestionResponseDto.builder()
+                                .questionId(questionId)
+                                .submissionId(submissionId)
+                                .response("\uDBFF\uDC05")
+                                .build()
+                        , "Answer must only include letters, numbers, and special characters such as hyphens, spaces and apostrophes",
+                        SubmissionQuestionValidation.builder()
+                                .disallowSpecialChars(true)
                                 .build())
 
         );
