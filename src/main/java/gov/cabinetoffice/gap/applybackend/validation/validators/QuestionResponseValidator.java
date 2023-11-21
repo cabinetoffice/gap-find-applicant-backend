@@ -139,6 +139,11 @@ public class QuestionResponseValidator implements ConstraintValidator<ValidQuest
             }
         }
 
+        if(containsSpecialCharacters(submittedQuestion.getResponse())) {
+            result.addError(ValidationConstants.SINGLE_RESPONSE_FIELD, "Answer must only include letters, numbers, and special characters such as hyphens, spaces and apostrophes");
+            return result;
+        }
+
         result.setValid(Boolean.TRUE);
         return result;
     }
@@ -208,6 +213,13 @@ public class QuestionResponseValidator implements ConstraintValidator<ValidQuest
 
     private int getNumberOfWords(String response) {
         return Strings.isEmpty(response) ? 0 : response.split("\\s").length;
+    }
+
+    private boolean containsSpecialCharacters(String response) {
+        if (!response.matches("^[a-zA-Z0-9\\s',-]+$")) {
+            return true;
+        }
+        return false;
     }
 
     private ValidationResult validateDate(final String[] dateComponents, final boolean isMandatory) {
