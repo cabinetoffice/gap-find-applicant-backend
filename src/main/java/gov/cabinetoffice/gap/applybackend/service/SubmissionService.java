@@ -234,7 +234,7 @@ public class SubmissionService {
         }
 
         submitApplication(submission);
-        //notifyClient.sendConfirmationEmail(emailAddress, submission);
+        notifyClient.sendConfirmationEmail(emailAddress, submission);
         createDiligenceCheckFromSubmission(submission);
         createGrantBeneficiary(submission);
     }
