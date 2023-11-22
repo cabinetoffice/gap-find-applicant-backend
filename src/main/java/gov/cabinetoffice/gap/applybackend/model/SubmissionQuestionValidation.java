@@ -19,5 +19,4 @@ public class SubmissionQuestionValidation {
     private String validInput; // TODO convert to enum when we know all options
     private int maxFileSizeMB;
     private String[] allowedTypes;
-    private boolean disallowSpecialChars;
 }

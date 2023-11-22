@@ -166,7 +166,6 @@ class QuestionResponseValidatorTest {
                                 .build()
                         , "Answer must only include letters, numbers, and special characters such as hyphens, spaces and apostrophes",
                         SubmissionQuestionValidation.builder()
-                                .disallowSpecialChars(true)
                                 .build())
 
         );
