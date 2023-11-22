@@ -1,5 +1,6 @@
 package gov.cabinetoffice.gap.applybackend.dto.api;
 
+import gov.cabinetoffice.gap.applybackend.enums.GrantApplicantStatus;
 import lombok.Data;
 import lombok.RequiredArgsConstructor;
 
@@ -7,14 +8,13 @@ import java.time.Instant;
 
 @Data
 @RequiredArgsConstructor
-public class GetGrantSchemeDto {
+public class GetGrantApplicationDto {
     private Integer id;
-    private Integer funderId;
+    private Integer grantSchemeId;
     private Integer version;
-    private Instant createdDate;
+    private Instant created;
     private Instant lastUpdated;
     private Integer lastUpdatedBy;
-    private String ggisIdentifier;
-    private String name;
-    private String email;
+    private String applicationName;
+    private GrantApplicantStatus applicationStatus;
 }
