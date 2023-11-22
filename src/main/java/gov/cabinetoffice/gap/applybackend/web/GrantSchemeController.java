@@ -39,7 +39,7 @@ public class GrantSchemeController {
         final JwtPayload jwtPayload = (JwtPayload) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
 
         final GrantScheme grantScheme = grantSchemeService.getSchemeById(grantSchemeId);
-        final GetGrantSchemeDto grantSchemeDto = grantSchemeMapper.grantSchemeToGetGrantSchemeDto(grantScheme);
+        final GetGrantSchemeDto grantSchemeDto = new GetGrantSchemeDto(grantScheme);
         final GetGrantApplicationDto grantApplicationDto = grantSchemeMapper.grantSchemeToGetGrantApplicationDto(grantScheme);
         final List<GetGrantAdvertDto> grantAdvertDtos = grantScheme.getGrantAdverts().stream()
                 .map(grantAdvert -> grantAdvertService.grantAdvertToDto(grantAdvert, jwtPayload.getSub(), grantSchemeId))
