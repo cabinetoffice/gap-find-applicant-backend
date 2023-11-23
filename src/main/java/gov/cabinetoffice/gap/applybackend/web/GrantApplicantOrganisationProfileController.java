@@ -43,6 +43,12 @@ public class GrantApplicantOrganisationProfileController {
         return ResponseEntity.ok(organisationDto);
     }
 
+    @GetMapping("/isComplete")
+    public ResponseEntity<Boolean> isOrganisationComplete() {
+        final JwtPayload jwtPayload = (JwtPayload) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        return ResponseEntity.ok(grantApplicantOrganisationProfileService.isOrganisationComplete(jwtPayload.getSub()));
+    }
+
     @PatchMapping("/{organisationId}")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Organisation updated", content = @Content(mediaType = "application/json", schema = @Schema(implementation = String.class))),
