@@ -14,7 +14,7 @@ public class GrantSchemeService {
 
     public GrantScheme getSchemeById(Integer schemeId) {
         return grantSchemeRepository
-                .findById(schemeId)
+                .findByIdWithApplicationAndAdverts(schemeId)
                 .orElseThrow(() -> new NotFoundException(
                         String.format("No Grant Scheme with ID %s was found", schemeId)));
     }
