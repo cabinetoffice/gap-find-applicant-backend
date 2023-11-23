@@ -6,6 +6,7 @@ import gov.cabinetoffice.gap.applybackend.dto.api.JwtPayload;
 import gov.cabinetoffice.gap.applybackend.dto.api.UpdateGrantApplicantOrganisationProfileDto;
 import gov.cabinetoffice.gap.applybackend.model.GrantApplicantOrganisationProfile;
 import gov.cabinetoffice.gap.applybackend.service.GrantApplicantOrganisationProfileService;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -151,5 +152,38 @@ class GrantApplicantOrganisationProfileControllerTest {
         assertThat(methodResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(methodResponse.getBody())
                 .isEqualTo(String.format("Organisation with ID %s has been updated.", grantApplicantOrganisationProfile.getId()));
+    }
+
+    @Nested
+    class IsOrganisationComplete {
+        @Test
+        void isOrganisationComplete_ReturnsTrue() {
+            final JwtPayload jwtPayload = JwtPayload.builder().sub(APPLICANT_USER_ID).build();
+            when(securityContext.getAuthentication()).thenReturn(authentication);
+            SecurityContextHolder.setContext(securityContext);
+            when(SecurityContextHolder.getContext().getAuthentication().getPrincipal()).thenReturn(jwtPayload);
+            when(grantApplicantOrganisationProfileService.isOrganisationComplete(APPLICANT_USER_ID)).thenReturn(true);
+
+            ResponseEntity<Boolean> response = controllerUnderTest.isOrganisationComplete();
+
+            verify(grantApplicantOrganisationProfileService).isOrganisationComplete(APPLICANT_USER_ID);
+            assertEquals(HttpStatus.OK, response.getStatusCode());
+            assertEquals(response.getBody(), true);
+        }
+
+        @Test
+        void isOrganisationComplete_ReturnsFalse() {
+            final JwtPayload jwtPayload = JwtPayload.builder().sub(APPLICANT_USER_ID).build();
+            when(securityContext.getAuthentication()).thenReturn(authentication);
+            SecurityContextHolder.setContext(securityContext);
+            when(SecurityContextHolder.getContext().getAuthentication().getPrincipal()).thenReturn(jwtPayload);
+            when(grantApplicantOrganisationProfileService.isOrganisationComplete(APPLICANT_USER_ID)).thenReturn(false);
+
+            ResponseEntity<Boolean> response = controllerUnderTest.isOrganisationComplete();
+
+            verify(grantApplicantOrganisationProfileService).isOrganisationComplete(APPLICANT_USER_ID);
+            assertEquals(HttpStatus.OK, response.getStatusCode());
+            assertEquals(response.getBody(), false);
+        }
     }
 }
