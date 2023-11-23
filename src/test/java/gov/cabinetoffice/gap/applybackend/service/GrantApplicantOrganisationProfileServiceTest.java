@@ -10,7 +10,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
-import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -153,7 +152,7 @@ class GrantApplicantOrganisationProfileServiceTest {
     @Nested
     class IsOrganisationComplete {
         @ParameterizedTest
-        @CsvSource({
+        @CsvSource(value = {
                 "INDIVIDUAL,Org name,9 George Square,Glasgow,G2 1QQ,,",
                 "NON_LIMITED_COMPANY,Org name,9 George Square,Glasgow,G2 1QQ,,",
                 "LIMITED_COMPANY,Org name,9 George Square,Glasgow,G2 1QQ,45,000010",
@@ -162,7 +161,9 @@ class GrantApplicantOrganisationProfileServiceTest {
                 "UNREGISTERED_CHARITY,Org name,9 George Square,Glasgow,G2 1QQ,45,000010",
                 "CHARITY,Org name,9 George Square,Glasgow,G2 1QQ,45,000010",
                 "OTHER,Org name,9 George Square,Glasgow,G2 1QQ,45,000010",
-        })
+                "INDIVIDUAL,Org name,9 George Square,Glasgow,G2 1QQ,null,null",
+                "NON_LIMITED_COMPANY,Org name,9 George Square,Glasgow,G2 1QQ,null,null",
+        }, nullValues = {"null"})
         void returnsTrue(
                 final GrantApplicantOrganisationType type,
                 final String name,
@@ -196,7 +197,7 @@ class GrantApplicantOrganisationProfileServiceTest {
         }
 
         @ParameterizedTest
-        @CsvSource({
+        @CsvSource(value = {
                 ",Org name,9 George Square,Glasgow,G2 1QQ,45,000010",
                 "INDIVIDUAL,Org name,9 George Square,Glasgow,,45,000010",
                 "INDIVIDUAL,Org name,9 George Square,,G2 1QQ,45,000010",
@@ -242,7 +243,52 @@ class GrantApplicantOrganisationProfileServiceTest {
                 "OTHER,Org name,9 George Square,,G2 1QQ,45,000010",
                 "OTHER,Org name,,Glasgow,G2 1QQ,45,000010",
                 "OTHER,,9 George Square,Glasgow,G2 1QQ,45,000010",
-        })
+                "null,Org name,9 George Square,Glasgow,G2 1QQ,45,000010",
+                "INDIVIDUAL,Org name,9 George Square,Glasgow,null,45,000010",
+                "INDIVIDUAL,Org name,9 George Square,null,G2 1QQ,45,000010",
+                "INDIVIDUAL,Org name,null,Glasgow,G2 1QQ,45,000010",
+                "INDIVIDUAL,null,9 George Square,Glasgow,G2 1QQ,45,000010",
+                "NON_LIMITED_COMPANY,Org name,9 George Square,Glasgow,null,45,000010",
+                "NON_LIMITED_COMPANY,Org name,9 George Square,null,G2 1QQ,45,000010",
+                "NON_LIMITED_COMPANY,Org name,null,Glasgow,G2 1QQ,45,000010",
+                "NON_LIMITED_COMPANY,null,9 George Square,Glasgow,G2 1QQ,45,000010",
+                "LIMITED_COMPANY,Org name,9 George Square,Glasgow,G2 1QQ,45,null",
+                "LIMITED_COMPANY,Org name,9 George Square,Glasgow,G2 1QQ,null,000010",
+                "LIMITED_COMPANY,Org name,9 George Square,Glasgow,null,45,000010",
+                "LIMITED_COMPANY,Org name,9 George Square,null,G2 1QQ,45,000010",
+                "LIMITED_COMPANY,Org name,null,Glasgow,G2 1QQ,45,000010",
+                "LIMITED_COMPANY,null,9 George Square,Glasgow,G2 1QQ,45,000010",
+                "UNLIMITED_COMPANY,Org name,9 George Square,Glasgow,G2 1QQ,45,null",
+                "UNLIMITED_COMPANY,Org name,9 George Square,Glasgow,G2 1QQ,null,000010",
+                "UNLIMITED_COMPANY,Org name,9 George Square,Glasgow,null,45,000010",
+                "UNLIMITED_COMPANY,Org name,9 George Square,null,G2 1QQ,45,000010",
+                "UNLIMITED_COMPANY,Org name,null,Glasgow,G2 1QQ,45,000010",
+                "UNLIMITED_COMPANY,null,9 George Square,Glasgow,G2 1QQ,45,000010",
+                "REGISTERED_CHARITY,Org name,9 George Square,Glasgow,G2 1QQ,45,null",
+                "REGISTERED_CHARITY,Org name,9 George Square,Glasgow,G2 1QQ,null,000010",
+                "REGISTERED_CHARITY,Org name,9 George Square,Glasgow,null,45,000010",
+                "REGISTERED_CHARITY,Org name,9 George Square,null,G2 1QQ,45,000010",
+                "REGISTERED_CHARITY,Org name,null,Glasgow,G2 1QQ,45,000010",
+                "REGISTERED_CHARITY,null,9 George Square,Glasgow,G2 1QQ,45,000010",
+                "UNREGISTERED_CHARITY,Org name,9 George Square,Glasgow,G2 1QQ,45,null",
+                "UNREGISTERED_CHARITY,Org name,9 George Square,Glasgow,G2 1QQ,null,000010",
+                "UNREGISTERED_CHARITY,Org name,9 George Square,Glasgow,null,45,000010",
+                "UNREGISTERED_CHARITY,Org name,9 George Square,null,G2 1QQ,45,000010",
+                "UNREGISTERED_CHARITY,Org name,null,Glasgow,G2 1QQ,45,000010",
+                "UNREGISTERED_CHARITY,null,9 George Square,Glasgow,G2 1QQ,45,000010",
+                "CHARITY,Org name,9 George Square,Glasgow,G2 1QQ,45,null",
+                "CHARITY,Org name,9 George Square,Glasgow,G2 1QQ,null,000010",
+                "CHARITY,Org name,9 George Square,Glasgow,null,45,000010",
+                "CHARITY,Org name,9 George Square,null,G2 1QQ,45,000010",
+                "CHARITY,Org name,null,Glasgow,G2 1QQ,45,000010",
+                "CHARITY,null,9 George Square,Glasgow,G2 1QQ,45,000010",
+                "OTHER,Org name,9 George Square,Glasgow,G2 1QQ,45,null",
+                "OTHER,Org name,9 George Square,Glasgow,G2 1QQ,null,000010",
+                "OTHER,Org name,9 George Square,Glasgow,null,45,000010",
+                "OTHER,Org name,9 George Square,null,G2 1QQ,45,000010",
+                "OTHER,Org name,null,Glasgow,G2 1QQ,45,000010",
+                "OTHER,null,9 George Square,Glasgow,G2 1QQ,45,000010",
+        }, nullValues = {"null"})
         void returnsFalse(
                 final GrantApplicantOrganisationType type,
                 final String name,

@@ -5,6 +5,7 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.apache.commons.lang3.StringUtils;
 
 import javax.persistence.CascadeType;
 import javax.persistence.Column;
@@ -60,4 +61,17 @@ public class GrantApplicantOrganisationProfile {
 
     @Column
     private String companiesHouseNumber;
+
+    public Boolean isComplete() {
+        if (StringUtils.isEmpty(legalName)) return false;
+        if (StringUtils.isEmpty(addressLine1)) return false;
+        if (StringUtils.isEmpty(town)) return false;
+        if (StringUtils.isEmpty(postcode)) return false;
+        if (type == null) return false;
+        if (type != GrantApplicantOrganisationType.INDIVIDUAL && type != GrantApplicantOrganisationType.NON_LIMITED_COMPANY) {
+            if (StringUtils.isEmpty(getCompaniesHouseNumber())) return false;
+            return !StringUtils.isEmpty(getCharityCommissionNumber());
+        }
+        return true;
+    }
 }
