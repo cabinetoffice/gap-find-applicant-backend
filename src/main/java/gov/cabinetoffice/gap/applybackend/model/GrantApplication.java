@@ -1,31 +1,16 @@
 package gov.cabinetoffice.gap.applybackend.model;
 
 import gov.cabinetoffice.gap.applybackend.enums.GrantApplicantStatus;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
-import lombok.ToString;
+import lombok.*;
 import org.hibernate.annotations.Type;
 
-import javax.persistence.Column;
-import javax.persistence.Entity;
-import javax.persistence.EnumType;
-import javax.persistence.Enumerated;
-import javax.persistence.GeneratedValue;
-import javax.persistence.GenerationType;
-import javax.persistence.Id;
-import javax.persistence.JoinColumn;
-import javax.persistence.OneToOne;
-import javax.persistence.Table;
+import javax.persistence.*;
 import java.time.Instant;
 
 @Entity
 @Table(name = "grant_application")
 @Getter
 @Setter
-@ToString
 @AllArgsConstructor
 @NoArgsConstructor
 @Builder
@@ -36,7 +21,8 @@ public class GrantApplication extends BaseEntity {
     @Column(name = "grant_application_id")
     private Integer id;
 
-    @OneToOne
+    @ToString.Exclude
+    @OneToOne(cascade = CascadeType.ALL, orphanRemoval = true)
     @JoinColumn(name = "grant_scheme_id")
     private GrantScheme grantScheme;
 
@@ -64,7 +50,7 @@ public class GrantApplication extends BaseEntity {
     private ApplicationDefinition definition;
 
     public GrantApplication(GrantScheme grantScheme, String applicationName, Integer lastUpdateBy,
-            ApplicationDefinition definition) {
+                            ApplicationDefinition definition) {
         this.version = 2;
         this.created = Instant.now();
         this.lastUpdated = Instant.now();

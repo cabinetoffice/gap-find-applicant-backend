@@ -1,5 +1,6 @@
 package gov.cabinetoffice.gap.applybackend.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import lombok.*;
 
 import javax.persistence.*;
@@ -11,7 +12,6 @@ import java.util.List;
 @Table(name = "grant_scheme")
 @Getter
 @Setter
-@ToString
 @AllArgsConstructor
 @NoArgsConstructor
 @Builder
@@ -53,5 +53,6 @@ public class GrantScheme {
 
     @ToString.Exclude
     @OneToOne(cascade = CascadeType.ALL, orphanRemoval = true, mappedBy = "grantScheme")
+    @JsonIgnore
     private GrantApplication grantApplication;
 }

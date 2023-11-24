@@ -12,14 +12,11 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.modelmapper.ModelMapper;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -28,7 +25,6 @@ import java.time.Instant;
 import java.util.Collections;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -73,11 +69,11 @@ class GrantSchemeControllerTest {
                 .build();
         final GetGrantSchemeDto getGrantSchemeDto = new GetGrantSchemeDto(grantScheme);
 
-        when(grantSchemeService.getSchemeById(SCHEME_ID)).thenReturn(grantScheme);
+        when(grantSchemeService.getSchemeByIdWithApplicationAndAdverts(SCHEME_ID)).thenReturn(grantScheme);
 
         ResponseEntity<GetGrantSchemeWithApplicationAndAdverts> response = controllerUnderTest.getGrantSchemeById(SCHEME_ID);
 
-        verify(grantSchemeService).getSchemeById(SCHEME_ID);
+        verify(grantSchemeService).getSchemeByIdWithApplicationAndAdverts(SCHEME_ID);
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertEquals(GetGrantSchemeWithApplicationAndAdverts.builder()
                 .grantScheme(getGrantSchemeDto)

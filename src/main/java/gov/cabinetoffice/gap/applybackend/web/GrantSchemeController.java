@@ -1,7 +1,6 @@
 package gov.cabinetoffice.gap.applybackend.web;
 
 import gov.cabinetoffice.gap.applybackend.dto.api.*;
-import gov.cabinetoffice.gap.applybackend.exception.NotFoundException;
 import gov.cabinetoffice.gap.applybackend.mapper.GrantSchemeMapper;
 import gov.cabinetoffice.gap.applybackend.model.GrantScheme;
 import gov.cabinetoffice.gap.applybackend.service.GrantAdvertService;
@@ -38,7 +37,7 @@ public class GrantSchemeController {
     public ResponseEntity<GetGrantSchemeWithApplicationAndAdverts> getGrantSchemeById(@PathVariable Integer grantSchemeId) {
         final JwtPayload jwtPayload = (JwtPayload) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
 
-        final GrantScheme grantScheme = grantSchemeService.getSchemeById(grantSchemeId);
+        final GrantScheme grantScheme = grantSchemeService.getSchemeByIdWithApplicationAndAdverts(grantSchemeId);
         final GetGrantSchemeDto grantSchemeDto = new GetGrantSchemeDto(grantScheme);
         final GetGrantApplicationDto grantApplicationDto = grantSchemeMapper.grantSchemeToGetGrantApplicationDto(grantScheme);
         final List<GetGrantAdvertDto> grantAdvertDtos = grantScheme.getGrantAdverts().stream()
