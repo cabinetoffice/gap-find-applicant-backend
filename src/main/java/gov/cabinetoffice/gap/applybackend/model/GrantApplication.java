@@ -50,7 +50,7 @@ public class GrantApplication extends BaseEntity {
     private ApplicationDefinition definition;
 
     public GrantApplication(GrantScheme grantScheme, String applicationName, Integer lastUpdateBy,
-                            ApplicationDefinition definition) {
+            ApplicationDefinition definition) {
         this.version = 2;
         this.created = Instant.now();
         this.lastUpdated = Instant.now();

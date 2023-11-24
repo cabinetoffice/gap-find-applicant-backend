@@ -1,6 +1,7 @@
 package gov.cabinetoffice.gap.applybackend.model;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonManagedReference;
 import gov.cabinetoffice.gap.applybackend.enums.GrantAdvertStatus;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -49,6 +50,7 @@ public class GrantAdvert extends BaseEntity {
     @JoinColumn(name = "scheme_id", nullable = false)
     @ToString.Exclude
     @JsonIgnoreProperties({"hibernateLazyInitializer"})
+    @JsonManagedReference
     private GrantScheme scheme;
 
     @Column(name = "version", nullable = false)
