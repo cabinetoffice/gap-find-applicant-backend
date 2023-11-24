@@ -1,12 +1,7 @@
 package gov.cabinetoffice.gap.applybackend.model;
 
 import gov.cabinetoffice.gap.applybackend.enums.GrantApplicantStatus;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
-import lombok.ToString;
+import lombok.*;
 import org.hibernate.annotations.Type;
 
 import javax.persistence.*;
@@ -16,7 +11,6 @@ import java.time.Instant;
 @Table(name = "grant_application")
 @Getter
 @Setter
-@ToString
 @AllArgsConstructor
 @NoArgsConstructor
 @Builder
@@ -27,7 +21,8 @@ public class GrantApplication extends BaseEntity {
     @Column(name = "grant_application_id")
     private Integer id;
 
-    @OneToOne(fetch = FetchType.LAZY)
+    @ToString.Exclude
+    @OneToOne(cascade = CascadeType.ALL, orphanRemoval = true)
     @JoinColumn(name = "grant_scheme_id")
     private GrantScheme grantScheme;
 

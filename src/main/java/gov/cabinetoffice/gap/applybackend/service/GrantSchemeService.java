@@ -12,9 +12,16 @@ public class GrantSchemeService {
 
     private final GrantSchemeRepository grantSchemeRepository;
 
-    public GrantScheme getSchemeById(Integer schemeId) {
+    public GrantScheme getSchemeByIdWithApplicationAndAdverts(Integer schemeId) {
         return grantSchemeRepository
                 .findByIdWithApplicationAndAdverts(schemeId)
+                .orElseThrow(() -> new NotFoundException(
+                        String.format("No Grant Scheme with ID %s was found", schemeId)));
+    }
+
+    public GrantScheme getSchemeById(Integer schemeId) {
+        return grantSchemeRepository
+                .findById(schemeId)
                 .orElseThrow(() -> new NotFoundException(
                         String.format("No Grant Scheme with ID %s was found", schemeId)));
     }

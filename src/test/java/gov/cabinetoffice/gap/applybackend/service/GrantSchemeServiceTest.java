@@ -41,20 +41,20 @@ class GrantSchemeServiceTest {
                 .email("contact@contact.com")
                 .build();
 
-        when(grantSchemeRepository.findByIdWithApplicationAndAdverts(SCHEME_ID)).thenReturn(Optional.of(scheme));
+        when(grantSchemeRepository.findById(SCHEME_ID)).thenReturn(Optional.of(scheme));
 
         GrantScheme methodResponse = serviceUnderTest.getSchemeById(SCHEME_ID);
 
-        verify(grantSchemeRepository).findByIdWithApplicationAndAdverts(SCHEME_ID);
+        verify(grantSchemeRepository).findById(SCHEME_ID);
         assertEquals(methodResponse, scheme);
     }
 
     @Test
     void getGrantSchemeById_OrgNotFound() {
-        when(grantSchemeRepository.findByIdWithApplicationAndAdverts(SCHEME_ID)).thenReturn(Optional.empty());
+        when(grantSchemeRepository.findById(SCHEME_ID)).thenReturn(Optional.empty());
 
         Exception result = assertThrows(NotFoundException.class, () -> serviceUnderTest.getSchemeById(SCHEME_ID));
-        verify(grantSchemeRepository).findByIdWithApplicationAndAdverts(SCHEME_ID);
+        verify(grantSchemeRepository).findById(SCHEME_ID);
         
         assertTrue(result.getMessage().contains("No Grant Scheme with ID "+ SCHEME_ID + " was found"));
     }
