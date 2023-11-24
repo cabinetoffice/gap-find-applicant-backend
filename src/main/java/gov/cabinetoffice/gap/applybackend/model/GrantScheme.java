@@ -1,5 +1,7 @@
 package gov.cabinetoffice.gap.applybackend.model;
 
+import com.fasterxml.jackson.annotation.JsonBackReference;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import lombok.*;
 
 import javax.persistence.*;
@@ -47,8 +49,11 @@ public class GrantScheme {
     @Column(name = "scheme_contact")
     private String email;
 
-    @ToString.Exclude
     @OneToMany(mappedBy = "scheme", orphanRemoval = true, cascade = CascadeType.ALL)
+    @ToString.Exclude
+    @JsonIgnoreProperties({ "hibernateLazyInitializer" })
+    @JsonBackReference
+    @Builder.Default
     private List<GrantAdvert> grantAdverts = new ArrayList<>();
 
     @ToString.Exclude
