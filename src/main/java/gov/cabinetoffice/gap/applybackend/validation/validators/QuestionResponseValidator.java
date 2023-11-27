@@ -139,7 +139,7 @@ public class QuestionResponseValidator implements ConstraintValidator<ValidQuest
             }
         }
 
-        if(containsSpecialCharacters(submittedQuestion.getResponse())) {
+        if (!singleResponseIsEmpty && containsSpecialCharacters(submittedQuestion.getResponse())) {
             result.addError(ValidationConstants.SINGLE_RESPONSE_FIELD, "Answer must only include letters, numbers, and special characters such as hyphens, spaces and apostrophes");
             return result;
         }
