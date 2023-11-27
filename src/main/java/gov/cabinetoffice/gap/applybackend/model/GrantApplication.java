@@ -1,5 +1,6 @@
 package gov.cabinetoffice.gap.applybackend.model;
 
+import com.fasterxml.jackson.annotation.JsonManagedReference;
 import gov.cabinetoffice.gap.applybackend.enums.GrantApplicantStatus;
 import lombok.*;
 import org.hibernate.annotations.Type;
@@ -22,8 +23,9 @@ public class GrantApplication extends BaseEntity {
     private Integer id;
 
     @ToString.Exclude
-    @OneToOne(cascade = CascadeType.ALL, orphanRemoval = true)
+    @OneToOne(cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     @JoinColumn(name = "grant_scheme_id")
+    @JsonManagedReference
     private GrantScheme grantScheme;
 
     @Column(name = "version")
