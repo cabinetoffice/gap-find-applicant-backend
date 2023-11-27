@@ -1,6 +1,6 @@
 package gov.cabinetoffice.gap.applybackend.model;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonBackReference;
 import lombok.*;
 
 import javax.persistence.*;
@@ -49,10 +49,11 @@ public class GrantScheme {
 
     @ToString.Exclude
     @OneToMany(mappedBy = "scheme", orphanRemoval = true, cascade = CascadeType.ALL)
+    @JsonBackReference
     private List<GrantAdvert> grantAdverts = new ArrayList<>();
 
     @ToString.Exclude
     @OneToOne(cascade = CascadeType.ALL, orphanRemoval = true, mappedBy = "grantScheme")
-    @JsonIgnore
+    @JsonBackReference
     private GrantApplication grantApplication;
 }
