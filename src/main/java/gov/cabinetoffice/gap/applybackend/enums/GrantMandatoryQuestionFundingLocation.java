@@ -8,7 +8,7 @@ public enum GrantMandatoryQuestionFundingLocation {
     YORKSHIRE_AND_THE_HUMBER("Yorkshire and the Humber"),
     EAST_MIDLANDS_ENGLAND("East Midlands (England)"),
     WEST_MIDLANDS("West Midlands (England)"),
-    EAST_ENGLAND("East England"),
+    EAST_ENGLAND("East (England)"),
     LONDON("London"),
     SOUTH_EAST_ENGLAND("South East (England)"),
     SOUTH_WEST_ENGLAND("South West (England)"),
