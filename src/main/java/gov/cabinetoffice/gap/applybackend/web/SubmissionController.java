@@ -3,16 +3,23 @@ package gov.cabinetoffice.gap.applybackend.web;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import gov.cabinetoffice.gap.applybackend.constants.APIConstants;
 import gov.cabinetoffice.gap.applybackend.dto.api.*;
+import gov.cabinetoffice.gap.eventservice.enums.EventType;
 import gov.cabinetoffice.gap.applybackend.enums.GrantAttachmentStatus;
 import gov.cabinetoffice.gap.applybackend.enums.GrantMandatoryQuestionOrgType;
 import gov.cabinetoffice.gap.applybackend.enums.SubmissionSectionStatus;
 import gov.cabinetoffice.gap.applybackend.exception.AttachmentException;
 import gov.cabinetoffice.gap.applybackend.exception.GrantApplicationNotPublishedException;
+import gov.cabinetoffice.gap.eventservice.exception.InvalidEventException;
 import gov.cabinetoffice.gap.applybackend.exception.NotFoundException;
 import gov.cabinetoffice.gap.applybackend.model.*;
 import gov.cabinetoffice.gap.applybackend.service.*;
+
+import static gov.cabinetoffice.gap.applybackend.utils.SecurityContextHelper.getJwtIdFromSecurityContext;
 import static gov.cabinetoffice.gap.applybackend.utils.SecurityContextHelper.getUserIdFromSecurityContext;
+
+import gov.cabinetoffice.gap.eventservice.service.EventLogService;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.io.FilenameUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -22,12 +29,14 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
+import javax.servlet.http.HttpServletRequest;
 import javax.validation.Valid;
 import java.time.Clock;
 import java.time.Instant;
 import java.util.*;
 
 // TODO This class could probably be broken up into a few smaller more targeted classes
+@Slf4j
 @RequiredArgsConstructor
 @RequestMapping("/submissions")
 @RestController
@@ -42,6 +51,7 @@ public class SubmissionController {
 
     private final SecretAuthService secretAuthService;
     private final AttachmentService attachmentService;
+    private final EventLogService eventLogService;
     private final Logger logger = LoggerFactory.getLogger(SubmissionController.class);
     private final Clock clock;
 
@@ -73,6 +83,9 @@ public class SubmissionController {
     public ResponseEntity<String> postSectionReview(@PathVariable final UUID submissionId, @PathVariable final String sectionId, final @RequestBody @Valid SubmissionReviewBodyDto body) {
         final String applicantId = getUserIdFromSecurityContext();
         final SubmissionSectionStatus sectionStatus = submissionService.handleSectionReview(applicantId, submissionId, sectionId, body.getIsComplete());
+
+        logSubmissionEvent(EventType.SUBMISSION_UPDATED, submissionId.toString());
+
         return ResponseEntity.ok(String.format("Section with ID %s status has been updated to %s.", sectionId, sectionStatus.toString()));
     }
 
@@ -133,28 +146,6 @@ public class SubmissionController {
         return ResponseEntity.ok(exemplarQuestionDto);
     }
 
-    private GetSubmissionDto buildSubmissionDto(Submission submission) {
-        List<GetSectionDto> sections = new ArrayList<>();
-        for (SubmissionSection section : submission.getDefinition().getSections()) {
-            List<String> questionIds = section.getQuestions().stream().map(SubmissionQuestion::getQuestionId).toList();
-            sections.add(GetSectionDto.builder()
-                    .sectionId(section.getSectionId())
-                    .sectionStatus(section.getSectionStatus().toString())
-                    .sectionTitle(section.getSectionTitle())
-                    .questionIds(questionIds)
-                    .build());
-        }
-
-        return GetSubmissionDto.builder()
-                .grantSubmissionId(submission.getId())
-                .grantApplicationId(submission.getApplication().getId())
-                .grantSchemeId(submission.getScheme().getId())
-                .applicationName(submission.getApplicationName())
-                .submissionStatus(submission.getStatus())
-                .sections(sections)
-                .build();
-    }
-
     @PostMapping("/{submissionId}/sections/{sectionId}/questions/{questionId}")
     public ResponseEntity<GetNavigationParamsDto> save(@PathVariable final UUID submissionId,
                                                        @PathVariable final String sectionId,
@@ -162,6 +153,9 @@ public class SubmissionController {
                                                        @Valid @RequestBody CreateQuestionResponseDto questionResponse) {
         final String applicantId = getUserIdFromSecurityContext();
         submissionService.saveQuestionResponse(questionResponse, applicantId, submissionId, sectionId);
+
+        logSubmissionEvent(EventType.SUBMISSION_UPDATED, submissionId.toString());
+
         return ResponseEntity.ok(submissionService.getNextNavigation(applicantId, submissionId, sectionId, questionId, false));
     }
 
@@ -195,6 +189,8 @@ public class SubmissionController {
             }
         }
 
+        logSubmissionEvent(EventType.SUBMISSION_PUBLISHED, submission.getId().toString());
+
         return ResponseEntity.ok("Submitted");
     }
 
@@ -204,7 +200,8 @@ public class SubmissionController {
     }
 
     @PostMapping("/createSubmission/{applicationId}")
-    public ResponseEntity<CreateSubmissionResponseDto> createApplication(@PathVariable final int applicationId) throws JsonProcessingException {
+    public ResponseEntity<CreateSubmissionResponseDto> createApplication(@PathVariable final int applicationId)
+            throws JsonProcessingException {
         final String applicantId = getUserIdFromSecurityContext();
         final boolean isGrantApplicationPublished = grantApplicationService.isGrantApplicationPublished(applicationId);
         if (!isGrantApplicationPublished) {
@@ -225,12 +222,15 @@ public class SubmissionController {
                     .submissionId(existingSubmission.get().getId())
                     .build());
         }
+        CreateSubmissionResponseDto submissionResponseDto = submissionService.createSubmissionFromApplication(applicantId, grantApplicant, grantApplication);
+        logSubmissionEvent(EventType.SUBMISSION_CREATED, submissionResponseDto.getSubmissionId().toString());
 
-        return ResponseEntity.ok(submissionService.createSubmissionFromApplication(applicantId, grantApplicant, grantApplication));
+        return ResponseEntity.ok(submissionResponseDto);
     }
 
     @PutMapping("/{submissionId}/question/{questionId}/attachment/scanresult")
-    public ResponseEntity<String> updateAttachment(@PathVariable final UUID submissionId,
+    public ResponseEntity<String> updateAttachment(
+                                                   @PathVariable final UUID submissionId,
                                                    @PathVariable final String questionId,
                                                    @RequestBody final UpdateAttachmentDto updateDetails,
                                                    @RequestHeader(HttpHeaders.AUTHORIZATION) final String authHeader) {
@@ -250,11 +250,15 @@ public class SubmissionController {
         }
 
         grantAttachmentService.save(attachment);
+
+        logSubmissionEvent(EventType.SUBMISSION_UPDATED, submissionId.toString());
+
         return ResponseEntity.ok("Attachment Updated");
     }
 
     @PostMapping("/{submissionId}/sections/{sectionId}/questions/{questionId}/attach")
-    public ResponseEntity<GetNavigationParamsDto> postAttachment(@PathVariable final UUID submissionId,
+    public ResponseEntity<GetNavigationParamsDto> postAttachment(
+                                                                 @PathVariable final UUID submissionId,
                                                                  @PathVariable final String sectionId,
                                                                  @PathVariable final String questionId,
                                                                  @RequestBody final MultipartFile attachment) {
@@ -303,6 +307,8 @@ public class SubmissionController {
         question.setResponse(cleanedOriginalFilename);
         this.submissionService.saveSubmission(submission);
 
+        logSubmissionEvent(EventType.SUBMISSION_UPDATED, submissionId.toString());
+
         return ResponseEntity.ok(submissionService.getNextNavigation(applicantId, submissionId, sectionId, questionId, false));
     }
 
@@ -328,6 +334,8 @@ public class SubmissionController {
                 ))
                 .build();
 
+        logSubmissionEvent(EventType.SUBMISSION_UPDATED, submissionId.toString());
+
         return ResponseEntity.ok(nextNav);
     }
 
@@ -338,5 +346,49 @@ public class SubmissionController {
                                                                                @RequestParam(required = false, defaultValue = "false") final boolean saveAndExit) {
         final String applicantId = getUserIdFromSecurityContext();
         return ResponseEntity.ok(submissionService.getNextNavigation(applicantId, submissionId, sectionId, questionId, saveAndExit));
+    }
+
+    private GetSubmissionDto buildSubmissionDto(Submission submission) {
+        List<GetSectionDto> sections = new ArrayList<>();
+        for (SubmissionSection section : submission.getDefinition().getSections()) {
+            List<String> questionIds = section.getQuestions().stream().map(SubmissionQuestion::getQuestionId).toList();
+            sections.add(GetSectionDto.builder()
+                    .sectionId(section.getSectionId())
+                    .sectionStatus(section.getSectionStatus().toString())
+                    .sectionTitle(section.getSectionTitle())
+                    .questionIds(questionIds)
+                    .build());
+        }
+
+        return GetSubmissionDto.builder()
+                .grantSubmissionId(submission.getId())
+                .grantApplicationId(submission.getApplication().getId())
+                .grantSchemeId(submission.getScheme().getId())
+                .applicationName(submission.getApplicationName())
+                .submissionStatus(submission.getStatus())
+                .sections(sections)
+                .build();
+    }
+
+    private void logSubmissionEvent(EventType eventType, String submissionId) {
+
+        try {
+            final String jwtId = getJwtIdFromSecurityContext();
+            final String userSub = getUserIdFromSecurityContext();
+            switch (eventType) {
+                case SUBMISSION_CREATED -> eventLogService.logSubmissionCreatedEvent(jwtId, userSub, submissionId);
+
+                case SUBMISSION_UPDATED -> eventLogService.logSubmissionUpdatedEvent(jwtId, userSub, submissionId);
+
+                case SUBMISSION_PUBLISHED -> eventLogService.logSubmissionPublishedEvent(jwtId, userSub, submissionId);
+
+                default -> throw new InvalidEventException("Invalid event provided: " + eventType);
+            }
+
+        }
+        catch (Exception e) {
+            // If anything goes wrong logging to event service, log and continue
+            log.error("Could not send to event service. Exception: ", e);
+        }
     }
 }
