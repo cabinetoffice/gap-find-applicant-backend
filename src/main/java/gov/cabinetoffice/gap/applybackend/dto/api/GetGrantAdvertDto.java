@@ -31,4 +31,6 @@ public class GetGrantAdvertDto {
     private boolean isAdvertInDatabase;
 
     private GetGrantMandatoryQuestionDto mandatoryQuestionsDto;
+
+    private boolean isPublished;
 }
