@@ -14,6 +14,7 @@ import org.springframework.stereotype.Service;
 
 import java.time.Clock;
 import java.time.Instant;
+import java.util.Map;
 import java.util.UUID;
 
 @Slf4j
@@ -21,7 +22,6 @@ import java.util.UUID;
 @Service
 public class SpotlightService {
 
-    public static final String SPOTLIGHT_SUBMISSION_ID = "spotlightSubmissionId";
     public static final int SPOTLIGHT_SUBSCRIPTION_VERSION = 1;
     private final SpotlightSubmissionRepository spotlightSubmissionRepository;
     private final AmazonSQS amazonSqs;
@@ -42,12 +42,16 @@ public class SpotlightService {
 
         // send that object to SQS for processing
         final UUID messageId = UUID.randomUUID();
+        final MessageAttributeValue messageAttributeValue = new MessageAttributeValue()
+                .withDataType("String")
+                .withStringValue(Instant.now().toString());
 
         final SendMessageRequest messageRequest = new SendMessageRequest()
                 .withQueueUrl(spotlightQueueProperties.getQueueUrl())
                 .withMessageGroupId(messageId.toString())
                 .withMessageBody(savedSpotlightSubmission.getId().toString())
-                .withMessageDeduplicationId(messageId.toString());
+                .withMessageDeduplicationId(messageId.toString())
+                .withMessageAttributes(Map.of("SentTimeStamp", messageAttributeValue));
 
         amazonSqs.sendMessage(messageRequest);
     }
