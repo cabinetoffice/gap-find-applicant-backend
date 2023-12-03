@@ -21,6 +21,8 @@ import org.mockito.*;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.stream.Stream;
 
@@ -381,6 +383,11 @@ class GrantMandatoryQuestionServiceTest {
         @Test
         void updateMandatoryQuestion_UpdatesExpectedMandatoryQuestionsAndSetsGapId() {
             final UUID mandatoryQuestionsId = UUID.randomUUID();
+
+            final LocalDate currentDate = LocalDate.now();
+            final DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyyMMdd");
+            final String date = currentDate.format(formatter);
+
             final GrantMandatoryQuestions grantMandatoryQuestions = GrantMandatoryQuestions
                     .builder()
                     .id(mandatoryQuestionsId)
@@ -398,31 +405,10 @@ class GrantMandatoryQuestionServiceTest {
 
             verify(grantMandatoryQuestionRepository).save(grantMandatoryQuestions);
             assertThat(methodResponse).isEqualTo(grantMandatoryQuestions);
-            assertThat(methodResponse.getGapId()).contains("GAP-local-MQ-");
+
+            //GAP ID Should be GAP-{environment}-{date}-{version}{recordNumber}-{userId}
+            assertThat(methodResponse.getGapId()).isEqualTo("GAP-"+ "local" + "-" + date + "-22-1");
             assertThat(methodResponse.getGapId()).isEqualTo(grantMandatoryQuestions.getGapId());
-        }
-
-        @Test
-        void updateMandatoryQuestion_UpdatesExpectedMandatoryQuestionsAndSetsGapIdBySubmission() {
-            final UUID mandatoryQuestionsId = UUID.randomUUID();
-            final Submission submission = Submission.builder().gapId("GAP-ID").build();
-            final GrantMandatoryQuestions grantMandatoryQuestions = GrantMandatoryQuestions
-                    .builder()
-                    .id(mandatoryQuestionsId)
-                    .status(GrantMandatoryQuestionStatus.COMPLETED)
-                    .submission(submission)
-                    .build();
-
-            when(grantMandatoryQuestionRepository.findById(mandatoryQuestionsId))
-                    .thenReturn(Optional.of(grantMandatoryQuestions));
-            when(grantMandatoryQuestionRepository.save(grantMandatoryQuestions))
-                    .thenReturn(grantMandatoryQuestions);
-
-            final GrantMandatoryQuestions methodResponse = serviceUnderTest.updateMandatoryQuestion(grantMandatoryQuestions, grantApplicant);
-
-            verify(grantMandatoryQuestionRepository).save(grantMandatoryQuestions);
-            assertThat(methodResponse).isEqualTo(grantMandatoryQuestions);
-            assertThat(methodResponse.getGapId()).isEqualTo(submission.getGapId());
         }
     }
 
