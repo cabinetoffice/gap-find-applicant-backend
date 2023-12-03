@@ -95,9 +95,7 @@ public class GrantMandatoryQuestionService {
 
     public GrantMandatoryQuestions updateMandatoryQuestion(GrantMandatoryQuestions grantMandatoryQuestions, GrantApplicant grantApplicant) {
         if (grantMandatoryQuestions.getStatus().equals(GrantMandatoryQuestionStatus.COMPLETED)) {
-            final Submission submission = grantMandatoryQuestions.getSubmission();
-            final String gapId = submission == null ? GapIdGenerator
-                    .generateGapId(grantApplicant.getId(), envProperties.getEnvironmentName(), grantMandatoryQuestionRepository.count(), true) : submission.getGapId();
+            final String gapId = GapIdGenerator.generateGapId(grantApplicant.getId(), envProperties.getEnvironmentName(), grantMandatoryQuestionRepository.count(), 2);
             grantMandatoryQuestions.setGapId(gapId);
         }
         return grantMandatoryQuestionRepository

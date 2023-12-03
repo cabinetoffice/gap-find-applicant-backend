@@ -221,17 +221,21 @@ public class SubmissionService {
         }
 
         final long diligenceCheckRecordsFromToday = getDiligenceCheckRecordsCountFromToday();
+        final int version = submission.getScheme().getVersion();
 
-        final String gapId = GapIdGenerator.generateGapId(
-                grantApplicant.getId(),
-                envProperties.getEnvironmentName(),
-                diligenceCheckRecordsFromToday + 1,
-                false
-        );
-        submission.setGapId(gapId);
-        if (submission.getScheme().getVersion() > 1) {
-            setMandatoryQuestionsGapId(submission);
+        final Optional<GrantMandatoryQuestions> grantMandatoryQuestion = grantMandatoryQuestionRepository.findBySubmissionId(submission.getId());
+        final String gapId;
+        if (grantMandatoryQuestion.isPresent()) {
+            gapId = grantMandatoryQuestion.get().getGapId();
+        } else {
+            gapId = GapIdGenerator.generateGapId(
+                    grantApplicant.getId(),
+                    envProperties.getEnvironmentName(),
+                    diligenceCheckRecordsFromToday + 1,
+                    version
+            );
         }
+        submission.setGapId(gapId);
 
         submitApplication(submission);
         notifyClient.sendConfirmationEmail(emailAddress, submission);
