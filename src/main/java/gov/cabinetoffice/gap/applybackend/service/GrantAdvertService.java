@@ -7,6 +7,7 @@ import com.contentful.java.cda.CDAEntry;
 import com.contentful.java.cda.CDAResourceNotFoundException;
 import gov.cabinetoffice.gap.applybackend.dto.api.GetGrantAdvertDto;
 import gov.cabinetoffice.gap.applybackend.dto.api.GetGrantMandatoryQuestionDto;
+import gov.cabinetoffice.gap.applybackend.enums.GrantAdvertStatus;
 import gov.cabinetoffice.gap.applybackend.exception.NotFoundException;
 import gov.cabinetoffice.gap.applybackend.mapper.GrantMandatoryQuestionMapper;
 import gov.cabinetoffice.gap.applybackend.model.GrantAdvert;
@@ -63,6 +64,7 @@ public class GrantAdvertService {
                 .grantSchemeId(advert.getScheme().getId())
                 .isAdvertInDatabase(true)
                 .mandatoryQuestionsDto(mandatoryQuestions)
+                .isPublished(advert.getStatus() == GrantAdvertStatus.PUBLISHED)
                 .build();
     }
 
