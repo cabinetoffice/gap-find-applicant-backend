@@ -32,5 +32,6 @@ public class GetGrantAdvertDto {
 
     private GetGrantMandatoryQuestionDto mandatoryQuestionsDto;
 
+    @JsonProperty("isPublished")
     private boolean isPublished;
 }
