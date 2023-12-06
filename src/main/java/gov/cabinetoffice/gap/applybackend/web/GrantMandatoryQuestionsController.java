@@ -81,7 +81,7 @@ public class GrantMandatoryQuestionsController {
     })
     public ResponseEntity<GetGrantMandatoryQuestionDto> getGrantMandatoryQuestionsBySubmissionId(@PathVariable final UUID submissionId) {
         final JwtPayload jwtPayload = (JwtPayload) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
-        final GrantMandatoryQuestions grantMandatoryQuestions = grantMandatoryQuestionService.getGrantMandatoryQuestionBySubmissionId(submissionId, jwtPayload.getSub());
+        final GrantMandatoryQuestions grantMandatoryQuestions = grantMandatoryQuestionService.getGrantMandatoryQuestionBySubmissionIdAndApplicantSub(submissionId, jwtPayload.getSub());
         log.info("Mandatory question with ID {} has been retrieved.", grantMandatoryQuestions.getId());
 
         final GetGrantMandatoryQuestionDto getGrantMandatoryQuestionBySubmissionDto = grantMandatoryQuestionMapper.mapGrantMandatoryQuestionToGetGrantMandatoryQuestionDTO(grantMandatoryQuestions);
@@ -154,6 +154,6 @@ public class GrantMandatoryQuestionsController {
 
         log.info("Mandatory question with ID {} has been updated.", grantMandatoryQuestions.getId());
 
-        return ResponseEntity.ok(grantMandatoryQuestionService.generateNextPageUrl(url, mandatoryQuestionId));
+        return ResponseEntity.ok(grantMandatoryQuestionService.generateNextPageUrl(url, mandatoryQuestionId, jwtPayload.getSub()));
     }
 }

@@ -51,6 +51,11 @@ public class GrantMandatoryQuestions extends BaseEntity {
     @JoinColumn(name = "submission_id", referencedColumnName = "id")
     private Submission submission;
 
+    @Column(name = "org_type")
+    @Enumerated(EnumType.STRING)
+    @ColumnTransformer(write = "?::grant_mandatory_question_type")
+    private GrantMandatoryQuestionOrgType orgType;
+
     @Column(name = "name")
     private String name;
 
@@ -68,11 +73,6 @@ public class GrantMandatoryQuestions extends BaseEntity {
 
     @Column(name = "postcode")
     private String postcode;
-
-    @Column(name = "org_type")
-    @Enumerated(EnumType.STRING)
-    @ColumnTransformer(write = "?::grant_mandatory_question_type")
-    private GrantMandatoryQuestionOrgType orgType;
 
     @Column(name = "companies_house_number")
     private String companiesHouseNumber;

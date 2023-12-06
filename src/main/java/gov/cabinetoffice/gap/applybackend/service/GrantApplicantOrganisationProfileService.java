@@ -37,4 +37,10 @@ public class GrantApplicantOrganisationProfileService {
         grantApplicantService.saveApplicant(applicant);
         return savedProfile;
     }
+
+    public Boolean isOrganisationComplete(final String sub) {
+        final GrantApplicant applicant = grantApplicantService.getApplicantById(sub);
+        final GrantApplicantOrganisationProfile profile = applicant.getOrganisationProfile();
+        return profile.isComplete();
+    }
 }

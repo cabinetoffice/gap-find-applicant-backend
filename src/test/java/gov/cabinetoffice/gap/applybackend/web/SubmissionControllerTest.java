@@ -13,40 +13,25 @@ import gov.cabinetoffice.gap.applybackend.dto.api.JwtPayload;
 import gov.cabinetoffice.gap.applybackend.dto.api.SubmissionReviewBodyDto;
 import gov.cabinetoffice.gap.applybackend.dto.api.SubmitApplicationDto;
 import gov.cabinetoffice.gap.applybackend.dto.api.UpdateAttachmentDto;
-import gov.cabinetoffice.gap.applybackend.enums.GrantAttachmentStatus;
-import gov.cabinetoffice.gap.applybackend.enums.SubmissionQuestionResponseType;
-import gov.cabinetoffice.gap.applybackend.enums.SubmissionSectionStatus;
-import gov.cabinetoffice.gap.applybackend.enums.SubmissionStatus;
+import gov.cabinetoffice.gap.applybackend.enums.*;
 import gov.cabinetoffice.gap.applybackend.exception.AttachmentException;
 import gov.cabinetoffice.gap.applybackend.exception.GrantApplicationNotPublishedException;
 import gov.cabinetoffice.gap.applybackend.exception.NotFoundException;
 import gov.cabinetoffice.gap.applybackend.exception.SubmissionAlreadyCreatedException;
 import gov.cabinetoffice.gap.applybackend.exception.UnauthorizedException;
-import gov.cabinetoffice.gap.applybackend.model.ApplicationDefinition;
-import gov.cabinetoffice.gap.applybackend.model.GrantApplicant;
-import gov.cabinetoffice.gap.applybackend.model.GrantApplicantOrganisationProfile;
-import gov.cabinetoffice.gap.applybackend.model.GrantApplication;
-import gov.cabinetoffice.gap.applybackend.model.GrantAttachment;
-import gov.cabinetoffice.gap.applybackend.model.GrantScheme;
-import gov.cabinetoffice.gap.applybackend.model.Submission;
-import gov.cabinetoffice.gap.applybackend.model.SubmissionDefinition;
-import gov.cabinetoffice.gap.applybackend.model.SubmissionQuestion;
-import gov.cabinetoffice.gap.applybackend.model.SubmissionQuestionValidation;
-import gov.cabinetoffice.gap.applybackend.model.SubmissionSection;
-import gov.cabinetoffice.gap.applybackend.service.AttachmentService;
-import gov.cabinetoffice.gap.applybackend.service.GrantApplicantService;
-import gov.cabinetoffice.gap.applybackend.service.GrantApplicationService;
-import gov.cabinetoffice.gap.applybackend.service.GrantAttachmentService;
-import gov.cabinetoffice.gap.applybackend.service.SecretAuthService;
-import gov.cabinetoffice.gap.applybackend.service.SubmissionService;
+import gov.cabinetoffice.gap.applybackend.model.*;
+import gov.cabinetoffice.gap.applybackend.service.*;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.EnumSource;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
+import org.mockito.Mockito;
+import static org.mockito.Mockito.*;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -71,11 +56,6 @@ import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockito.Mockito.anyString;
-import static org.mockito.Mockito.doReturn;
-import static org.mockito.Mockito.doThrow;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class SubmissionControllerTest {
@@ -287,6 +267,12 @@ class SubmissionControllerTest {
     @Mock
     private AttachmentService attachmentService;
 
+    @Mock
+    private SpotlightService spotlightService;
+
+    @Mock
+    private GrantMandatoryQuestionService mandatoryQuestionService;
+
     final String CHRISTMAS_2022_MIDDAY = "2022-12-25T12:00:00.00z";
     final Clock clock = Clock.fixed(Instant.parse(CHRISTMAS_2022_MIDDAY), ZoneId.of("UTC"));
 
@@ -294,7 +280,8 @@ class SubmissionControllerTest {
 
     @BeforeEach
     void setup() {
-        controllerUnderTest = new SubmissionController(submissionService, grantApplicantService, grantAttachmentService, grantApplicationService, secretAuthService, attachmentService, clock);
+        // TODO holy argument list batman, this class needs broken down!§§§
+        controllerUnderTest = new SubmissionController(submissionService, grantApplicantService, grantAttachmentService, grantApplicationService, spotlightService, mandatoryQuestionService, secretAuthService, attachmentService, clock);
         when(securityContext.getAuthentication()).thenReturn(authentication);
         SecurityContextHolder.setContext(securityContext);
         JwtPayload jwtPayload = JwtPayload.builder().sub(String.valueOf(APPLICANT_USER_ID)).build();
@@ -457,6 +444,91 @@ class SubmissionControllerTest {
 
         ResponseEntity<String> response = controllerUnderTest.submitApplication(submitApplication);
 
+        verify(submissionService).getSubmissionFromDatabaseBySubmissionId(APPLICANT_USER_ID, SUBMISSION_ID);
+        verify(submissionService).submit(submission, grantApplicant, emailAddress);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(response.getBody()).isEqualTo("Submitted");
+    }
+
+    @Test
+    void submitApplication_isSuccessfulAndReturnsExpectedResponse_ForV2Schemes() {
+
+        // set up the V2 scheme
+        submission.getScheme().setVersion(2);
+
+        final String emailAddress = "test@email.com";
+        final GrantApplicant grantApplicant = GrantApplicant.builder().userId(APPLICANT_USER_ID).id(1).build();
+        final SubmitApplicationDto submitApplication = SubmitApplicationDto.builder()
+                .submissionId(SUBMISSION_ID)
+                .build();
+        final JwtPayload jwtPayload = JwtPayload.builder().sub(APPLICANT_USER_ID).email(emailAddress).build();
+
+        final GrantMandatoryQuestions mandatoryQuestions = GrantMandatoryQuestions.builder()
+                .orgType(GrantMandatoryQuestionOrgType.LIMITED_COMPANY)
+                .build();
+
+        when(SecurityContextHolder.getContext().getAuthentication().getPrincipal())
+                .thenReturn(jwtPayload);
+
+        when(submissionService.getSubmissionFromDatabaseBySubmissionId(APPLICANT_USER_ID, SUBMISSION_ID))
+                .thenReturn(submission);
+
+        when(grantApplicantService.getApplicantFromPrincipal())
+                .thenReturn(grantApplicant);
+
+        when(mandatoryQuestionService.getGrantMandatoryQuestionBySubmissionIdAndApplicantSub(submission.getId(), grantApplicant.getUserId()))
+                .thenReturn(mandatoryQuestions);
+
+
+        final ResponseEntity<String> response = controllerUnderTest.submitApplication(submitApplication);
+
+
+        verify(mandatoryQuestionService).getGrantMandatoryQuestionBySubmissionIdAndApplicantSub(submission.getId(), grantApplicant.getUserId());
+        verify(spotlightService).createSpotlightCheck(mandatoryQuestions, submission.getScheme());
+        verify(submissionService).getSubmissionFromDatabaseBySubmissionId(APPLICANT_USER_ID, SUBMISSION_ID);
+        verify(submissionService).submit(submission, grantApplicant, emailAddress);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(response.getBody()).isEqualTo("Submitted");
+    }
+
+    @ParameterizedTest
+    @EnumSource(value = GrantMandatoryQuestionOrgType.class, names = {"INDIVIDUAL", "OTHER"})
+    void submitApplication_DoesNotCreateSpotlightCheck_ForIndividualsOrOther_ForV2Schemes(GrantMandatoryQuestionOrgType orgType) {
+
+        // set up the V2 scheme
+        submission.getScheme().setVersion(2);
+
+        final String emailAddress = "test@email.com";
+        final GrantApplicant grantApplicant = GrantApplicant.builder().userId(APPLICANT_USER_ID).id(1).build();
+        final SubmitApplicationDto submitApplication = SubmitApplicationDto.builder()
+                .submissionId(SUBMISSION_ID)
+                .build();
+        final JwtPayload jwtPayload = JwtPayload.builder().sub(APPLICANT_USER_ID).email(emailAddress).build();
+
+        final GrantMandatoryQuestions mandatoryQuestions = GrantMandatoryQuestions.builder()
+                .orgType(orgType)
+                .build();
+
+        when(SecurityContextHolder.getContext().getAuthentication().getPrincipal())
+                .thenReturn(jwtPayload);
+
+        when(submissionService.getSubmissionFromDatabaseBySubmissionId(APPLICANT_USER_ID, SUBMISSION_ID))
+                .thenReturn(submission);
+
+        when(grantApplicantService.getApplicantFromPrincipal())
+                .thenReturn(grantApplicant);
+
+        when(mandatoryQuestionService.getGrantMandatoryQuestionBySubmissionIdAndApplicantSub(submission.getId(), grantApplicant.getUserId()))
+                .thenReturn(mandatoryQuestions);
+
+
+        final ResponseEntity<String> response = controllerUnderTest.submitApplication(submitApplication);
+
+
+        verify(mandatoryQuestionService).getGrantMandatoryQuestionBySubmissionIdAndApplicantSub(submission.getId(), grantApplicant.getUserId());
+        verify(spotlightService, never()).createSpotlightCheck(Mockito.any(), Mockito.any());
         verify(submissionService).getSubmissionFromDatabaseBySubmissionId(APPLICANT_USER_ID, SUBMISSION_ID);
         verify(submissionService).submit(submission, grantApplicant, emailAddress);
 

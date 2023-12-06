@@ -2,6 +2,7 @@ package gov.cabinetoffice.gap.applybackend.service;
 
 import gov.cabinetoffice.gap.applybackend.config.properties.EnvironmentProperties;
 import gov.cabinetoffice.gap.applybackend.constants.MandatoryQuestionConstants;
+import gov.cabinetoffice.gap.applybackend.enums.GrantMandatoryQuestionOrgType;
 import gov.cabinetoffice.gap.applybackend.enums.GrantMandatoryQuestionStatus;
 import gov.cabinetoffice.gap.applybackend.enums.SubmissionQuestionResponseType;
 import gov.cabinetoffice.gap.applybackend.enums.SubmissionSectionStatus;
@@ -38,7 +39,11 @@ public class GrantMandatoryQuestionService {
         return grantMandatoryQuestion.get();
     }
 
-    public GrantMandatoryQuestions getGrantMandatoryQuestionBySubmissionId(UUID submissionId, String applicantSub) {
+    /*
+        TODO I think we should decouple access control and CRUD functionality.
+        These methods should not require an applicant ID to be passed in to confirm ownership.  
+     */
+    public GrantMandatoryQuestions getGrantMandatoryQuestionBySubmissionIdAndApplicantSub(UUID submissionId, String applicantSub) {
         final Optional<GrantMandatoryQuestions> grantMandatoryQuestion = ofNullable(grantMandatoryQuestionRepository.findBySubmissionId(submissionId)
                 .orElseThrow(() -> new NotFoundException(String.format("No Mandatory Question with submission id %s was found", submissionId))));
 
@@ -90,9 +95,7 @@ public class GrantMandatoryQuestionService {
 
     public GrantMandatoryQuestions updateMandatoryQuestion(GrantMandatoryQuestions grantMandatoryQuestions, GrantApplicant grantApplicant) {
         if (grantMandatoryQuestions.getStatus().equals(GrantMandatoryQuestionStatus.COMPLETED)) {
-            final Submission submission = grantMandatoryQuestions.getSubmission();
-            final String gapId = submission == null ? GapIdGenerator
-                    .generateGapId(grantApplicant.getId(), envProperties.getEnvironmentName(), grantMandatoryQuestionRepository.count(), true) : submission.getGapId();
+            final String gapId = GapIdGenerator.generateGapId(grantApplicant.getId(), envProperties.getEnvironmentName(), grantMandatoryQuestionRepository.count(), 2);
             grantMandatoryQuestions.setGapId(gapId);
         }
         return grantMandatoryQuestionRepository
@@ -101,14 +104,20 @@ public class GrantMandatoryQuestionService {
                 .orElseThrow(() -> new NotFoundException(String.format("No Mandatory Question with id %s was found", grantMandatoryQuestions.getId())));
     }
 
-    public String generateNextPageUrl(String url, UUID mandatoryQuestionId) {
+    public String generateNextPageUrl(String url, UUID mandatoryQuestionId, String applicantSub) {
+        final GrantMandatoryQuestions mqs = getGrantMandatoryQuestionById(mandatoryQuestionId, applicantSub);
         final Map<String, String> mapper = new HashMap<>();
         String mandatoryQuestionsUrlStart = "/mandatory-questions/" + mandatoryQuestionId;
+        mapper.put("organisation-type", mandatoryQuestionsUrlStart + "/organisation-name");
         mapper.put("organisation-name", mandatoryQuestionsUrlStart + "/organisation-address");
-        mapper.put("organisation-address", mandatoryQuestionsUrlStart + "/organisation-type");
-        mapper.put("organisation-type", mandatoryQuestionsUrlStart + "/organisation-companies-house-number");
-        mapper.put("organisation-companies-house-number", mandatoryQuestionsUrlStart + "/organisation-charity-commission-number");
-        mapper.put("organisation-charity-commission-number", mandatoryQuestionsUrlStart + "/organisation-funding-amount");
+        if (mqs.getOrgType() == GrantMandatoryQuestionOrgType.NON_LIMITED_COMPANY
+                || mqs.getOrgType() == GrantMandatoryQuestionOrgType.INDIVIDUAL) {
+            mapper.put("organisation-address", mandatoryQuestionsUrlStart + "/organisation-funding-amount");
+        } else {
+            mapper.put("organisation-address", mandatoryQuestionsUrlStart + "/organisation-companies-house-number");
+            mapper.put("organisation-companies-house-number", mandatoryQuestionsUrlStart + "/organisation-charity-commission-number");
+            mapper.put("organisation-charity-commission-number", mandatoryQuestionsUrlStart + "/organisation-funding-amount");
+        }
         mapper.put("organisation-funding-amount", mandatoryQuestionsUrlStart + "/organisation-funding-location");
         mapper.put("organisation-funding-location", mandatoryQuestionsUrlStart + "/organisation-summary");
 
@@ -150,22 +159,45 @@ public class GrantMandatoryQuestionService {
     }
 
     public SubmissionSection buildOrganisationDetailsSubmissionSection(final GrantMandatoryQuestions mandatoryQuestions, final SubmissionSectionStatus sectionStatus) {
-        final SubmissionQuestion organisationName = mandatoryQuestionToSubmissionQuestion(MandatoryQuestionConstants.SUBMISSION_QUESTION_IDS.APPLICANT_ORG_NAME.toString(), mandatoryQuestions);
-        final SubmissionQuestion applicantType = mandatoryQuestionToSubmissionQuestion(MandatoryQuestionConstants.SUBMISSION_QUESTION_IDS.APPLICANT_TYPE.toString(), mandatoryQuestions);
-        final SubmissionQuestion organisationAddress = mandatoryQuestionToSubmissionQuestion(MandatoryQuestionConstants.SUBMISSION_QUESTION_IDS.APPLICANT_ORG_ADDRESS.toString(), mandatoryQuestions);
-        final SubmissionQuestion charityCommissionNumber = mandatoryQuestionToSubmissionQuestion(MandatoryQuestionConstants.SUBMISSION_QUESTION_IDS.APPLICANT_ORG_CHARITY_NUMBER.toString(), mandatoryQuestions);
-        final SubmissionQuestion companiesHouseNumber = mandatoryQuestionToSubmissionQuestion(MandatoryQuestionConstants.SUBMISSION_QUESTION_IDS.APPLICANT_ORG_COMPANIES_HOUSE.toString(), mandatoryQuestions);
+        final boolean isNonLimitedCompany = Objects.equals(mandatoryQuestions.getOrgType().toString(), GrantMandatoryQuestionOrgType.NON_LIMITED_COMPANY.toString());
+        final boolean isIndividual = Objects.equals(mandatoryQuestions.getOrgType().toString(), GrantMandatoryQuestionOrgType.INDIVIDUAL.toString());
+        final String sectionTitle = isIndividual
+                ? MandatoryQuestionConstants.ORGANISATION_INDIVIDUAL_DETAILS_SECTION_TITLE
+                : MandatoryQuestionConstants.ORGANISATION_DETAILS_SECTION_TITLE;
+        final SubmissionQuestion organisationName = mandatoryQuestionToSubmissionQuestion(
+                MandatoryQuestionConstants.SUBMISSION_QUESTION_IDS.APPLICANT_ORG_NAME.toString(),
+                mandatoryQuestions
+        );
+        final SubmissionQuestion applicantType = mandatoryQuestionToSubmissionQuestion(
+                MandatoryQuestionConstants.SUBMISSION_QUESTION_IDS.APPLICANT_TYPE.toString(),
+                mandatoryQuestions
+        );
+        final SubmissionQuestion organisationAddress = mandatoryQuestionToSubmissionQuestion(
+                MandatoryQuestionConstants.SUBMISSION_QUESTION_IDS.APPLICANT_ORG_ADDRESS.toString(),
+                mandatoryQuestions
+        );
+
+        List<SubmissionQuestion> questions = new ArrayList<>();
+        questions.add(applicantType);
+        questions.add(organisationName);
+        questions.add(organisationAddress);
+        if (!isIndividual && !isNonLimitedCompany) {
+            final SubmissionQuestion charityCommissionNumber = mandatoryQuestionToSubmissionQuestion(
+                    MandatoryQuestionConstants.SUBMISSION_QUESTION_IDS.APPLICANT_ORG_CHARITY_NUMBER.toString(),
+                    mandatoryQuestions
+            );
+            final SubmissionQuestion companiesHouseNumber = mandatoryQuestionToSubmissionQuestion(
+                    MandatoryQuestionConstants.SUBMISSION_QUESTION_IDS.APPLICANT_ORG_COMPANIES_HOUSE.toString(),
+                    mandatoryQuestions
+            );
+            questions.add(charityCommissionNumber);
+            questions.add(companiesHouseNumber);
+        }
 
         return SubmissionSection.builder()
                 .sectionId(MandatoryQuestionConstants.ORGANISATION_DETAILS_SECTION_ID)
-                .sectionTitle(MandatoryQuestionConstants.ORGANISATION_DETAILS_SECTION_TITLE)
-                .questions(List.of(
-                        organisationName,
-                        applicantType,
-                        organisationAddress,
-                        charityCommissionNumber,
-                        companiesHouseNumber
-                ))
+                .sectionTitle(sectionTitle)
+                .questions(questions)
                 .sectionStatus(sectionStatus)
                 .build();
     }
@@ -219,7 +251,7 @@ public class GrantMandatoryQuestionService {
 
         return SubmissionQuestion.builder()
                 .questionId(MandatoryQuestionConstants.SUBMISSION_QUESTION_IDS.APPLICANT_ORG_NAME.toString())
-                .fieldTitle(MandatoryQuestionConstants.APPLICANT_ORG_NAME_TITLE)
+                .fieldTitle(MandatoryQuestionConstants.APPLICANT_SUBMISSION_ORG_NAME_TITLE)
                 .profileField(MandatoryQuestionConstants.APPLICANT_ORG_NAME_PROFILE_FIELD)
                 .hintText(MandatoryQuestionConstants.APPLICANT_ORG_NAME_HINT)
                 .adminSummary(MandatoryQuestionConstants.APPLICANT_ORG_NAME_ADMIN_SUMMARY)
@@ -234,9 +266,13 @@ public class GrantMandatoryQuestionService {
                 .mandatory(true)
                 .build();
 
+        final String title = Objects.equals(mandatoryQuestions.getOrgType().toString(), GrantMandatoryQuestionOrgType.INDIVIDUAL.toString())
+                ? MandatoryQuestionConstants.APPLICANT_INDIVIDUAL_SUBMISSION_TYPE_TITLE
+                : MandatoryQuestionConstants.APPLICANT_SUBMISSION_TYPE_TITLE;
+
         return SubmissionQuestion.builder()
                 .questionId(MandatoryQuestionConstants.SUBMISSION_QUESTION_IDS.APPLICANT_TYPE.toString())
-                .fieldTitle(MandatoryQuestionConstants.APPLICANT_TYPE_TITLE)
+                .fieldTitle(title)
                 .profileField(MandatoryQuestionConstants.APPLICANT_TYPE_PROFILE_FIELD)
                 .hintText(MandatoryQuestionConstants.APPLICANT_ORG_NAME_HINT)
                 .adminSummary(MandatoryQuestionConstants.APPLICANT_TYPE_ADMIN_SUMMARY)
@@ -342,7 +378,7 @@ public class GrantMandatoryQuestionService {
 
         return SubmissionQuestion.builder()
                 .questionId(MandatoryQuestionConstants.SUBMISSION_QUESTION_IDS.APPLICANT_ORG_ADDRESS.toString())
-                .fieldTitle(MandatoryQuestionConstants.ORGANISATION_ADDRESS_TITLE)
+                .fieldTitle(MandatoryQuestionConstants.ORGANISATION_SUBMISSION_ADDRESS_TITLE)
                 .profileField(MandatoryQuestionConstants.ORGANISATION_ADDRESS_PROFILE_FIELD)
                 .adminSummary(MandatoryQuestionConstants.ORGANISATION_ADDRESS_ADMIN_SUMMARY)
                 .responseType(SubmissionQuestionResponseType.AddressInput)

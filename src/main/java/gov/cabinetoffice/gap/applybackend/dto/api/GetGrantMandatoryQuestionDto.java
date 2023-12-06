@@ -40,4 +40,6 @@ public class GetGrantMandatoryQuestionDto {
     private String fundingAmount;
 
     private List<String> fundingLocation;
+
+    private String status;
 }

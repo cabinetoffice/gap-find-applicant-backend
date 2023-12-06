@@ -1,32 +1,24 @@
 package gov.cabinetoffice.gap.applybackend.model;
 
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
-import lombok.ToString;
+import com.fasterxml.jackson.annotation.JsonBackReference;
+import lombok.*;
 
-import javax.persistence.Column;
-import javax.persistence.Entity;
-import javax.persistence.GeneratedValue;
-import javax.persistence.GenerationType;
-import javax.persistence.Id;
-import javax.persistence.Table;
+import javax.persistence.*;
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Table(name = "grant_scheme")
 @Getter
 @Setter
-@ToString
 @AllArgsConstructor
 @NoArgsConstructor
 @Builder
 public class GrantScheme {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "grant_scheme_id")
+    @Column(name = "grant_scheme_id", nullable = false)
     private Integer id;
 
     @Column(name = "funder_id", nullable = false)
@@ -54,4 +46,14 @@ public class GrantScheme {
 
     @Column(name = "scheme_contact")
     private String email;
+
+    @ToString.Exclude
+    @OneToMany(mappedBy = "scheme", orphanRemoval = true, cascade = CascadeType.ALL)
+    @JsonBackReference
+    private List<GrantAdvert> grantAdverts = new ArrayList<>();
+
+    @ToString.Exclude
+    @OneToOne(cascade = CascadeType.ALL, orphanRemoval = true, mappedBy = "grantScheme")
+    @JsonBackReference
+    private GrantApplication grantApplication;
 }

@@ -4,6 +4,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import gov.cabinetoffice.gap.applybackend.constants.APIConstants;
 import gov.cabinetoffice.gap.applybackend.dto.api.*;
 import gov.cabinetoffice.gap.applybackend.enums.GrantAttachmentStatus;
+import gov.cabinetoffice.gap.applybackend.enums.GrantMandatoryQuestionOrgType;
 import gov.cabinetoffice.gap.applybackend.enums.SubmissionSectionStatus;
 import gov.cabinetoffice.gap.applybackend.exception.AttachmentException;
 import gov.cabinetoffice.gap.applybackend.exception.GrantApplicationNotPublishedException;
@@ -36,6 +37,8 @@ public class SubmissionController {
     private final GrantApplicantService grantApplicantService;
     private final GrantAttachmentService grantAttachmentService;
     private final GrantApplicationService grantApplicationService;
+    private final SpotlightService spotlightService;
+    private final GrantMandatoryQuestionService mandatoryQuestionService;
 
     private final SecretAuthService secretAuthService;
     private final AttachmentService attachmentService;
@@ -179,9 +182,25 @@ public class SubmissionController {
         final JwtPayload jwtPayload = (JwtPayload) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
         final GrantApplicant grantApplicant = grantApplicantService.getApplicantFromPrincipal();
         final Submission submission = submissionService.getSubmissionFromDatabaseBySubmissionId(grantApplicant.getUserId(), applicationSubmission.getSubmissionId());
+        final GrantScheme scheme = submission.getScheme();
+
         submissionService.submit(submission, grantApplicant, jwtPayload.getEmail());
 
+        if (scheme.getVersion() > 1) {
+            final GrantMandatoryQuestions mandatoryQuestions = mandatoryQuestionService.getGrantMandatoryQuestionBySubmissionIdAndApplicantSub(submission.getId(), grantApplicant.getUserId());
+            final boolean shouldSendToSpotlight = !isOrganisationIndividualOrOther(mandatoryQuestions);
+
+            if (shouldSendToSpotlight) {
+                spotlightService.createSpotlightCheck(mandatoryQuestions, scheme);
+            }
+        }
+
         return ResponseEntity.ok("Submitted");
+    }
+
+    private boolean isOrganisationIndividualOrOther(GrantMandatoryQuestions mandatoryQuestions) {
+        return mandatoryQuestions.getOrgType().equals(GrantMandatoryQuestionOrgType.INDIVIDUAL) ||
+                mandatoryQuestions.getOrgType().equals(GrantMandatoryQuestionOrgType.OTHER);
     }
 
     @PostMapping("/createSubmission/{applicationId}")

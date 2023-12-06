@@ -7,12 +7,17 @@ import com.contentful.java.cda.CDAEntry;
 import com.contentful.java.cda.CDAResourceNotFoundException;
 import gov.cabinetoffice.gap.applybackend.dto.api.GetGrantAdvertDto;
 import gov.cabinetoffice.gap.applybackend.dto.api.GetGrantMandatoryQuestionDto;
+import gov.cabinetoffice.gap.applybackend.enums.GrantAdvertStatus;
 import gov.cabinetoffice.gap.applybackend.exception.NotFoundException;
+import gov.cabinetoffice.gap.applybackend.mapper.GrantMandatoryQuestionMapper;
 import gov.cabinetoffice.gap.applybackend.model.GrantAdvert;
 import gov.cabinetoffice.gap.applybackend.model.GrantAdvertQuestionResponse;
+import gov.cabinetoffice.gap.applybackend.model.GrantApplicant;
+import gov.cabinetoffice.gap.applybackend.model.GrantMandatoryQuestions;
 import gov.cabinetoffice.gap.applybackend.repository.GrantAdvertRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -21,9 +26,11 @@ import org.springframework.stereotype.Service;
 public class GrantAdvertService {
 
     private final GrantAdvertRepository grantAdvertRepository;
-
+    private final GrantMandatoryQuestionMapper grantMandatoryQuestionMapper;
     private final GrantApplicationService grantApplicationService;
     private final CDAClient contentfulDeliveryClient;
+    private final GrantMandatoryQuestionService grantMandatoryQuestionService;
+    private final GrantApplicantService grantApplicantService;
 
     protected static String getExternalSubmissionUrl(GrantAdvert advert) {
         return advert.getResponse().getSections().stream()
@@ -57,6 +64,7 @@ public class GrantAdvertService {
                 .grantSchemeId(advert.getScheme().getId())
                 .isAdvertInDatabase(true)
                 .mandatoryQuestionsDto(mandatoryQuestions)
+                .isPublished(advert.getStatus() == GrantAdvertStatus.PUBLISHED)
                 .build();
     }
 
@@ -83,5 +91,22 @@ public class GrantAdvertService {
                 .orElseThrow(() -> new NotFoundException("Advert with schemeId " + schemeId + " not found"));
         log.debug("Advert with schemeId {} found", schemeId);
         return grantAdvert;
+    }
+
+    public GetGrantAdvertDto grantAdvertToDto(
+            final GrantAdvert grantAdvert,
+            final String sub,
+            final Integer schemeId
+    ) {
+        final GrantApplicant grantApplicant = grantApplicantService.getApplicantById(sub);
+        GetGrantMandatoryQuestionDto mandatoryQuestionsDto = null;
+
+        if (grantMandatoryQuestionService.existsBySchemeIdAndApplicantId(schemeId, grantApplicant.getId())) {
+            final GrantMandatoryQuestions grantMandatoryQuestions = grantMandatoryQuestionService
+                    .getMandatoryQuestionBySchemeId(schemeId, sub);
+            mandatoryQuestionsDto = grantMandatoryQuestionMapper.mapGrantMandatoryQuestionToGetGrantMandatoryQuestionDTO(grantMandatoryQuestions);
+        }
+
+        return generateGetGrantAdvertDto(grantAdvert, mandatoryQuestionsDto);
     }
 }

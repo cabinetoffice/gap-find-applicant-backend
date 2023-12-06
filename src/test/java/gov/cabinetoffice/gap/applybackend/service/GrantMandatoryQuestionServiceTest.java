@@ -21,6 +21,8 @@ import org.mockito.*;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.stream.Stream;
 
@@ -124,7 +126,7 @@ class GrantMandatoryQuestionServiceTest {
             when(grantMandatoryQuestionRepository.findBySubmissionId(submissionId))
                     .thenThrow(NotFoundException.class);
 
-            assertThrows(NotFoundException.class, () -> serviceUnderTest.getGrantMandatoryQuestionBySubmissionId(submissionId, applicantUserId));
+            assertThrows(NotFoundException.class, () -> serviceUnderTest.getGrantMandatoryQuestionBySubmissionIdAndApplicantSub(submissionId, applicantUserId));
         }
 
         @Test
@@ -146,7 +148,7 @@ class GrantMandatoryQuestionServiceTest {
             when(grantMandatoryQuestionRepository.findBySubmissionId(submissionId))
                     .thenReturn(mandatoryQuestions);
 
-            assertThrows(ForbiddenException.class, () -> serviceUnderTest.getGrantMandatoryQuestionBySubmissionId(submissionId, invalidUserId));
+            assertThrows(ForbiddenException.class, () -> serviceUnderTest.getGrantMandatoryQuestionBySubmissionIdAndApplicantSub(submissionId, invalidUserId));
         }
 
         @Test
@@ -167,7 +169,7 @@ class GrantMandatoryQuestionServiceTest {
             when(grantMandatoryQuestionRepository.findBySubmissionId(submissionId))
                     .thenReturn(mandatoryQuestions);
 
-            final GrantMandatoryQuestions methodResponse = serviceUnderTest.getGrantMandatoryQuestionBySubmissionId(submissionId, applicantUserId);
+            final GrantMandatoryQuestions methodResponse = serviceUnderTest.getGrantMandatoryQuestionBySubmissionIdAndApplicantSub(submissionId, applicantUserId);
 
             assertThat(methodResponse).isEqualTo(mandatoryQuestions.get());
         }
@@ -335,8 +337,9 @@ class GrantMandatoryQuestionServiceTest {
 
             verify(organisationProfileMapper).mapOrgProfileToGrantMandatoryQuestion(orgProfileWithLongCCandCH);
             verify(grantMandatoryQuestionRepository).save(any());
-            assertThat(methodResponse.getCharityCommissionNumber()).isEqualTo(null);
-            assertThat(methodResponse.getCompaniesHouseNumber()).isEqualTo(null);
+
+            assertThat(methodResponse.getCharityCommissionNumber()).isNull();
+            assertThat(methodResponse.getCompaniesHouseNumber()).isNull();
         }
 
     }
@@ -380,6 +383,11 @@ class GrantMandatoryQuestionServiceTest {
         @Test
         void updateMandatoryQuestion_UpdatesExpectedMandatoryQuestionsAndSetsGapId() {
             final UUID mandatoryQuestionsId = UUID.randomUUID();
+
+            final LocalDate currentDate = LocalDate.now();
+            final DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyyMMdd");
+            final String date = currentDate.format(formatter);
+
             final GrantMandatoryQuestions grantMandatoryQuestions = GrantMandatoryQuestions
                     .builder()
                     .id(mandatoryQuestionsId)
@@ -397,31 +405,10 @@ class GrantMandatoryQuestionServiceTest {
 
             verify(grantMandatoryQuestionRepository).save(grantMandatoryQuestions);
             assertThat(methodResponse).isEqualTo(grantMandatoryQuestions);
-            assertThat(methodResponse.getGapId()).contains("GAP-local-MQ-");
+
+            //GAP ID Should be GAP-{environment}-{date}-{version}{recordNumber}-{userId}
+            assertThat(methodResponse.getGapId()).isEqualTo("GAP-"+ "local" + "-" + date + "-22-1");
             assertThat(methodResponse.getGapId()).isEqualTo(grantMandatoryQuestions.getGapId());
-        }
-
-        @Test
-        void updateMandatoryQuestion_UpdatesExpectedMandatoryQuestionsAndSetsGapIdBySubmission() {
-            final UUID mandatoryQuestionsId = UUID.randomUUID();
-            final Submission submission = Submission.builder().gapId("GAP-ID").build();
-            final GrantMandatoryQuestions grantMandatoryQuestions = GrantMandatoryQuestions
-                    .builder()
-                    .id(mandatoryQuestionsId)
-                    .status(GrantMandatoryQuestionStatus.COMPLETED)
-                    .submission(submission)
-                    .build();
-
-            when(grantMandatoryQuestionRepository.findById(mandatoryQuestionsId))
-                    .thenReturn(Optional.of(grantMandatoryQuestions));
-            when(grantMandatoryQuestionRepository.save(grantMandatoryQuestions))
-                    .thenReturn(grantMandatoryQuestions);
-
-            final GrantMandatoryQuestions methodResponse = serviceUnderTest.updateMandatoryQuestion(grantMandatoryQuestions, grantApplicant);
-
-            verify(grantMandatoryQuestionRepository).save(grantMandatoryQuestions);
-            assertThat(methodResponse).isEqualTo(grantMandatoryQuestions);
-            assertThat(methodResponse.getGapId()).isEqualTo(submission.getGapId());
         }
     }
 
@@ -429,20 +416,90 @@ class GrantMandatoryQuestionServiceTest {
     class generateNextPageUrl {
         @Test
         void testGenerateNextPageUrl() {
-            final String url = "/any/url/organisation-address?some-param=some-value";
-            final String expectedNextPageUrl = "/mandatory-questions/" + MANDATORY_QUESTION_ID + "/organisation-type";
+            final GrantApplicant applicant = GrantApplicant
+                    .builder()
+                    .userId(applicantUserId)
+                    .build();
+            final GrantMandatoryQuestions grantMandatoryQuestions = GrantMandatoryQuestions
+                    .builder()
+                    .id(MANDATORY_QUESTION_ID)
+                    .createdBy(applicant)
+                    .build();
+            when(grantMandatoryQuestionRepository.findById(MANDATORY_QUESTION_ID))
+                    .thenReturn(Optional.of(grantMandatoryQuestions));
 
-            final String nextPageUrl = serviceUnderTest.generateNextPageUrl(url, MANDATORY_QUESTION_ID);
+            final String url = "/any/url/organisation-type?some-param=some-value";
+            final String expectedNextPageUrl = "/mandatory-questions/" + MANDATORY_QUESTION_ID + "/organisation-name";
+
+            final String nextPageUrl = serviceUnderTest.generateNextPageUrl(url, MANDATORY_QUESTION_ID, applicantUserId);
 
             assertThat(nextPageUrl).isEqualTo(expectedNextPageUrl);
         }
 
         @Test
-        public void testGenerateNextPageUrl_UrlNotInMapper() {
+        void testGenerateNextPageUrlForSkippingCompaniesHouseAndCharityCommission() {
+            final GrantApplicant applicant = GrantApplicant
+                    .builder()
+                    .userId(applicantUserId)
+                    .build();
+            final GrantMandatoryQuestions grantMandatoryQuestions = GrantMandatoryQuestions
+                    .builder()
+                    .id(MANDATORY_QUESTION_ID)
+                    .createdBy(applicant)
+                    .orgType(GrantMandatoryQuestionOrgType.INDIVIDUAL)
+                    .build();
+            when(grantMandatoryQuestionRepository.findById(MANDATORY_QUESTION_ID))
+                    .thenReturn(Optional.of(grantMandatoryQuestions));
+
+            final String url = "/any/url/organisation-address?some-param=some-value";
+            final String expectedNextPageUrl = "/mandatory-questions/" + MANDATORY_QUESTION_ID + "/organisation-funding-amount";
+
+            final String nextPageUrl = serviceUnderTest.generateNextPageUrl(url, MANDATORY_QUESTION_ID, applicantUserId);
+
+            assertThat(nextPageUrl).isEqualTo(expectedNextPageUrl);
+        }
+
+        @Test
+        void testGenerateNextPageUrlForNotSkippingCompaniesHouseAndCharityCommission() {
+            final GrantApplicant applicant = GrantApplicant
+                    .builder()
+                    .userId(applicantUserId)
+                    .build();
+            final GrantMandatoryQuestions grantMandatoryQuestions = GrantMandatoryQuestions
+                    .builder()
+                    .id(MANDATORY_QUESTION_ID)
+                    .createdBy(applicant)
+                    .orgType(GrantMandatoryQuestionOrgType.CHARITY)
+                    .build();
+            when(grantMandatoryQuestionRepository.findById(MANDATORY_QUESTION_ID))
+                    .thenReturn(Optional.of(grantMandatoryQuestions));
+
+            final String url = "/any/url/organisation-address?some-param=some-value";
+            final String expectedNextPageUrl = "/mandatory-questions/" + MANDATORY_QUESTION_ID + "/organisation-companies-house-number";
+
+            final String nextPageUrl = serviceUnderTest.generateNextPageUrl(url, MANDATORY_QUESTION_ID, applicantUserId);
+
+            assertThat(nextPageUrl).isEqualTo(expectedNextPageUrl);
+        }
+
+        @Test
+        void testGenerateNextPageUrl_UrlNotInMapper() {
+            final GrantApplicant applicant = GrantApplicant
+                    .builder()
+                    .userId(applicantUserId)
+                    .build();
+            final GrantMandatoryQuestions grantMandatoryQuestions = GrantMandatoryQuestions
+                    .builder()
+                    .id(MANDATORY_QUESTION_ID)
+                    .createdBy(applicant)
+                    .build();
+            when(grantMandatoryQuestionRepository.findById(MANDATORY_QUESTION_ID))
+                    .thenReturn(Optional.of(grantMandatoryQuestions));
+
             final String url = "/any/url/thatIsNotInMapper";
             final String expectedNextPageUrl = "";
 
-            final String nextPageUrl = serviceUnderTest.generateNextPageUrl(url, MANDATORY_QUESTION_ID);
+            final String nextPageUrl = serviceUnderTest.generateNextPageUrl(url, MANDATORY_QUESTION_ID, applicantUserId);
 
             assertThat(nextPageUrl).isEqualTo(expectedNextPageUrl);
         }
@@ -581,7 +638,7 @@ class GrantMandatoryQuestionServiceTest {
     class buildOrganisationDetailsSubmissionSection {
 
         @Test
-        void addsCorrectDetails() {
+        void addsCorrectDetailsForLimitedCompany() {
 
             final SubmissionSectionStatus status = SubmissionSectionStatus.IN_PROGRESS;
 
@@ -606,6 +663,7 @@ class GrantMandatoryQuestionServiceTest {
                     .build();
 
             final GrantMandatoryQuestions mandatoryQuestions = GrantMandatoryQuestions.builder()
+                    .orgType(GrantMandatoryQuestionOrgType.LIMITED_COMPANY)
                     .submission(submission)
                     .build();
 
@@ -652,11 +710,139 @@ class GrantMandatoryQuestionServiceTest {
             assertThat(orgDetailsSection.getSectionTitle()).isEqualTo(MandatoryQuestionConstants.ORGANISATION_DETAILS_SECTION_TITLE);
             assertThat(orgDetailsSection.getSectionStatus()).isEqualTo(status);
             assertThat(orgDetailsSection.getQuestions()).containsExactlyElementsOf(List.of(
-                    orgName,
                     applicantType,
+                    orgName,
                     orgAddress,
                     charityNumber,
                     companiesHouse
+            ));
+        }
+
+        @Test
+        void addsCorrectDetailsForNonLimitedCompany() {
+
+            final SubmissionSectionStatus status = SubmissionSectionStatus.IN_PROGRESS;
+
+            final SubmissionSection eligibility = SubmissionSection.builder()
+                    .sectionId("ELIGIBILITY")
+                    .build();
+
+            final SubmissionSection organisationDetails = SubmissionSection.builder()
+                    .sectionId("ORGANISATION_DETAILS")
+                    .build();
+
+            final SubmissionSection fundingDetails = SubmissionSection.builder()
+                    .sectionId("FUNDING_DETAILS")
+                    .build();
+
+            final SubmissionDefinition definition = SubmissionDefinition.builder()
+                    .sections(new ArrayList(List.of(eligibility, organisationDetails, fundingDetails)))
+                    .build();
+
+            final Submission submission = Submission.builder()
+                    .definition(definition)
+                    .build();
+
+            final GrantMandatoryQuestions mandatoryQuestions = GrantMandatoryQuestions.builder()
+                    .orgType(GrantMandatoryQuestionOrgType.NON_LIMITED_COMPANY)
+                    .submission(submission)
+                    .build();
+
+            final SubmissionQuestion orgName = SubmissionQuestion.builder()
+                    .questionId(MandatoryQuestionConstants.SUBMISSION_QUESTION_IDS.APPLICANT_ORG_NAME.toString())
+                    .build();
+
+            final SubmissionQuestion applicantType = SubmissionQuestion.builder()
+                    .questionId(MandatoryQuestionConstants.SUBMISSION_QUESTION_IDS.APPLICANT_TYPE.toString())
+                    .build();
+
+            final SubmissionQuestion orgAddress = SubmissionQuestion.builder()
+                    .questionId(MandatoryQuestionConstants.SUBMISSION_QUESTION_IDS.APPLICANT_ORG_ADDRESS.toString())
+                    .build();
+
+            doReturn(orgName)
+                    .when(serviceUnderTest).mandatoryQuestionToSubmissionQuestion(MandatoryQuestionConstants.SUBMISSION_QUESTION_IDS.APPLICANT_ORG_NAME.toString(), mandatoryQuestions);
+
+            doReturn(applicantType)
+                    .when(serviceUnderTest).mandatoryQuestionToSubmissionQuestion(MandatoryQuestionConstants.SUBMISSION_QUESTION_IDS.APPLICANT_TYPE.toString(), mandatoryQuestions);
+
+            doReturn(orgAddress)
+                    .when(serviceUnderTest).mandatoryQuestionToSubmissionQuestion(MandatoryQuestionConstants.SUBMISSION_QUESTION_IDS.APPLICANT_ORG_ADDRESS.toString(), mandatoryQuestions);
+
+            final SubmissionSection orgDetailsSection = serviceUnderTest.buildOrganisationDetailsSubmissionSection(mandatoryQuestions, status);
+
+
+            assertThat(orgDetailsSection.getSectionId()).isEqualTo(MandatoryQuestionConstants.ORGANISATION_DETAILS_SECTION_ID);
+            assertThat(orgDetailsSection.getSectionTitle()).isEqualTo(MandatoryQuestionConstants.ORGANISATION_DETAILS_SECTION_TITLE);
+            assertThat(orgDetailsSection.getSectionStatus()).isEqualTo(status);
+            assertThat(orgDetailsSection.getQuestions()).containsExactlyElementsOf(List.of(
+                    applicantType,
+                    orgName,
+                    orgAddress
+            ));
+        }
+
+        @Test
+        void addsCorrectDetailsForIndividual() {
+
+            final SubmissionSectionStatus status = SubmissionSectionStatus.IN_PROGRESS;
+
+            final SubmissionSection eligibility = SubmissionSection.builder()
+                    .sectionId("ELIGIBILITY")
+                    .build();
+
+            final SubmissionSection organisationDetails = SubmissionSection.builder()
+                    .sectionId("ORGANISATION_DETAILS")
+                    .build();
+
+            final SubmissionSection fundingDetails = SubmissionSection.builder()
+                    .sectionId("FUNDING_DETAILS")
+                    .build();
+
+            final SubmissionDefinition definition = SubmissionDefinition.builder()
+                    .sections(new ArrayList(List.of(eligibility, organisationDetails, fundingDetails)))
+                    .build();
+
+            final Submission submission = Submission.builder()
+                    .definition(definition)
+                    .build();
+
+            final GrantMandatoryQuestions mandatoryQuestions = GrantMandatoryQuestions.builder()
+                    .orgType(GrantMandatoryQuestionOrgType.INDIVIDUAL)
+                    .submission(submission)
+                    .build();
+
+            final SubmissionQuestion orgName = SubmissionQuestion.builder()
+                    .questionId(MandatoryQuestionConstants.SUBMISSION_QUESTION_IDS.APPLICANT_ORG_NAME.toString())
+                    .build();
+
+            final SubmissionQuestion applicantType = SubmissionQuestion.builder()
+                    .questionId(MandatoryQuestionConstants.SUBMISSION_QUESTION_IDS.APPLICANT_TYPE.toString())
+                    .build();
+
+            final SubmissionQuestion orgAddress = SubmissionQuestion.builder()
+                    .questionId(MandatoryQuestionConstants.SUBMISSION_QUESTION_IDS.APPLICANT_ORG_ADDRESS.toString())
+                    .build();
+
+            doReturn(orgName)
+                    .when(serviceUnderTest).mandatoryQuestionToSubmissionQuestion(MandatoryQuestionConstants.SUBMISSION_QUESTION_IDS.APPLICANT_ORG_NAME.toString(), mandatoryQuestions);
+
+            doReturn(applicantType)
+                    .when(serviceUnderTest).mandatoryQuestionToSubmissionQuestion(MandatoryQuestionConstants.SUBMISSION_QUESTION_IDS.APPLICANT_TYPE.toString(), mandatoryQuestions);
+
+            doReturn(orgAddress)
+                    .when(serviceUnderTest).mandatoryQuestionToSubmissionQuestion(MandatoryQuestionConstants.SUBMISSION_QUESTION_IDS.APPLICANT_ORG_ADDRESS.toString(), mandatoryQuestions);
+
+            final SubmissionSection orgDetailsSection = serviceUnderTest.buildOrganisationDetailsSubmissionSection(mandatoryQuestions, status);
+
+
+            assertThat(orgDetailsSection.getSectionId()).isEqualTo(MandatoryQuestionConstants.ORGANISATION_DETAILS_SECTION_ID);
+            assertThat(orgDetailsSection.getSectionTitle()).isEqualTo(MandatoryQuestionConstants.ORGANISATION_INDIVIDUAL_DETAILS_SECTION_TITLE);
+            assertThat(orgDetailsSection.getSectionStatus()).isEqualTo(status);
+            assertThat(orgDetailsSection.getQuestions()).containsExactlyElementsOf(List.of(
+                    applicantType,
+                    orgName,
+                    orgAddress
             ));
         }
     }
