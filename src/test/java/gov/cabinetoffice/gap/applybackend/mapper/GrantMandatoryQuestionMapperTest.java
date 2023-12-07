@@ -4,6 +4,7 @@ import gov.cabinetoffice.gap.applybackend.dto.api.GetGrantMandatoryQuestionDto;
 import gov.cabinetoffice.gap.applybackend.dto.api.UpdateGrantMandatoryQuestionDto;
 import gov.cabinetoffice.gap.applybackend.enums.GrantMandatoryQuestionFundingLocation;
 import gov.cabinetoffice.gap.applybackend.enums.GrantMandatoryQuestionOrgType;
+import gov.cabinetoffice.gap.applybackend.enums.GrantMandatoryQuestionStatus;
 import gov.cabinetoffice.gap.applybackend.model.GrantMandatoryQuestions;
 import gov.cabinetoffice.gap.applybackend.model.Submission;
 import org.junit.jupiter.api.Nested;
@@ -33,6 +34,7 @@ class GrantMandatoryQuestionMapperTest {
                     .submission(submission)
                     .addressLine1("addressLine1")
                     .addressLine2("addressLine2")
+                    .status(GrantMandatoryQuestionStatus.IN_PROGRESS)
                     .city("city")
                     .county("county")
                     .postcode("postcode")
@@ -57,6 +59,7 @@ class GrantMandatoryQuestionMapperTest {
             assertThat(result.getFundingAmount()).isEqualTo(grantMandatoryQuestions.getFundingAmount().toString());
             assertThat(result.getFundingLocation()).isEqualTo(List.of(grantMandatoryQuestions.getFundingLocation()[0].getName()));
             assertThat(result.getSubmissionId()).isEqualTo(uuid);
+            assertThat(result.getStatus()).isEqualTo(grantMandatoryQuestions.getStatus().toString());
         }
 
         @Test

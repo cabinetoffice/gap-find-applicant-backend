@@ -5,7 +5,7 @@ import java.time.format.DateTimeFormatter;
 
 public class GapIdGenerator {
 
-    public static String generateGapId(final Long userId, final String env, final long recordNumber, final boolean isMandatoryQuestion) {
+    public static String generateGapId(final Long userId, final String env, final long recordNumber, final int version) {
         final LocalDate currentDate = LocalDate.now();
         final DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyyMMdd");
         final String date = currentDate.format(formatter);
@@ -13,10 +13,10 @@ public class GapIdGenerator {
         return "GAP" +
                 "-" +
                 env +
-                (isMandatoryQuestion ?
-                        "-MQ-" : "-") +
+                "-" +
                 date +
                 "-" +
+                version +
                 recordNumber +
                 "-" +
                 userId

@@ -4,6 +4,7 @@ import gov.cabinetoffice.gap.applybackend.dto.api.GetGrantMandatoryQuestionDto;
 import gov.cabinetoffice.gap.applybackend.dto.api.UpdateGrantMandatoryQuestionDto;
 import gov.cabinetoffice.gap.applybackend.enums.GrantMandatoryQuestionFundingLocation;
 import gov.cabinetoffice.gap.applybackend.enums.GrantMandatoryQuestionOrgType;
+import gov.cabinetoffice.gap.applybackend.enums.GrantMandatoryQuestionStatus;
 import gov.cabinetoffice.gap.applybackend.model.GrantMandatoryQuestions;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
@@ -27,7 +28,13 @@ public interface GrantMandatoryQuestionMapper {
     @Mapping(source = "fundingAmount", target = "fundingAmount", qualifiedByName = "mapEntityFundingAmountToDtoFundingAmount")
     @Mapping(source = "fundingLocation", target = "fundingLocation", qualifiedByName = "mapEntityFundingLocationToDtoFundingLocation")
     @Mapping(source = "submission.id", target = "submissionId")
+    @Mapping(source = "status", target = "status", qualifiedByName = "mapEntityStatusToDtoStatus")
     GetGrantMandatoryQuestionDto mapGrantMandatoryQuestionToGetGrantMandatoryQuestionDTO(GrantMandatoryQuestions source);
+
+    @Named("mapEntityStatusToDtoStatus")
+    default String mapEntityStatusToDtoStatus(GrantMandatoryQuestionStatus status) {
+        return status.toString();
+    }
 
     @Named("mapEntityOrgTypeToDtoOrgType")
     default String mapEntityOrgTypeToDtoOrgType(GrantMandatoryQuestionOrgType type) {

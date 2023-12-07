@@ -31,6 +31,7 @@ import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.*;
+import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -1094,8 +1095,9 @@ class SubmissionServiceTest {
         }
 
         @Test
-        void submit_SubmitsTheApplicationFormAndUpdatesMandatoryQuestions() {
+        void submit_SubmitsTheApplicationFormAndTakesIDFromMandatoryQuestions() {
             final String emailAddress = "test@email.com";
+            final String gapId = "GAP-local-20231201-21-1";
             final ArgumentCaptor<Submission> submissionCaptor = ArgumentCaptor.forClass(Submission.class);
             final GrantApplicant grantApplicant = GrantApplicant.builder()
                     .userId(userId)
@@ -1107,7 +1109,7 @@ class SubmissionServiceTest {
 
             final GrantMandatoryQuestions grantMandatoryQuestions = GrantMandatoryQuestions.builder()
                     .id(UUID.randomUUID())
-                    .gapId(null)
+                    .gapId(gapId)
                     .build();
 
             submission.setScheme(scheme);
@@ -1122,7 +1124,41 @@ class SubmissionServiceTest {
 
             final Submission capturedSubmission = submissionCaptor.getValue();
 
-            assertThat(grantMandatoryQuestions.getGapId()).isEqualTo(capturedSubmission.getGapId());
+            assertThat(grantMandatoryQuestions.getGapId()).isEqualTo(gapId);
+            assertThat(capturedSubmission.getGapId()).isEqualTo(gapId);
+        }
+
+        @Test
+        void submit_SubmitsTheApplicationFormAndGeneratesID() {
+            final LocalDate currentDate = LocalDate.now();
+            final DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyyMMdd");
+            final String date = currentDate.format(formatter);
+
+            final String emailAddress = "test@email.com";
+            final String gapId = "GAP-LOCAL-" + date +"-12-1";
+            final ArgumentCaptor<Submission> submissionCaptor = ArgumentCaptor.forClass(Submission.class);
+            final GrantApplicant grantApplicant = GrantApplicant.builder()
+                    .userId(userId)
+                    .id(1)
+                    .build();
+            final GrantScheme scheme = GrantScheme.builder()
+                    .version(1)
+                    .build();
+
+            submission.setScheme(scheme);
+
+            when(grantMandatoryQuestionRepository.findBySubmissionId(submission.getId())).thenReturn(Optional.empty());
+            when(diligenceCheckRepository.countDistinctByApplicationNumberContains(any())).thenReturn(1L);
+            doReturn(true).when(serviceUnderTest).isSubmissionReadyToBeSubmitted(userId, SUBMISSION_ID);
+
+            serviceUnderTest.submit(submission, grantApplicant, emailAddress);
+
+            verify(notifyClient).sendConfirmationEmail(emailAddress, submission);
+            verify(submissionRepository).save(submissionCaptor.capture());
+
+            final Submission capturedSubmission = submissionCaptor.getValue();
+
+            assertThat(capturedSubmission.getGapId()).isEqualTo(gapId);
         }
     }
 
