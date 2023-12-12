@@ -99,6 +99,7 @@ public class JwtService {
         final int exp = jsonObject.getInt("exp");
         final int iat = jsonObject.getInt("iat");
         final String email = jsonObject.getString("email");
+        final String jti = jsonObject.getString("jti");
         return JwtPayload.builder()
                 .sub(sub)
                 .roles(roles)
@@ -107,6 +108,7 @@ public class JwtService {
                 .exp(exp)
                 .iat(iat)
                 .email(email)
+                .jti(jti)
                 .build();
     }
 }

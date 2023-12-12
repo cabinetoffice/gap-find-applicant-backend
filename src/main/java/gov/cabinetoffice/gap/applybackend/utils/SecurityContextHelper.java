@@ -8,4 +8,9 @@ public class SecurityContextHelper {
         final JwtPayload jwtPayload = (JwtPayload) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
         return jwtPayload.getSub();
     }
+
+    public static String getJwtIdFromSecurityContext() {
+        final JwtPayload jwtPayload = (JwtPayload) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        return jwtPayload.getJti();
+    }
 }

@@ -26,4 +26,5 @@ public class JwtPayload {
     private String email;
     private String isAdmin;
     private String roles;
+    private String jti;
 }
