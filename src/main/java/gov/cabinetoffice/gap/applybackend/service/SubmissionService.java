@@ -531,8 +531,12 @@ public class SubmissionService {
                     .getVersion();
 
             if (schemeVersion > 1) {
-                submission.getSection(ORGANISATION_DETAILS).setSectionStatus(SubmissionSectionStatus.IN_PROGRESS);
-                submission.getSection(FUNDING_DETAILS).setSectionStatus(SubmissionSectionStatus.IN_PROGRESS);
+                if (submission.getSection(ORGANISATION_DETAILS).getSectionStatus().equals(SubmissionSectionStatus.CANNOT_START_YET)) {
+                    submission.getSection(ORGANISATION_DETAILS).setSectionStatus(SubmissionSectionStatus.IN_PROGRESS);
+                }
+                if (submission.getSection(FUNDING_DETAILS).getSectionStatus().equals(SubmissionSectionStatus.CANNOT_START_YET)) {
+                    submission.getSection(FUNDING_DETAILS).setSectionStatus(SubmissionSectionStatus.IN_PROGRESS);
+                }
             }
 
             submission.getDefinition()

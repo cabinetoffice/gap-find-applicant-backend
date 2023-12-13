@@ -634,6 +634,99 @@ class SubmissionServiceTest {
         }
 
         @Test
+        void saveQuestionResponse_DoesNotReAssignSectionStatus_IfSectionStatusIsNot_CannotStart() {
+
+            // set the scheme to version 2
+            submission.getApplication().getGrantScheme().setVersion(2);
+
+            // remove eligibility section
+            submission.getDefinition()
+                    .getSections()
+                    .removeIf(section -> section.getSectionId().equals("ESSENTIAL"));
+
+            // add organisation details and funding details sections
+            final SubmissionSection orgDetails = SubmissionSection.builder()
+                    .sectionId("ORGANISATION_DETAILS")
+                    .sectionStatus(SubmissionSectionStatus.COMPLETED)
+                    .build();
+
+            final SubmissionSection fundingDetails = SubmissionSection.builder()
+                    .sectionId("FUNDING_DETAILS")
+                    .sectionStatus(SubmissionSectionStatus.COMPLETED)
+                    .build();
+
+            submission.getDefinition()
+                    .getSections()
+                    .add(1, orgDetails);
+
+            submission.getDefinition()
+                    .getSections()
+                    .add(2, fundingDetails);
+
+            final CreateQuestionResponseDto questionResponse = CreateQuestionResponseDto.builder()
+                    .questionId("ELIGIBILITY")
+                    .submissionId(SUBMISSION_ID)
+                    .response("Yes")
+                    .build();
+
+            doReturn(submission)
+                    .when(serviceUnderTest).getSubmissionFromDatabaseBySubmissionId(userId, SUBMISSION_ID);
+
+            final ArgumentCaptor<Submission> submissionCaptor = ArgumentCaptor.forClass(Submission.class);
+
+
+            serviceUnderTest.saveQuestionResponse(questionResponse, userId, SUBMISSION_ID, "ELIGIBILITY");
+
+
+            verify(submissionRepository).save(submissionCaptor.capture());
+
+            submissionCaptor.getValue()
+                    .getDefinition()
+                    .getSections()
+                    .stream()
+                    .filter(section -> section.getSectionId().equals(SECTION_ID_SECTION_CANNOT_START_YET))
+                    .findFirst()
+                    .ifPresentOrElse(
+                            capturedSectionResponse -> assertThat(capturedSectionResponse.getSectionStatus()).isEqualTo(SubmissionSectionStatus.NOT_STARTED),
+                            () -> fail(String.format("No section with ID '%s' found", SECTION_ID_SECTION_CANNOT_START_YET))
+                    );
+
+            submissionCaptor.getValue()
+                    .getDefinition()
+                    .getSections()
+                    .stream()
+                    .filter(section -> section.getSectionId().equals(SECTION_ID_NOT_STARTED))
+                    .findFirst()
+                    .ifPresentOrElse(
+                            capturedSectionResponse -> assertThat(capturedSectionResponse.getSectionStatus()).isEqualTo(SubmissionSectionStatus.NOT_STARTED),
+                            () -> fail(String.format("No section with ID '%s' found", SECTION_ID_NOT_STARTED))
+                    );
+
+            // organisation details and funding details should be set to in progress
+            submissionCaptor.getValue()
+                    .getDefinition()
+                    .getSections()
+                    .stream()
+                    .filter(section -> section.getSectionId().equals("ORGANISATION_DETAILS"))
+                    .findFirst()
+                    .ifPresentOrElse(
+                            capturedSectionResponse -> assertThat(capturedSectionResponse.getSectionStatus()).isEqualTo(SubmissionSectionStatus.COMPLETED),
+                            () -> fail(String.format("No section with ID 'ORGANISATION_DETAILS' found"))
+                    );
+
+            submissionCaptor.getValue()
+                    .getDefinition()
+                    .getSections()
+                    .stream()
+                    .filter(section -> section.getSectionId().equals("FUNDING_DETAILS"))
+                    .findFirst()
+                    .ifPresentOrElse(
+                            capturedSectionResponse -> assertThat(capturedSectionResponse.getSectionStatus()).isEqualTo(SubmissionSectionStatus.COMPLETED),
+                            () -> fail(String.format("No section with ID 'FUNDING_DETAILS' found"))
+                    );
+        }
+
+        @Test
         void saveEligibilityResponseToNoAltersStatus_SavesResponse() {
 
             final CreateQuestionResponseDto questionResponse = CreateQuestionResponseDto.builder()
