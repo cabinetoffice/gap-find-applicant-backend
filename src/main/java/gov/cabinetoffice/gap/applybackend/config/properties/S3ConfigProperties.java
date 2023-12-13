@@ -19,4 +19,7 @@ public class S3ConfigProperties {
 
     @NotNull
     private String bucket;
+
+    @NotNull
+    private String attachmentsBucket;
 }
