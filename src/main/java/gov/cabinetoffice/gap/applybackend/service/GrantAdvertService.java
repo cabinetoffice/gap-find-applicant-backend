@@ -1,10 +1,7 @@
 package gov.cabinetoffice.gap.applybackend.service;
 
 
-import com.contentful.java.cda.CDAArray;
-import com.contentful.java.cda.CDAClient;
-import com.contentful.java.cda.CDAEntry;
-import com.contentful.java.cda.CDAResourceNotFoundException;
+import com.contentful.java.cda.*;
 import gov.cabinetoffice.gap.applybackend.dto.api.GetGrantAdvertDto;
 import gov.cabinetoffice.gap.applybackend.dto.api.GetGrantMandatoryQuestionDto;
 import gov.cabinetoffice.gap.applybackend.exception.NotFoundException;
@@ -22,6 +19,7 @@ import org.springframework.stereotype.Service;
 import java.net.URL;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 @Service
@@ -90,8 +88,9 @@ public class GrantAdvertService {
     }
 
     private String getGrantWebpageUrl(final CDAArray contentfulEntry){
-        Optional<String> optionalUrl = ((HashMap<String, String>) ((CDAEntry) contentfulEntry.items().get(0))
-                .rawFields().get("grantWebpageUrl")).values().stream().findFirst();
+        CDAResource entry = contentfulEntry.items().get(0);
+        Map<String, Object> rawFields = ((CDAEntry) entry).rawFields();
+        Optional<String> optionalUrl = ((Map<String, String>) rawFields.get("grantWebpageUrl")).values().stream().findFirst();
         if(optionalUrl.isEmpty()){
             throw new NotFoundException("Grant webpage url not found");
         }
