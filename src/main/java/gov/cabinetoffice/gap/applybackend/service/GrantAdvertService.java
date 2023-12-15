@@ -19,6 +19,11 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
+import java.net.URL;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Optional;
+
 @Service
 @RequiredArgsConstructor
 @Slf4j
@@ -83,6 +88,33 @@ public class GrantAdvertService {
 
         return advertExists;
     }
+
+    private String getGrantWebpageUrl(final CDAArray contentfulEntry){
+        Optional<String> optionalUrl = ((HashMap<String, String>) ((CDAEntry) contentfulEntry.items().get(0))
+                .rawFields().get("grantWebpageUrl")).values().stream().findFirst();
+        if(optionalUrl.isEmpty()){
+            throw new NotFoundException("Grant webpage url not found");
+        }
+        return optionalUrl.get();
+    }
+
+    public void validateGrantWebpageUrl(final String contentfulSlug, final String grantWebpageUrl) {
+        try {
+            final CDAArray contentfulEntry = contentfulDeliveryClient
+                    .fetch(CDAEntry.class)
+                    .withContentType("grantDetails")
+                    .where("fields.label", contentfulSlug).all();
+
+            String url = this.getGrantWebpageUrl(contentfulEntry);
+
+            if (!url.equals(grantWebpageUrl)) {
+                throw new NotFoundException("Grant webpage url does not match the url in contentful");
+            }
+        } catch (CDAResourceNotFoundException e) {
+            log.info(String.format("Advert with slug %s not found in Contentful", contentfulSlug));
+        }
+    }
+
 
     public GrantAdvert getAdvertBySchemeId(String schemeId) {
         final GrantAdvert grantAdvert = grantAdvertRepository.findBySchemeId(Integer.parseInt(schemeId))
