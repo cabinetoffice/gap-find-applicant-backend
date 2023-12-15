@@ -111,7 +111,7 @@ public class GrantAdvertService {
                 throw new NotFoundException("Grant webpage url does not match the url in contentful");
             }
         } catch (CDAResourceNotFoundException error) {
-            log.info(String.format("Advert with slug %s not found in Contentful", contentfulSlug));
+            log.error(String.format("Advert with slug %s not found in Contentful", contentfulSlug));
             throw error;
         }
     }
