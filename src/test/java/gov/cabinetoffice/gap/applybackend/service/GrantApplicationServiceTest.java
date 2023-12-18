@@ -40,10 +40,14 @@ class GrantApplicationServiceTest {
 
     @Test
     void getGrantApplicationByGrantScheme__NotFound() {
-        when(grantApplicationRepository.getGrantApplicationByGrantSchemeId(1)).thenReturn(Optional.empty());
+        final int schemeId = 1;
 
-        verify(grantApplicationRepository).getGrantApplicationByGrantSchemeId(1);
-        assertThrows(NotFoundException.class, () -> serviceUnderTest.getGrantApplicationByGrantScheme(1));
+        when(grantApplicationRepository.getGrantApplicationByGrantSchemeId(schemeId)).thenReturn(Optional.empty());
+
+        Exception result = assertThrows(NotFoundException.class, () -> serviceUnderTest.getGrantApplicationByGrantScheme(schemeId));
+        verify(grantApplicationRepository).getGrantApplicationByGrantSchemeId(schemeId);
+
+        assertTrue(result.getMessage().contains("No Application with scheme ID " + schemeId + " was found"));
     }
 
     @Test
