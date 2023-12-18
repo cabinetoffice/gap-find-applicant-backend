@@ -48,10 +48,6 @@ class GrantAdvertServiceTest {
     private GrantAdvertService grantAdvertService;
     @Mock
     private CDAArray contentfulResults;
-
-    @Mock
-    private AbsQuery query;
-
     @Mock
     private FetchQuery fetchQuery;
 

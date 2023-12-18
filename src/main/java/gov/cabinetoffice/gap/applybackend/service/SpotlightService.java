@@ -1,7 +1,6 @@
 package gov.cabinetoffice.gap.applybackend.service;
 
 import com.amazonaws.services.sqs.AmazonSQS;
-import com.amazonaws.services.sqs.model.MessageAttributeValue;
 import com.amazonaws.services.sqs.model.SendMessageRequest;
 import gov.cabinetoffice.gap.applybackend.config.SpotlightQueueConfigProperties;
 import gov.cabinetoffice.gap.applybackend.model.GrantMandatoryQuestions;

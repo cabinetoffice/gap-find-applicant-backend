@@ -84,6 +84,7 @@ public class GrantMandatoryQuestions extends BaseEntity {
     private BigDecimal fundingAmount;
 
     @Column(name = "funding_location")
+    // TODO - Ask Jim
     private GrantMandatoryQuestionFundingLocation[] fundingLocation;
 
     @Column(name = "status", nullable = false)

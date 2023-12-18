@@ -13,5 +13,5 @@ public enum SubmissionQuestionResponseType {
     MultipleSelection,
     Date,
     SingleFileUpload,
-    Numeric;
+    Numeric
 }

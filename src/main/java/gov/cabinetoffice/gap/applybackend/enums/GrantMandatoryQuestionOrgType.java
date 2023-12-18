@@ -13,7 +13,7 @@ public enum GrantMandatoryQuestionOrgType {
 
     private String name;
 
-    private GrantMandatoryQuestionOrgType(String name) {
+    GrantMandatoryQuestionOrgType(String name) {
         this.name = name;
     }
 

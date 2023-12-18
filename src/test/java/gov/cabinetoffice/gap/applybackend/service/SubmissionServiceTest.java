@@ -163,7 +163,7 @@ class SubmissionServiceTest {
                 .build();
 
         SubmissionDefinition definition = SubmissionDefinition.builder()
-                .sections(new ArrayList(List.of(section, eligibilitySection, sectionNotStarted, sectionCannotStartYet)))
+                .sections(new ArrayList<>(List.of(section, eligibilitySection, sectionNotStarted, sectionCannotStartYet)))
                 .build();
 
         final GrantApplicant grantApplicant = GrantApplicant.builder().id(1)
@@ -618,7 +618,7 @@ class SubmissionServiceTest {
                     .findFirst()
                     .ifPresentOrElse(
                             capturedSectionResponse -> assertThat(capturedSectionResponse.getSectionStatus()).isEqualTo(SubmissionSectionStatus.IN_PROGRESS),
-                            () -> fail(String.format("No section with ID 'ORGANISATION_DETAILS' found"))
+                            () -> fail("No section with ID 'ORGANISATION_DETAILS' found")
                     );
 
             submissionCaptor.getValue()
@@ -629,7 +629,7 @@ class SubmissionServiceTest {
                     .findFirst()
                     .ifPresentOrElse(
                             capturedSectionResponse -> assertThat(capturedSectionResponse.getSectionStatus()).isEqualTo(SubmissionSectionStatus.IN_PROGRESS),
-                            () -> fail(String.format("No section with ID 'FUNDING_DETAILS' found"))
+                            () -> fail("No section with ID 'FUNDING_DETAILS' found")
                     );
         }
 
@@ -711,7 +711,7 @@ class SubmissionServiceTest {
                     .findFirst()
                     .ifPresentOrElse(
                             capturedSectionResponse -> assertThat(capturedSectionResponse.getSectionStatus()).isEqualTo(SubmissionSectionStatus.COMPLETED),
-                            () -> fail(String.format("No section with ID 'ORGANISATION_DETAILS' found"))
+                            () -> fail("No section with ID 'ORGANISATION_DETAILS' found")
                     );
 
             submissionCaptor.getValue()
@@ -722,7 +722,7 @@ class SubmissionServiceTest {
                     .findFirst()
                     .ifPresentOrElse(
                             capturedSectionResponse -> assertThat(capturedSectionResponse.getSectionStatus()).isEqualTo(SubmissionSectionStatus.COMPLETED),
-                            () -> fail(String.format("No section with ID 'FUNDING_DETAILS' found"))
+                            () -> fail("No section with ID 'FUNDING_DETAILS' found")
                     );
         }
 

@@ -38,13 +38,13 @@ class GrantApplicationServiceTest {
         assertEquals(methodResponse, application);
     }
 
+    @Test
     void getGrantApplicationByGrantScheme__NotFound() {
         when(grantApplicationRepository.getGrantApplicationByGrantSchemeId(1)).thenReturn(Optional.empty());
 
         verify(grantApplicationRepository).getGrantApplicationByGrantSchemeId(1);
         assertThrows(NotFoundException.class, () -> serviceUnderTest.getGrantApplicationByGrantScheme(1));
     }
-
 
     @Test
     void getGrantApplicationById__Success() {
@@ -54,7 +54,7 @@ class GrantApplicationServiceTest {
 
         when(grantApplicationRepository.findById(1)).thenReturn(Optional.of(application));
 
-       final GrantApplication methodResponse = serviceUnderTest.getGrantApplicationById(1);
+        final GrantApplication methodResponse = serviceUnderTest.getGrantApplicationById(1);
 
         verify(grantApplicationRepository).findById(1);
         assertEquals(methodResponse, application);

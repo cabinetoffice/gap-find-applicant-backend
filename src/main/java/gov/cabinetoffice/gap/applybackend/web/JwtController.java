@@ -25,7 +25,7 @@ public class JwtController {
     private final JwtService jwtService;
 
     @PostMapping("/isValid")
-    public ResponseEntity<IsJwtValidResponse> validateToken(@RequestHeader("Authorization") String jwtToken) throws JwkException {
+    public ResponseEntity<IsJwtValidResponse> validateToken(@RequestHeader("Authorization") String jwtToken) throws JwtTokenUndefinedException {
         if (jwtToken.length() <= 0) {
             throw new JwtTokenUndefinedException("No Jwt has been passed in the request");
         }
@@ -58,7 +58,7 @@ public class JwtController {
 
     @GetMapping("/isAdmin")
     public ResponseEntity<IsAdminJwtResponse> isAdmin(@RequestHeader("Authorization") String jwtToken)
-            throws JwkException {
+            throws JwtTokenUndefinedException {
 
         if (jwtToken.length() <= 0) {
             throw new JwtTokenUndefinedException("No Jwt has been passed in the request");

@@ -59,10 +59,9 @@ class JwtControllerTest {
     }
 
     @Test
-    void validateToken_ReturnsExpectedResponse_ReturnFalse() throws JwkException, ParseException {
+    void validateToken_ReturnsExpectedResponse_ReturnFalse() {
         ZonedDateTime zdt = ZonedDateTime.now();
         Date date = Date.from(zdt.toInstant());
-        Instant i = date.toInstant();
 
         final TestDecodedJwt decodeJwt = new TestDecodedJwt();
         decodeJwt.setExpiresAt(date);

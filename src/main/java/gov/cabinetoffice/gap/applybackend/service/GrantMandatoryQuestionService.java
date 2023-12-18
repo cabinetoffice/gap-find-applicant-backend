@@ -2,10 +2,7 @@ package gov.cabinetoffice.gap.applybackend.service;
 
 import gov.cabinetoffice.gap.applybackend.config.properties.EnvironmentProperties;
 import gov.cabinetoffice.gap.applybackend.constants.MandatoryQuestionConstants;
-import gov.cabinetoffice.gap.applybackend.enums.GrantMandatoryQuestionOrgType;
-import gov.cabinetoffice.gap.applybackend.enums.GrantMandatoryQuestionStatus;
-import gov.cabinetoffice.gap.applybackend.enums.SubmissionQuestionResponseType;
-import gov.cabinetoffice.gap.applybackend.enums.SubmissionSectionStatus;
+import gov.cabinetoffice.gap.applybackend.enums.*;
 import gov.cabinetoffice.gap.applybackend.exception.ForbiddenException;
 import gov.cabinetoffice.gap.applybackend.exception.NotFoundException;
 import gov.cabinetoffice.gap.applybackend.mapper.GrantApplicantOrganisationProfileMapper;
@@ -48,7 +45,7 @@ public class GrantMandatoryQuestionService {
                 .orElseThrow(() -> new NotFoundException(String.format("No Mandatory Question with submission id %s was found", submissionId))));
 
         if (!grantMandatoryQuestion.get().getCreatedBy().getUserId().equals(applicantSub)) {
-            throw new ForbiddenException(String.format("Mandatory Question with id % and submission ID %s was not created by %s", grantMandatoryQuestion.get().getId(), submissionId, applicantSub));
+            throw new ForbiddenException(String.format("Mandatory Question with id %s and submission ID %s was not created by %s", grantMandatoryQuestion.get().getId(), submissionId, applicantSub));
         }
 
         return grantMandatoryQuestion.get();
@@ -60,7 +57,7 @@ public class GrantMandatoryQuestionService {
                 .orElseThrow(() -> new NotFoundException(String.format("No Mandatory Question with scheme id  %s was found", schemeId))));
 
         if (!grantMandatoryQuestion.get().getCreatedBy().getUserId().equals(applicantSub)) {
-            throw new ForbiddenException(String.format("Mandatory Question with id % and scheme ID %s was not created by %s",
+            throw new ForbiddenException(String.format("Mandatory Question with id %s and scheme ID %s was not created by %s",
                     grantMandatoryQuestion.get().getId(), schemeId, applicantSub));
         }
 
@@ -77,7 +74,7 @@ public class GrantMandatoryQuestionService {
 
         final GrantMandatoryQuestions grantMandatoryQuestions = organisationProfileMapper.mapOrgProfileToGrantMandatoryQuestion(organisationProfile);
 
-        //Fix to exclude any existing Charity Comission Number or Companies House Number which have invalid lengths,
+        // Fix to exclude any existing Charity Commission Number or Companies House Number which have invalid lengths,
         //This will force the applicant to go through the MQ journey and update their details with a valid length number
         if (grantMandatoryQuestions.getCharityCommissionNumber() != null && grantMandatoryQuestions.getCharityCommissionNumber().length() > MandatoryQuestionConstants.CHARITY_COMMISSION_NUMBER_MAX_LENGTH) {
             grantMandatoryQuestions.setCharityCommissionNumber(null);
@@ -218,24 +215,16 @@ public class GrantMandatoryQuestionService {
     }
 
     public SubmissionQuestion mandatoryQuestionToSubmissionQuestion(final String questionId, final GrantMandatoryQuestions mandatoryQuestions) {
-        switch (questionId) {
-            case "APPLICANT_ORG_NAME":
-                return buildOrganisationNameQuestion(mandatoryQuestions);
-            case "APPLICANT_TYPE":
-                return buildApplicationTypeQuestion(mandatoryQuestions);
-            case "APPLICANT_ORG_CHARITY_NUMBER":
-                return buildCharityCommissionNumberQuestion(mandatoryQuestions);
-            case "APPLICANT_ORG_COMPANIES_HOUSE":
-                return buildCompaniesHouseNumberQuestion(mandatoryQuestions);
-            case "APPLICANT_AMOUNT":
-                return buildFundingAmountQuestion(mandatoryQuestions);
-            case "BENEFITIARY_LOCATION":
-                return buildFundingLocationQuestion(mandatoryQuestions);
-            case "APPLICANT_ORG_ADDRESS":
-                return buildOrganisationAddressQuestion(mandatoryQuestions);
-            default:
-                throw new IllegalArgumentException("There is no method to process this question");
-        }
+        return switch (questionId) {
+            case "APPLICANT_ORG_NAME" -> buildOrganisationNameQuestion(mandatoryQuestions);
+            case "APPLICANT_TYPE" -> buildApplicationTypeQuestion(mandatoryQuestions);
+            case "APPLICANT_ORG_CHARITY_NUMBER" -> buildCharityCommissionNumberQuestion(mandatoryQuestions);
+            case "APPLICANT_ORG_COMPANIES_HOUSE" -> buildCompaniesHouseNumberQuestion(mandatoryQuestions);
+            case "APPLICANT_AMOUNT" -> buildFundingAmountQuestion(mandatoryQuestions);
+            case "BENEFITIARY_LOCATION" -> buildFundingLocationQuestion(mandatoryQuestions);
+            case "APPLICANT_ORG_ADDRESS" -> buildOrganisationAddressQuestion(mandatoryQuestions);
+            default -> throw new IllegalArgumentException("There is no method to process this question");
+        };
     }
 
     public boolean existsBySchemeIdAndApplicantId(Integer schemeId, Long applicantId) {
@@ -343,7 +332,7 @@ public class GrantMandatoryQuestionService {
 
     private SubmissionQuestion buildFundingLocationQuestion(final GrantMandatoryQuestions mandatoryQuestions) {
         final String[] locations = Arrays.stream(mandatoryQuestions.getFundingLocation())
-                .map(location -> location.getName())
+                .map(GrantMandatoryQuestionFundingLocation::getName)
                 .toArray(String[]::new);
 
         final SubmissionQuestionValidation validation = SubmissionQuestionValidation.builder()

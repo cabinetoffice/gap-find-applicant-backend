@@ -200,15 +200,11 @@ public class QuestionResponseValidator implements ConstraintValidator<ValidQuest
     }
 
     private String getMandatoryFieldViolationMessage(SubmissionQuestion question) {
-        switch (question.getResponseType()) {
-            case Dropdown:
-                return "Select at least one option";
-            case YesNo, MultipleSelection, SingleSelection:
-                return "Select an option";
-            case ShortAnswer, LongAnswer, AddressInput, Numeric:
-            default:
-                return "You must enter an answer";
-        }
+        return switch (question.getResponseType()) {
+            case Dropdown -> "Select at least one option";
+            case YesNo, MultipleSelection, SingleSelection -> "Select an option";
+            default -> "You must enter an answer";
+        };
     }
 
     private int getNumberOfWords(String response) {
@@ -303,7 +299,7 @@ public class QuestionResponseValidator implements ConstraintValidator<ValidQuest
                 return dateValidationResult;
             }
 
-            if (year < 0000 || year > 9999) {
+            if (year < 0 || year > 9999) {
                 dateValidationResult.addError(ValidationConstants.MULTI_RESPONSE_FIELD + "[2]", "Date must include a real year");
                 return dateValidationResult;
             }

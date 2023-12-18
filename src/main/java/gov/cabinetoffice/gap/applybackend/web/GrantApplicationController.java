@@ -1,6 +1,5 @@
 package gov.cabinetoffice.gap.applybackend.web;
 import gov.cabinetoffice.gap.applybackend.dto.api.GetGrantApplicantDto;
-import gov.cabinetoffice.gap.applybackend.exception.NotFoundException;
 import gov.cabinetoffice.gap.applybackend.model.GrantApplication;
 import gov.cabinetoffice.gap.applybackend.service.GrantApplicationService;
 import io.swagger.v3.oas.annotations.media.Content;
