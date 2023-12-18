@@ -63,7 +63,6 @@ public class AttachmentService {
             grantAttachmentRepository.delete(attachment);
         } catch (SdkClientException e) {
             log.error("An error occurred deleting the file: ", e);
-            e.printStackTrace();
         }
     }
 }
