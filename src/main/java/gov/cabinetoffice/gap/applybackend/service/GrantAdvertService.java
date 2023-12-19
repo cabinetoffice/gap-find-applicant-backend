@@ -88,8 +88,8 @@ public class GrantAdvertService {
     }
 
     private String getGrantWebpageUrl(final CDAArray contentfulEntry){
-        CDAResource entry = contentfulEntry.items().get(0);
-        Map<String, Object> rawFields = ((CDAEntry) entry).rawFields();
+        CDAEntry entry = ((CDAEntry) contentfulEntry.items().get(0));
+        Map<String, Object> rawFields = entry.rawFields();
         Optional<String> optionalUrl = ((Map<String, String>) rawFields.get("grantWebpageUrl")).values().stream().findFirst();
         if(optionalUrl.isEmpty()){
             throw new NotFoundException("Grant webpage url not found");
