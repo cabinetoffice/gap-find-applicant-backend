@@ -84,7 +84,7 @@ class SubmissionServiceTest {
                 .build();
 
         serviceUnderTest = Mockito.spy(new SubmissionService(submissionRepository, diligenceCheckRepository,
-                grantBeneficiaryRepository,  grantMandatoryQuestionRepository,notifyClient, clock, envProperties));
+                grantBeneficiaryRepository, grantMandatoryQuestionRepository, notifyClient, clock, envProperties));
 
         question = SubmissionQuestion.builder()
                 .questionId(QUESTION_ID)
@@ -1228,7 +1228,7 @@ class SubmissionServiceTest {
             final String date = currentDate.format(formatter);
 
             final String emailAddress = "test@email.com";
-            final String gapId = "GAP-LOCAL-" + date +"-12-1";
+            final String gapId = "GAP-LOCAL-" + date + "-12-1";
             final ArgumentCaptor<Submission> submissionCaptor = ArgumentCaptor.forClass(Submission.class);
             final GrantApplicant grantApplicant = GrantApplicant.builder()
                     .userId(userId)

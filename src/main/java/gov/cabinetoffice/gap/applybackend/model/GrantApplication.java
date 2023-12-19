@@ -52,7 +52,7 @@ public class GrantApplication extends BaseEntity {
     private ApplicationDefinition definition;
 
     public GrantApplication(GrantScheme grantScheme, String applicationName, Integer lastUpdateBy,
-            ApplicationDefinition definition) {
+                            ApplicationDefinition definition) {
         this.version = 2;
         this.created = Instant.now();
         this.lastUpdated = Instant.now();
@@ -64,7 +64,7 @@ public class GrantApplication extends BaseEntity {
     }
 
     public static GrantApplication createFromTemplate(GrantScheme grantScheme, String applicationName,
-            Integer lastUpdateBy, ApplicationDefinition definition) {
+                                                      Integer lastUpdateBy, ApplicationDefinition definition) {
         return new GrantApplication(grantScheme, applicationName, lastUpdateBy, definition);
     }
 }

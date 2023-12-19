@@ -6,12 +6,7 @@ import gov.cabinetoffice.gap.applybackend.enums.GrantMandatoryQuestionFundingLoc
 import gov.cabinetoffice.gap.applybackend.enums.GrantMandatoryQuestionOrgType;
 import gov.cabinetoffice.gap.applybackend.enums.GrantMandatoryQuestionStatus;
 import gov.cabinetoffice.gap.applybackend.model.GrantMandatoryQuestions;
-import org.mapstruct.Mapper;
-import org.mapstruct.Mapping;
-import org.mapstruct.MappingTarget;
-import org.mapstruct.Named;
-import org.mapstruct.NullValueCheckStrategy;
-import org.mapstruct.NullValuePropertyMappingStrategy;
+import org.mapstruct.*;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
@@ -23,7 +18,7 @@ import java.util.Optional;
 public interface GrantMandatoryQuestionMapper {
 
 
-    @Mapping(source= "grantScheme.id", target = "schemeId")
+    @Mapping(source = "grantScheme.id", target = "schemeId")
     @Mapping(source = "orgType", target = "orgType", qualifiedByName = "mapEntityOrgTypeToDtoOrgType")
     @Mapping(source = "fundingAmount", target = "fundingAmount", qualifiedByName = "mapEntityFundingAmountToDtoFundingAmount")
     @Mapping(source = "fundingLocation", target = "fundingLocation", qualifiedByName = "mapEntityFundingLocationToDtoFundingLocation")

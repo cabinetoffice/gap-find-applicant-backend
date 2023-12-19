@@ -11,9 +11,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.Optional;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -48,7 +46,7 @@ class FundingOrganisationServiceTest {
 
         Exception result = assertThrows(NotFoundException.class, () -> serviceUnderTest.getFundingOrganisationById(FUNDER_ID));
         verify(fundingOrganisationRepository).findById(FUNDER_ID);
-        
-        assertTrue(result.getMessage().contains("No Funder with ID "+ FUNDER_ID + " was found"));
+
+        assertTrue(result.getMessage().contains("No Funder with ID " + FUNDER_ID + " was found"));
     }
 }

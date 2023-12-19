@@ -22,13 +22,11 @@ public class FundingAmountValidator implements ConstraintValidator<ValidFundingA
                 context.disableDefaultConstraintViolation();
                 context.buildConstraintViolationWithTemplate("You must enter an answer").addConstraintViolation();
                 return false;
-            }
-            else if (value.contains(".") || value.contains(",")) {
+            } else if (value.contains(".") || value.contains(",")) {
                 context.disableDefaultConstraintViolation();
                 context.buildConstraintViolationWithTemplate("Funding amount must only contain whole numbers").addConstraintViolation();
                 return false;
-            }
-            else if (new BigDecimal(value).compareTo(BigDecimal.ZERO) <= 0) {
+            } else if (new BigDecimal(value).compareTo(BigDecimal.ZERO) <= 0) {
                 context.disableDefaultConstraintViolation();
                 context.buildConstraintViolationWithTemplate("Funding amount must have a value greater than zero").addConstraintViolation();
                 return false;

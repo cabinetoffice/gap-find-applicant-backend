@@ -10,8 +10,8 @@ import org.springframework.data.jpa.repository.config.EnableJpaAuditing;
 @ComponentScan(basePackages = "gov.cabinetoffice.gap")
 public class ApplyBackendApplication {
 
-	public static void main(String[] args) {
-		SpringApplication.run(ApplyBackendApplication.class, args);
-	}
+    public static void main(String[] args) {
+        SpringApplication.run(ApplyBackendApplication.class, args);
+    }
 
 }

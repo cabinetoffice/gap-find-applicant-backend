@@ -45,7 +45,7 @@ class ControllerExceptionHandlerTest {
         return Stream.of(
                 Arguments.of(new HttpClientErrorException(HttpStatus.NOT_FOUND, "Bad query")),
                 Arguments.of(new NotFoundException("Not Found"))
-                );
+        );
     }
 
     @ParameterizedTest

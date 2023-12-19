@@ -52,18 +52,18 @@ public class GrantApplicantController {
 
     // TODO refactor this
     @GetMapping("/does-exist")
-    public ResponseEntity<Boolean> doesApplicantExist(){
+    public ResponseEntity<Boolean> doesApplicantExist() {
         JwtPayload jwtPayload = (JwtPayload) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
-         GrantApplicant applicant = null;
+        GrantApplicant applicant = null;
         try {
             applicant = grantApplicantService.getApplicantById(jwtPayload.getSub());
-        }catch (NotFoundException ignored){
+        } catch (NotFoundException ignored) {
         }
         return ResponseEntity.ok(applicant != null);
     }
 
     @PostMapping("/create")
-    public ResponseEntity<String> createApplicant(){
+    public ResponseEntity<String> createApplicant() {
         final JwtPayload jwtPayload = (JwtPayload) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
         final GrantApplicant applicant = GrantApplicant.builder()
                 .userId(jwtPayload.getSub())

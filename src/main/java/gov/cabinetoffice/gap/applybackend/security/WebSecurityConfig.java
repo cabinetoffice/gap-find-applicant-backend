@@ -67,12 +67,12 @@ public class WebSecurityConfig {
                 .anyRequest()
                 .authenticated();
 
-        if(oneLoginEnabled) {
+        if (oneLoginEnabled) {
             http
-                .addFilterBefore(new JwtTokenFilterV2(jwtService, grantApplicantRepository, grantApplicantService, grantApplicantOrganisationProfileRepository), UsernamePasswordAuthenticationFilter.class);
+                    .addFilterBefore(new JwtTokenFilterV2(jwtService, grantApplicantRepository, grantApplicantService, grantApplicantOrganisationProfileRepository), UsernamePasswordAuthenticationFilter.class);
         } else {
             http
-                .addFilterBefore(new JwtTokenFilter(jwtService), UsernamePasswordAuthenticationFilter.class);
+                    .addFilterBefore(new JwtTokenFilter(jwtService), UsernamePasswordAuthenticationFilter.class);
         }
 
         // disable a bunch of Spring Security default stuff we don't need

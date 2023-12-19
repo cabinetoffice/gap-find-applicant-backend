@@ -25,9 +25,7 @@ import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class GrantApplicantControllerTest {
@@ -110,7 +108,7 @@ class GrantApplicantControllerTest {
     }
 
     @Test
-    void doesApplicantExist_ReturnTrue(){
+    void doesApplicantExist_ReturnTrue() {
         when(securityContext.getAuthentication()).thenReturn(authentication);
         SecurityContextHolder.setContext(securityContext);
         JwtPayload jwtPayload = JwtPayload.builder().sub(APPLICANT_USER_ID)
@@ -124,7 +122,7 @@ class GrantApplicantControllerTest {
     }
 
     @Test
-    void doesApplicantExist_ReturnFalse(){
+    void doesApplicantExist_ReturnFalse() {
         when(securityContext.getAuthentication()).thenReturn(authentication);
         SecurityContextHolder.setContext(securityContext);
         JwtPayload jwtPayload = JwtPayload.builder().sub(APPLICANT_USER_ID)

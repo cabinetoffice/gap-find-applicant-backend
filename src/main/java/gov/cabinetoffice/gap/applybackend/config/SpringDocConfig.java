@@ -20,7 +20,7 @@ public class SpringDocConfig {
     }
 
     @Bean
-    ObjectMapperProvider objectMapperProvider(SpringDocConfigProperties springDocConfigProperties){
+    ObjectMapperProvider objectMapperProvider(SpringDocConfigProperties springDocConfigProperties) {
         return new ObjectMapperProvider(springDocConfigProperties);
     }
 }

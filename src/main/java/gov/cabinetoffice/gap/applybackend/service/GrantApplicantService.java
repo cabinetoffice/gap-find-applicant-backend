@@ -25,7 +25,7 @@ public class GrantApplicantService {
         return this.getApplicantById(jwtPayload.getSub());
     }
 
-    public GrantApplicant saveApplicant(GrantApplicant applicant){
+    public GrantApplicant saveApplicant(GrantApplicant applicant) {
         return grantApplicantRepository.save(applicant);
     }
 }

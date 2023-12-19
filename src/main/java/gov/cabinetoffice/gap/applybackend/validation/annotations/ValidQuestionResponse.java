@@ -10,12 +10,13 @@ import java.lang.annotation.Target;
 
 import static java.lang.annotation.ElementType.TYPE;
 
-@Constraint(validatedBy = { QuestionResponseValidator.class })
-@Target({ TYPE })
+@Constraint(validatedBy = {QuestionResponseValidator.class})
+@Target({TYPE})
 @Retention(RetentionPolicy.RUNTIME)
 public @interface ValidQuestionResponse {
     String message() default "Invalid value";
 
     Class<?>[] groups() default {};
+
     Class<? extends Payload>[] payload() default {};
 }

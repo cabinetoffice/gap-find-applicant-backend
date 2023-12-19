@@ -25,7 +25,7 @@ public class MandatoryQuestionConstants {
     public static final String APPLICANT_TYPE_PROFILE_FIELD = "ORG_TYPE";
     public static final String APPLICANT_TYPE_HINT_TEXT = "Choose the option that best describes your organisation";
     public static final String APPLICANT_TYPE_ADMIN_SUMMARY = "organisation type (e.g. limited company)";
-    public static final String[] APPLICANT_TYPE_OPTIONS = new String[] {
+    public static final String[] APPLICANT_TYPE_OPTIONS = new String[]{
             GrantMandatoryQuestionOrgType.LIMITED_COMPANY.toString(),
             GrantMandatoryQuestionOrgType.NON_LIMITED_COMPANY.toString(),
             GrantMandatoryQuestionOrgType.REGISTERED_CHARITY.toString(),
@@ -64,7 +64,7 @@ public class MandatoryQuestionConstants {
     public static final String APPLICANT_FUNDING_LOCATION_TITLE = "Where will this funding be spent?";
     public static final String APPLICANT_FUNDING_LOCATION_HINT_TEXT = "Select the location where the grant funding will be spent. You can choose more than one, if it is being spent in more than one location.\n\nSelect all that apply:";
     public static final String APPLICANT_FUNDING_LOCATION_ADMIN_SUMMARY = "where the funding will be spent";
-    public static final String[] APPLICANT_FUNDING_LOCATION_OPTIONS = new String[] {
+    public static final String[] APPLICANT_FUNDING_LOCATION_OPTIONS = new String[]{
             "North East England",
             "North West England",
             "South East England",

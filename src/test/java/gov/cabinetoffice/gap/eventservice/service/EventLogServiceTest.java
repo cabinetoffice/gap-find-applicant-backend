@@ -4,14 +4,13 @@ import com.amazonaws.services.sqs.AmazonSQS;
 import com.amazonaws.services.sqs.model.AmazonSQSException;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import gov.cabinetoffice.gap.eventservice.dto.EventLog;
-import gov.cabinetoffice.gap.eventservice.enums.EventType;
-import gov.cabinetoffice.gap.eventservice.enums.ObjectType;
 import gov.cabinetoffice.gap.applybackend.testingextensions.ErrorLogCapture;
 import gov.cabinetoffice.gap.applybackend.testingextensions.ErrorLogCaptureExtension;
 import gov.cabinetoffice.gap.applybackend.testingextensions.InfoLogCapture;
 import gov.cabinetoffice.gap.applybackend.testingextensions.InfoLogCaptureExtension;
-import gov.cabinetoffice.gap.eventservice.service.EventLogService;
+import gov.cabinetoffice.gap.eventservice.dto.EventLog;
+import gov.cabinetoffice.gap.eventservice.enums.EventType;
+import gov.cabinetoffice.gap.eventservice.enums.ObjectType;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -25,14 +24,14 @@ import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneId;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
-import static org.assertj.core.api.Assertions.assertThat;
 
 @SpringJUnitConfig
-@ExtendWith({ InfoLogCaptureExtension.class, ErrorLogCaptureExtension.class })
+@ExtendWith({InfoLogCaptureExtension.class, ErrorLogCaptureExtension.class})
 class EventLogServiceTest {
 
     @Mock
@@ -193,7 +192,7 @@ class EventLogServiceTest {
             EventLog actualEventLog = eventLogArgumentCaptor.getValue();
 
             assertThat(actualEventLog.getEventType()).isEqualTo(EventType.SUBMISSION_PUBLISHED);
-            
+
             assertThat(actualEventLog.getSessionId()).isEqualTo(sessionId);
             assertThat(actualEventLog.getUserSub()).isEqualTo(userSub);
             assertThat(actualEventLog.getObjectId()).isEqualTo(objectId);
@@ -236,5 +235,5 @@ class EventLogServiceTest {
         }
 
     }
-    
+
 }

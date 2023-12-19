@@ -167,7 +167,7 @@ class SubmissionControllerTest {
             .postcode("G2 1QQ")
             .county("Renfrewshire")
             .build();
-    private final String APPLICANT_USER_ID ="75ab5fbd-0682-4d3d-a467-01c7a447f07c";
+    private final String APPLICANT_USER_ID = "75ab5fbd-0682-4d3d-a467-01c7a447f07c";
     final GrantApplicant grantApplicant = GrantApplicant.builder()
             .id(APPLICANT_ID)
             .userId(APPLICANT_USER_ID)
@@ -757,7 +757,7 @@ class SubmissionControllerTest {
 
             final SubmissionQuestionValidation validation = SubmissionQuestionValidation.builder()
                     .mandatory(true)
-                    .allowedTypes(new String[] {"txt"})
+                    .allowedTypes(new String[]{"txt"})
                     .build();
 
             final SubmissionQuestion question = SubmissionQuestion.builder()
@@ -804,7 +804,7 @@ class SubmissionControllerTest {
 
             final SubmissionQuestionValidation validation = SubmissionQuestionValidation.builder()
                     .mandatory(true)
-                    .allowedTypes(new String[] {"txt"})
+                    .allowedTypes(new String[]{"txt"})
                     .build();
 
             final SubmissionQuestion question = SubmissionQuestion.builder()
@@ -832,7 +832,7 @@ class SubmissionControllerTest {
 
             final SubmissionQuestionValidation validation = SubmissionQuestionValidation.builder()
                     .mandatory(true)
-                    .allowedTypes(new String[] {"txt"})
+                    .allowedTypes(new String[]{"txt"})
                     .build();
 
             final SubmissionQuestion question = SubmissionQuestion.builder()
@@ -867,7 +867,7 @@ class SubmissionControllerTest {
 
             final SubmissionQuestionValidation validation = SubmissionQuestionValidation.builder()
                     .mandatory(true)
-                    .allowedTypes(new String[] {"txt"})
+                    .allowedTypes(new String[]{"txt"})
                     .build();
 
             final SubmissionQuestion question = SubmissionQuestion.builder()
@@ -903,7 +903,7 @@ class SubmissionControllerTest {
 
             final SubmissionQuestionValidation validation = SubmissionQuestionValidation.builder()
                     .mandatory(true)
-                    .allowedTypes(new String[] {"txt"})
+                    .allowedTypes(new String[]{"txt"})
                     .build();
 
             final SubmissionQuestion question = SubmissionQuestion.builder()
@@ -943,7 +943,6 @@ class SubmissionControllerTest {
             assertThat(methodResponse.getBody()).isEqualTo(expectedNavigation);
         }
     }
-
 
 
     @Test

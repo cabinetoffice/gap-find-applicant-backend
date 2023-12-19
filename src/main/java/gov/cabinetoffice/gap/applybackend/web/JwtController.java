@@ -1,6 +1,5 @@
 package gov.cabinetoffice.gap.applybackend.web;
 
-import com.auth0.jwk.JwkException;
 import com.auth0.jwt.interfaces.DecodedJWT;
 import gov.cabinetoffice.gap.applybackend.dto.api.IsAdminJwtResponse;
 import gov.cabinetoffice.gap.applybackend.dto.api.IsJwtValidResponse;
@@ -10,11 +9,7 @@ import gov.cabinetoffice.gap.applybackend.service.JwtService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestHeader;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 @Slf4j
 @RequiredArgsConstructor
@@ -37,9 +32,9 @@ public class JwtController {
 
         return ResponseEntity.ok(
                 IsJwtValidResponse.builder()
-                .isValid(isValid)
-                .expiresAt(jwt.getExpiresAt())
-                .build()
+                        .isValid(isValid)
+                        .expiresAt(jwt.getExpiresAt())
+                        .build()
         );
     }
 

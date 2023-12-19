@@ -13,5 +13,4 @@ public interface GrantApplicantRepository extends JpaRepository<GrantApplicant, 
     boolean existsByUserId(String userId);
 
 
-
 }
