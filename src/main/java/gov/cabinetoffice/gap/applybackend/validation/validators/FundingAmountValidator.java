@@ -46,7 +46,6 @@ public class FundingAmountValidator implements ConstraintValidator<ValidFundingA
             return false;
         }
 
-
         return true;
     }
 }

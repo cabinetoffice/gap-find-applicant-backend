@@ -8,6 +8,5 @@ import java.util.UUID;
 
 public interface GrantAdvertRepository extends JpaRepository<GrantAdvert, UUID> {
     Optional<GrantAdvert> findByContentfulSlug(String contentfulSlug);
-
     Optional<GrantAdvert> findBySchemeId(Integer schemeId);
 }

@@ -37,7 +37,6 @@ import static org.mockito.Mockito.*;
 @ExtendWith(MockitoExtension.class)
 class GrantMandatoryQuestionServiceTest {
 
-    //    final ArgumentCaptor<GrantMandatoryQuestions> captor = ArgumentCaptor.forClass(GrantMandatoryQuestions.class);
     private final String applicantUserId = "75ab5fbd-0682-4d3d-a467-01c7a447f07c";
     private final UUID MANDATORY_QUESTION_ID = UUID.fromString("8e33d655-556e-49d5-bc46-3cfa4fdfa00f");
 

@@ -83,8 +83,17 @@ class SubmissionServiceTest {
                 .environmentName("LOCAL")
                 .build();
 
-        serviceUnderTest = Mockito.spy(new SubmissionService(submissionRepository, diligenceCheckRepository,
-                grantBeneficiaryRepository, grantMandatoryQuestionRepository, notifyClient, clock, envProperties));
+        serviceUnderTest = Mockito.spy(
+                new SubmissionService(
+                        submissionRepository,
+                        diligenceCheckRepository,
+                        grantBeneficiaryRepository,
+                        grantMandatoryQuestionRepository,
+                        notifyClient,
+                        clock,
+                        envProperties
+                )
+        );
 
         question = SubmissionQuestion.builder()
                 .questionId(QUESTION_ID)

@@ -420,8 +420,8 @@ public class SubmissionService {
                 } else {
                     final String organisationDefault = switch (question.getQuestionId()) {
                         case APPLICANT_ORG_NAME -> grantApplicantOrgProfile.getLegalName();
-                        case APPLICANT_ORG_TYPE ->
-                                grantApplicantOrgProfile.getType() != null ? grantApplicantOrgProfile.getType().toString() : null;
+                        case APPLICANT_ORG_TYPE -> grantApplicantOrgProfile.getType() != null
+                                ? grantApplicantOrgProfile.getType().toString() : null;
                         case APPLICANT_ORG_CHARITY_NUMBER -> grantApplicantOrgProfile.getCharityCommissionNumber();
                         case APPLICANT_ORG_COMPANIES_HOUSE -> grantApplicantOrgProfile.getCompaniesHouseNumber();
                         default -> null;

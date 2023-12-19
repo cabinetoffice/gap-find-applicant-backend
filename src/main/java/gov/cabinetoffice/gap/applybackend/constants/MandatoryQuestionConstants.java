@@ -25,7 +25,7 @@ public class MandatoryQuestionConstants {
     public static final String APPLICANT_TYPE_PROFILE_FIELD = "ORG_TYPE";
     public static final String APPLICANT_TYPE_HINT_TEXT = "Choose the option that best describes your organisation";
     public static final String APPLICANT_TYPE_ADMIN_SUMMARY = "organisation type (e.g. limited company)";
-    public static final String[] APPLICANT_TYPE_OPTIONS = new String[]{
+    public static final String[] APPLICANT_TYPE_OPTIONS = new String[] {
             GrantMandatoryQuestionOrgType.LIMITED_COMPANY.toString(),
             GrantMandatoryQuestionOrgType.NON_LIMITED_COMPANY.toString(),
             GrantMandatoryQuestionOrgType.REGISTERED_CHARITY.toString(),

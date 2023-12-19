@@ -139,5 +139,3 @@ class JwtControllerTest {
         assertThrows(JwtTokenUndefinedException.class, () -> controllerUnderTest.isAdmin(emptyJwt));
     }
 }
-
-

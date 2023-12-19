@@ -24,14 +24,14 @@ import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneId;
 
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
+import static org.assertj.core.api.Assertions.assertThat;
 
 @SpringJUnitConfig
-@ExtendWith({InfoLogCaptureExtension.class, ErrorLogCaptureExtension.class})
+@ExtendWith({ InfoLogCaptureExtension.class, ErrorLogCaptureExtension.class })
 class EventLogServiceTest {
 
     @Mock
@@ -233,7 +233,5 @@ class EventLogServiceTest {
                     .isEqualTo("Event Service Queue is disabled. Returning without sending.");
             verifyNoInteractions(amazonSQS, objectMapper);
         }
-
     }
-
 }
