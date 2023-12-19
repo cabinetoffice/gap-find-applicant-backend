@@ -109,6 +109,7 @@ public class GrantAdvertService {
             String url = this.getGrantWebpageUrl(contentfulEntry);
 
             if (!url.equals(grantWebpageUrl)) {
+                log.error("Grant webpage url does not match the url in contentful - expected: " + url + " but received: " + grantWebpageUrl);
                 throw new NotFoundException("Grant webpage url does not match the url in contentful");
             }
         } catch (CDAResourceNotFoundException error) {
