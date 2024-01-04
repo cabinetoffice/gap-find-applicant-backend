@@ -1280,7 +1280,7 @@ class SubmissionServiceTest {
                     .lastUpdated(now)
                     .lastUpdatedBy(grantApplicant)
                     .applicationName(grantApplication.getApplicationName())
-                    .status(SubmissionStatus.IN_PROGRESS)
+                    .status(SubmissionStatus.NOT_STARTED)
                     .definition(definition)
                     .build();
 

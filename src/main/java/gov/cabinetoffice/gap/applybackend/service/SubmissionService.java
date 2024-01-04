@@ -131,6 +131,10 @@ public class SubmissionService {
             handleEligibilitySection(questionResponse, submission);
         }
 
+        if(submission.getStatus() == SubmissionStatus.NOT_STARTED) {
+            submission.setStatus(SubmissionStatus.IN_PROGRESS);
+        }
+
         submissionRepository.save(submission);
     }
 
@@ -353,8 +357,8 @@ public class SubmissionService {
     }
 
     public boolean hasSubmissionBeenSubmitted(final String userId, final UUID submissionId) {
-        return !this.getSubmissionFromDatabaseBySubmissionId(userId, submissionId)
-                .getStatus().equals(SubmissionStatus.IN_PROGRESS);
+        return this.getSubmissionFromDatabaseBySubmissionId(userId, submissionId)
+                .getStatus().equals(SubmissionStatus.SUBMITTED);
     }
 
 
@@ -390,7 +394,7 @@ public class SubmissionService {
                 .lastUpdated(now)
                 .lastUpdatedBy(grantApplicant)
                 .applicationName(applicationName)
-                .status(SubmissionStatus.IN_PROGRESS)
+                .status(SubmissionStatus.NOT_STARTED)
                 .definition(definition)
                 .build();
 
