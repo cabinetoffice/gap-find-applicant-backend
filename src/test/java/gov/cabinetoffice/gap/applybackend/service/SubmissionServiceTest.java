@@ -1491,5 +1491,45 @@ class SubmissionServiceTest {
         }
     }
 
+    @Nested
+    class isApplicantEligible {
+        @Test
+        void isApplicantEligible_returnTrue() {
+            when(submissionRepository.findByIdAndApplicantUserId(SUBMISSION_ID, userId))
+                    .thenReturn(Optional.ofNullable(submission));
+
+            final boolean result = serviceUnderTest.isApplicantEligible(userId, SUBMISSION_ID, "ELIGIBILITY");
+
+            verify(submissionRepository).findByIdAndApplicantUserId(SUBMISSION_ID, userId);
+
+            assertThat(result).isTrue();
+        }
+
+        @Test
+        void isApplicantEligible_returnFalse() {
+            final SubmissionQuestion eligibilityQuestion = SubmissionQuestion.builder()
+                    .questionId("ELIGIBILITY")
+                    .response("No")
+                    .validation(null)
+                    .build();
+
+            final SubmissionSection eligibilitySection = SubmissionSection.builder()
+                    .sectionId("ELIGIBILITY")
+                    .sectionStatus(SubmissionSectionStatus.COMPLETED)
+                    .questions(List.of(eligibilityQuestion))
+                    .build();
+            submission.getDefinition().getSections().set(0,eligibilitySection);
+
+            when(submissionRepository.findByIdAndApplicantUserId(SUBMISSION_ID, userId))
+                    .thenReturn(Optional.ofNullable(submission));
+
+            final boolean result = serviceUnderTest.isApplicantEligible(userId, SUBMISSION_ID, "ELIGIBILITY");
+
+            verify(submissionRepository).findByIdAndApplicantUserId(SUBMISSION_ID, userId);
+
+            assertThat(result).isFalse();
+        }
+
+    }
 
 }
