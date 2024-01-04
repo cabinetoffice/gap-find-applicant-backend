@@ -204,7 +204,7 @@ public class SubmissionService {
                 .toList()
                 .isEmpty();
 
-        boolean isEligible = sections.stream()
+        final boolean isEligible = sections.stream()
                 .flatMap(section -> section.getQuestions().stream())
                 .noneMatch(question -> question.getQuestionId().equals("ELIGIBILITY") && !question.getResponse().equals("Yes"));
 
