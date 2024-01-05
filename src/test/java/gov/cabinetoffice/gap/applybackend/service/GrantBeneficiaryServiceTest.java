@@ -59,7 +59,7 @@ class GrantBeneficiaryServiceTest {
         final Exception result = assertThrows(NotFoundException.class, () -> serviceUnderTest.addResponse(createGrantBeneficiaryDto, UUID.fromString("75ab5fbd-0682-4d3d-a467-01c7a447f07c")));
         assertEquals("Could not find a grant beneficiary with the id: 75ab5fbd-0682-4d3d-a467-01c7a447f07c", result.getMessage());
     }
-    
+
     @Test
     void getGrantBeneficiary_Success_foundBeneficiaryWithMatchingId() {
         final GrantBeneficiary grantBeneficiary = generateRandomGrantBeneficiary().build();
@@ -72,7 +72,7 @@ class GrantBeneficiaryServiceTest {
         verify(grantBeneficiaryRepository).findBySubmissionId(grantBeneficiaryId);
         assertEquals(grantBeneficiary, response);
     }
-    
+
     @Test
     void getGrantBeneficiary_Unsuccessful_noBeneficiaryFoundWithMatchingId() {
         final UUID submissionId = UUID.randomUUID();

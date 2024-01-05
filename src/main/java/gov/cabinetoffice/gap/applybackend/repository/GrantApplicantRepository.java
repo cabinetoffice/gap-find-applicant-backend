@@ -9,9 +9,5 @@ import java.util.Optional;
 @Repository
 public interface GrantApplicantRepository extends JpaRepository<GrantApplicant, Long> {
     Optional<GrantApplicant> findByUserId(String userid);
-
     boolean existsByUserId(String userId);
-
-
-
 }

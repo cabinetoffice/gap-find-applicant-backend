@@ -1,6 +1,5 @@
 package gov.cabinetoffice.gap.applybackend.web;
 
-import com.auth0.jwk.JwkException;
 import com.auth0.jwt.interfaces.DecodedJWT;
 import gov.cabinetoffice.gap.applybackend.dto.api.IsAdminJwtResponse;
 import gov.cabinetoffice.gap.applybackend.dto.api.IsJwtValidResponse;
@@ -25,7 +24,7 @@ public class JwtController {
     private final JwtService jwtService;
 
     @PostMapping("/isValid")
-    public ResponseEntity<IsJwtValidResponse> validateToken(@RequestHeader("Authorization") String jwtToken) throws JwkException {
+    public ResponseEntity<IsJwtValidResponse> validateToken(@RequestHeader("Authorization") String jwtToken) throws JwtTokenUndefinedException {
         if (jwtToken.length() <= 0) {
             throw new JwtTokenUndefinedException("No Jwt has been passed in the request");
         }
@@ -37,9 +36,9 @@ public class JwtController {
 
         return ResponseEntity.ok(
                 IsJwtValidResponse.builder()
-                .isValid(isValid)
-                .expiresAt(jwt.getExpiresAt())
-                .build()
+                        .isValid(isValid)
+                        .expiresAt(jwt.getExpiresAt())
+                        .build()
         );
     }
 
@@ -58,7 +57,7 @@ public class JwtController {
 
     @GetMapping("/isAdmin")
     public ResponseEntity<IsAdminJwtResponse> isAdmin(@RequestHeader("Authorization") String jwtToken)
-            throws JwkException {
+            throws JwtTokenUndefinedException {
 
         if (jwtToken.length() <= 0) {
             throw new JwtTokenUndefinedException("No Jwt has been passed in the request");

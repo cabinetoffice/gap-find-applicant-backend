@@ -22,19 +22,18 @@ public class GrantAttachmentService {
     public GrantAttachment getAttachment(UUID attachmentId) {
         return grantAttachmentRepository
                 .findById(attachmentId)
-                .orElseThrow(() -> new NotFoundException(String.format("No Grant Attachment with ID %s was found", attachmentId.toString())));
+                .orElseThrow(() -> new NotFoundException(String.format("No Grant Attachment with ID %s was found", attachmentId)));
     }
 
     public GrantAttachment getAttachmentBySubmissionAndQuestion(Submission submission, String questionId) {
         return grantAttachmentRepository
                 .findBySubmissionAndQuestionId(submission, questionId)
-                .orElseThrow(() -> new NotFoundException(String.format("No Grant Attachment for Submission %s and Question %s wass found", submission.getId().toString(), questionId)));
+                .orElseThrow(() -> new NotFoundException(String.format("No Grant Attachment for Submission %s and Question %s was found", submission.getId().toString(), questionId)));
 
     }
 
     public GrantAttachment save(GrantAttachment attachment) {
         return grantAttachmentRepository.save(attachment);
-
     }
 
     public void delete(GrantAttachment attachment) {

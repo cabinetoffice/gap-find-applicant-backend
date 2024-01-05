@@ -83,8 +83,17 @@ class SubmissionServiceTest {
                 .environmentName("LOCAL")
                 .build();
 
-        serviceUnderTest = Mockito.spy(new SubmissionService(submissionRepository, diligenceCheckRepository,
-                grantBeneficiaryRepository,  grantMandatoryQuestionRepository,notifyClient, clock, envProperties));
+        serviceUnderTest = Mockito.spy(
+                new SubmissionService(
+                        submissionRepository,
+                        diligenceCheckRepository,
+                        grantBeneficiaryRepository,
+                        grantMandatoryQuestionRepository,
+                        notifyClient,
+                        clock,
+                        envProperties
+                )
+        );
 
         question = SubmissionQuestion.builder()
                 .questionId(QUESTION_ID)
@@ -163,7 +172,7 @@ class SubmissionServiceTest {
                 .build();
 
         SubmissionDefinition definition = SubmissionDefinition.builder()
-                .sections(new ArrayList(List.of(section, eligibilitySection, sectionNotStarted, sectionCannotStartYet)))
+                .sections(new ArrayList<>(List.of(section, eligibilitySection, sectionNotStarted, sectionCannotStartYet)))
                 .build();
 
         final GrantApplicant grantApplicant = GrantApplicant.builder().id(1)
@@ -618,7 +627,7 @@ class SubmissionServiceTest {
                     .findFirst()
                     .ifPresentOrElse(
                             capturedSectionResponse -> assertThat(capturedSectionResponse.getSectionStatus()).isEqualTo(SubmissionSectionStatus.IN_PROGRESS),
-                            () -> fail(String.format("No section with ID 'ORGANISATION_DETAILS' found"))
+                            () -> fail("No section with ID 'ORGANISATION_DETAILS' found")
                     );
 
             submissionCaptor.getValue()
@@ -629,7 +638,7 @@ class SubmissionServiceTest {
                     .findFirst()
                     .ifPresentOrElse(
                             capturedSectionResponse -> assertThat(capturedSectionResponse.getSectionStatus()).isEqualTo(SubmissionSectionStatus.IN_PROGRESS),
-                            () -> fail(String.format("No section with ID 'FUNDING_DETAILS' found"))
+                            () -> fail("No section with ID 'FUNDING_DETAILS' found")
                     );
         }
 
@@ -711,7 +720,7 @@ class SubmissionServiceTest {
                     .findFirst()
                     .ifPresentOrElse(
                             capturedSectionResponse -> assertThat(capturedSectionResponse.getSectionStatus()).isEqualTo(SubmissionSectionStatus.COMPLETED),
-                            () -> fail(String.format("No section with ID 'ORGANISATION_DETAILS' found"))
+                            () -> fail("No section with ID 'ORGANISATION_DETAILS' found")
                     );
 
             submissionCaptor.getValue()
@@ -722,7 +731,7 @@ class SubmissionServiceTest {
                     .findFirst()
                     .ifPresentOrElse(
                             capturedSectionResponse -> assertThat(capturedSectionResponse.getSectionStatus()).isEqualTo(SubmissionSectionStatus.COMPLETED),
-                            () -> fail(String.format("No section with ID 'FUNDING_DETAILS' found"))
+                            () -> fail("No section with ID 'FUNDING_DETAILS' found")
                     );
         }
 
@@ -1228,7 +1237,7 @@ class SubmissionServiceTest {
             final String date = currentDate.format(formatter);
 
             final String emailAddress = "test@email.com";
-            final String gapId = "GAP-LOCAL-" + date +"-12-1";
+            final String gapId = "GAP-LOCAL-" + date + "-12-1";
             final ArgumentCaptor<Submission> submissionCaptor = ArgumentCaptor.forClass(Submission.class);
             final GrantApplicant grantApplicant = GrantApplicant.builder()
                     .userId(userId)

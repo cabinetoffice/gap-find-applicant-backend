@@ -15,7 +15,7 @@ class HealthControllerTest {
     private HealthController controllerUnderTest;
 
     @BeforeEach
-    void setup () {
+    void setup() {
         controllerUnderTest = new HealthController();
     }
 

@@ -1,6 +1,5 @@
 package gov.cabinetoffice.gap.applybackend.repository;
 
-import gov.cabinetoffice.gap.applybackend.dto.api.GetGrantSchemeDto;
 import gov.cabinetoffice.gap.applybackend.model.GrantScheme;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;

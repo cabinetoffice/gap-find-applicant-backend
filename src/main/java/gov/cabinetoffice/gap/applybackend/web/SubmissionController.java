@@ -228,10 +228,10 @@ public class SubmissionController {
 
     @PutMapping("/{submissionId}/question/{questionId}/attachment/scanresult")
     public ResponseEntity<String> updateAttachment(
-                                                   @PathVariable final UUID submissionId,
-                                                   @PathVariable final String questionId,
-                                                   @RequestBody final UpdateAttachmentDto updateDetails,
-                                                   @RequestHeader(HttpHeaders.AUTHORIZATION) final String authHeader) {
+            @PathVariable final UUID submissionId,
+            @PathVariable final String questionId,
+            @RequestBody final UpdateAttachmentDto updateDetails,
+            @RequestHeader(HttpHeaders.AUTHORIZATION) final String authHeader) {
         final String applicantId = getUserIdFromSecurityContext();
 
         secretAuthService.authenticateSecret(authHeader);
@@ -256,10 +256,10 @@ public class SubmissionController {
 
     @PostMapping("/{submissionId}/sections/{sectionId}/questions/{questionId}/attach")
     public ResponseEntity<GetNavigationParamsDto> postAttachment(
-                                                                 @PathVariable final UUID submissionId,
-                                                                 @PathVariable final String sectionId,
-                                                                 @PathVariable final String questionId,
-                                                                 @RequestBody final MultipartFile attachment) {
+            @PathVariable final UUID submissionId,
+            @PathVariable final String sectionId,
+            @PathVariable final String questionId,
+            @RequestBody final MultipartFile attachment) {
         final String applicantId = getUserIdFromSecurityContext();
         final GrantApplicant applicant = grantApplicantService.getApplicantFromPrincipal();
         final Submission submission = submissionService.getSubmissionFromDatabaseBySubmissionId(applicantId, submissionId);
@@ -278,7 +278,7 @@ public class SubmissionController {
             throw new AttachmentException("You can only select up to 1 file at the same time");
         }
 
-        final String cleanedOriginalFilename =  attachment.getOriginalFilename().replaceAll(SPECIAL_CHARACTER_REGEX, "_");
+        final String cleanedOriginalFilename = attachment.getOriginalFilename().replaceAll(SPECIAL_CHARACTER_REGEX, "_");
         String extension = FilenameUtils.getExtension(attachment.getOriginalFilename()).toLowerCase();
         Arrays.stream(question.getValidation().getAllowedTypes())
                 .filter(item -> Objects.equals(item.toLowerCase(), extension))
@@ -312,9 +312,9 @@ public class SubmissionController {
 
     @DeleteMapping("/{submissionId}/sections/{sectionId}/questions/{questionId}/attachments/{attachmentId}")
     public ResponseEntity<GetNavigationParamsDto> removeAttachment(@PathVariable final UUID submissionId,
-                                                                 @PathVariable final String sectionId,
-                                                                 @PathVariable final String questionId,
-                                                                 @PathVariable final UUID attachmentId) {
+                                                                   @PathVariable final String sectionId,
+                                                                   @PathVariable final String questionId,
+                                                                   @PathVariable final UUID attachmentId) {
         final String applicantId = getUserIdFromSecurityContext();
         final Submission submission = submissionService.getSubmissionFromDatabaseBySubmissionId(applicantId, submissionId);
         final int applicationId = submission.getApplication().getId();
@@ -389,8 +389,7 @@ public class SubmissionController {
                 default -> throw new InvalidEventException("Invalid event provided: " + eventType);
             }
 
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
             // If anything goes wrong logging to event service, log and continue
             log.error("Could not send to event service. Exception: ", e);
         }

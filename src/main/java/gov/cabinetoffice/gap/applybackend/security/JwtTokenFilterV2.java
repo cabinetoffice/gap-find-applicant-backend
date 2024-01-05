@@ -7,10 +7,10 @@ import gov.cabinetoffice.gap.applybackend.model.GrantApplicant;
 import gov.cabinetoffice.gap.applybackend.model.GrantApplicantOrganisationProfile;
 import gov.cabinetoffice.gap.applybackend.repository.GrantApplicantOrganisationProfileRepository;
 import gov.cabinetoffice.gap.applybackend.repository.GrantApplicantRepository;
-import gov.cabinetoffice.gap.applybackend.service.GrantApplicantOrganisationProfileService;
 import gov.cabinetoffice.gap.applybackend.service.GrantApplicantService;
 import gov.cabinetoffice.gap.applybackend.service.JwtService;
 import lombok.RequiredArgsConstructor;
+import org.jetbrains.annotations.NotNull;
 import org.springframework.http.HttpHeaders;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
@@ -23,7 +23,6 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.util.Collections;
-import java.util.Optional;
 
 import static org.springframework.util.ObjectUtils.isEmpty;
 
@@ -40,9 +39,9 @@ public class JwtTokenFilterV2 extends OncePerRequestFilter {
     private final GrantApplicantOrganisationProfileRepository grantApplicantOrganisationProfileRepository;
 
     @Override
-    protected void doFilterInternal(HttpServletRequest request,
-                                    HttpServletResponse response,
-                                    FilterChain chain)
+    protected void doFilterInternal(@NotNull HttpServletRequest request,
+                                    @NotNull HttpServletResponse response,
+                                    @NotNull FilterChain chain)
             throws ServletException, IOException {
 
         // Check if auth header exists. If not, return without setting authentication in the security context

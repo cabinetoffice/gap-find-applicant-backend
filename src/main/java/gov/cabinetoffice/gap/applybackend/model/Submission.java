@@ -35,7 +35,7 @@ import java.util.UUID;
 @AllArgsConstructor
 @Builder
 @Entity
-@Table(name= "grant_submission")
+@Table(name = "grant_submission")
 public class Submission extends BaseEntity {
     @Id
     @GeneratedValue

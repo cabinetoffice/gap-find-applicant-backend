@@ -9,8 +9,7 @@ import java.util.List;
 @Builder
 @Data
 public class ErrorResponseBody {
-    
-    private boolean responseAccepted; 
+    private boolean responseAccepted;
     private String message;
 
     @Builder.Default

@@ -17,7 +17,10 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
-import org.mockito.*;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.Mockito;
+import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.math.BigDecimal;
@@ -34,7 +37,6 @@ import static org.mockito.Mockito.*;
 @ExtendWith(MockitoExtension.class)
 class GrantMandatoryQuestionServiceTest {
 
-    final ArgumentCaptor<GrantMandatoryQuestions> captor = ArgumentCaptor.forClass(GrantMandatoryQuestions.class);
     private final String applicantUserId = "75ab5fbd-0682-4d3d-a467-01c7a447f07c";
     private final UUID MANDATORY_QUESTION_ID = UUID.fromString("8e33d655-556e-49d5-bc46-3cfa4fdfa00f");
 
@@ -179,7 +181,6 @@ class GrantMandatoryQuestionServiceTest {
     class getGrantMandatoryQuestionByScheme {
         @Test
         void getMandatoryQuestionByScheme_ThrowsNotFoundException() {
-            final GrantScheme scheme = new GrantScheme();
             final String applicantSub = "valid-applicant-id";
 
             when(grantMandatoryQuestionRepository.findByGrantScheme_IdAndCreatedBy_UserId(1, applicantSub))
@@ -190,7 +191,6 @@ class GrantMandatoryQuestionServiceTest {
 
         @Test
         void getMandatoryQuestionByScheme_ThrowsForbiddenException() {
-            final GrantScheme scheme = new GrantScheme();
             final String applicantSub = "valid-applicant-id";
 
             final GrantApplicant createdByOtherUser = GrantApplicant.builder().userId("other-user-id").build();
@@ -204,7 +204,6 @@ class GrantMandatoryQuestionServiceTest {
 
         @Test
         void getMandatoryQuestionByScheme_ReturnsExpectedMandatoryQuestions() {
-            final GrantScheme scheme = new GrantScheme();
             final String applicantSub = "valid-applicant-id";
 
             final GrantApplicant createdByValidUser = GrantApplicant.builder().userId(applicantSub).build();
@@ -407,7 +406,7 @@ class GrantMandatoryQuestionServiceTest {
             assertThat(methodResponse).isEqualTo(grantMandatoryQuestions);
 
             //GAP ID Should be GAP-{environment}-{date}-{version}{recordNumber}-{userId}
-            assertThat(methodResponse.getGapId()).isEqualTo("GAP-"+ "local" + "-" + date + "-22-1");
+            assertThat(methodResponse.getGapId()).isEqualTo("GAP-" + "local" + "-" + date + "-22-1");
             assertThat(methodResponse.getGapId()).isEqualTo(grantMandatoryQuestions.getGapId());
         }
     }
@@ -604,7 +603,7 @@ class GrantMandatoryQuestionServiceTest {
                     .build();
 
             final SubmissionDefinition definition = SubmissionDefinition.builder()
-                    .sections(new ArrayList(List.of(eligibility, organisationDetails, fundingDetails)))
+                    .sections(new ArrayList<>(List.of(eligibility, organisationDetails, fundingDetails)))
                     .build();
 
             final Submission submission = Submission.builder()
@@ -655,7 +654,7 @@ class GrantMandatoryQuestionServiceTest {
                     .build();
 
             final SubmissionDefinition definition = SubmissionDefinition.builder()
-                    .sections(new ArrayList(List.of(eligibility, organisationDetails, fundingDetails)))
+                    .sections(new ArrayList<>(List.of(eligibility, organisationDetails, fundingDetails)))
                     .build();
 
             final Submission submission = Submission.builder()
@@ -736,7 +735,7 @@ class GrantMandatoryQuestionServiceTest {
                     .build();
 
             final SubmissionDefinition definition = SubmissionDefinition.builder()
-                    .sections(new ArrayList(List.of(eligibility, organisationDetails, fundingDetails)))
+                    .sections(new ArrayList<>(List.of(eligibility, organisationDetails, fundingDetails)))
                     .build();
 
             final Submission submission = Submission.builder()
@@ -800,7 +799,7 @@ class GrantMandatoryQuestionServiceTest {
                     .build();
 
             final SubmissionDefinition definition = SubmissionDefinition.builder()
-                    .sections(new ArrayList(List.of(eligibility, organisationDetails, fundingDetails)))
+                    .sections(new ArrayList<>(List.of(eligibility, organisationDetails, fundingDetails)))
                     .build();
 
             final Submission submission = Submission.builder()
@@ -867,7 +866,7 @@ class GrantMandatoryQuestionServiceTest {
                     .build();
 
             final SubmissionDefinition definition = SubmissionDefinition.builder()
-                    .sections(new ArrayList(List.of(eligibility, organisationDetails, fundingDetails)))
+                    .sections(new ArrayList<>(List.of(eligibility, organisationDetails, fundingDetails)))
                     .build();
 
             final Submission submission = Submission.builder()

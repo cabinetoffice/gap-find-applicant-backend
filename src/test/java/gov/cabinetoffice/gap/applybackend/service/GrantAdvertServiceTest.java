@@ -1,6 +1,5 @@
 package gov.cabinetoffice.gap.applybackend.service;
 
-import com.contentful.java.cda.AbsQuery;
 import com.contentful.java.cda.CDAArray;
 import com.contentful.java.cda.CDAClient;
 import com.contentful.java.cda.CDAEntry;
@@ -52,10 +51,6 @@ class GrantAdvertServiceTest {
     private GrantAdvertService grantAdvertService;
     @Mock
     private CDAArray contentfulResults;
-
-    @Mock
-    private AbsQuery query;
-
     @Mock
     CDAEntry mockCDAEntry;
 
