@@ -304,7 +304,6 @@ public class SubmissionController {
 
         question.setAttachmentId(grantAttachment.getId());
         question.setResponse(cleanedOriginalFilename);
-        submission.setStatus(SubmissionStatus.IN_PROGRESS);
         this.submissionService.saveSubmission(submission);
 
         logSubmissionEvent(EventType.SUBMISSION_UPDATED, submissionId.toString());
