@@ -32,7 +32,6 @@ import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.multipart.MultipartFile;
 
-import javax.servlet.http.HttpServletRequest;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.LocalDateTime;
@@ -1000,5 +999,29 @@ class SubmissionControllerTest {
         assertThat(methodResponse.getBody()).isEqualTo(expectedNav);
     }
 
+    @Nested
+    class isApplicantEligible {
+        @Test
+        void isApplicantEligible_ReturnsExpectedResponse_ReturnTrue() {
+            when(submissionService.isApplicantEligible(APPLICANT_USER_ID, SUBMISSION_ID, "ELIGIBILITY"))
+                    .thenReturn(true);
+
+            final ResponseEntity<Boolean> response = controllerUnderTest.isApplicantEligible(SUBMISSION_ID);
+
+            assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+            assertThat(response.getBody()).isTrue();
+        }
+
+        @Test
+        void isApplicantEligible_ReturnsExpectedResponse_ReturnFalse() {
+            when(submissionService.isApplicantEligible(APPLICANT_USER_ID, SUBMISSION_ID, "ELIGIBILITY"))
+                    .thenReturn(false);
+
+            final ResponseEntity<Boolean> response = controllerUnderTest.isApplicantEligible(SUBMISSION_ID);
+
+            assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+            assertThat(response.getBody()).isFalse();
+        }
+    }
 
 }

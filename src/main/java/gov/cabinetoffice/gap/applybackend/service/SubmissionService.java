@@ -204,7 +204,11 @@ public class SubmissionService {
                 .toList()
                 .isEmpty();
 
-        return questionsAreAllAnswered && sectionAreAllCompleted;
+        final boolean isEligible = sections.stream()
+                .flatMap(section -> section.getQuestions().stream())
+                .noneMatch(question -> question.getQuestionId().equals("ELIGIBILITY") && !question.getResponse().equals("Yes"));
+
+        return questionsAreAllAnswered && sectionAreAllCompleted && isEligible;
     }
 
     @Transactional
@@ -567,6 +571,12 @@ public class SubmissionService {
         }
 
         return sectionIds;
+    }
+
+    public boolean isApplicantEligible(final String userId, final UUID submissionId, final String questionId){
+        final Submission submission = getSubmissionFromDatabaseBySubmissionId(userId, submissionId);
+        final Optional<SubmissionQuestion> eligibilityResponse = getQuestionResponseByQuestionId(submission ,"ELIGIBILITY");
+        return eligibilityResponse.map(submissionQuestion -> submissionQuestion.getResponse().equals("Yes")).orElse(false);
     }
 }
 
