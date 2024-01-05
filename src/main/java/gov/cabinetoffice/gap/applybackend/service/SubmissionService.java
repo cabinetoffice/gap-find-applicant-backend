@@ -49,6 +49,7 @@ public class SubmissionService {
     private static final String APPLICANT_ORG_CHARITY_NUMBER = "APPLICANT_ORG_CHARITY_NUMBER";
     private static final String BENEFITIARY_LOCATION = "BENEFITIARY_LOCATION";
     private static final String ELIGIBILITY = "ELIGIBILITY";
+    private static final List<String> mandatoryQuestionSectionIds = List.of(ELIGIBILITY, ORGANISATION_DETAILS, FUNDING_DETAILS);
     private final SubmissionRepository submissionRepository;
     private final DiligenceCheckRepository diligenceCheckRepository;
     private final GrantBeneficiaryRepository grantBeneficiaryRepository;
@@ -129,10 +130,6 @@ public class SubmissionService {
 
         if (sectionId.equals(ELIGIBILITY)) {
             handleEligibilitySection(questionResponse, submission);
-        }
-
-        if(submission.getStatus() == SubmissionStatus.NOT_STARTED) {
-            submission.setStatus(SubmissionStatus.IN_PROGRESS);
         }
 
         submissionRepository.save(submission);
@@ -493,8 +490,23 @@ public class SubmissionService {
                 .findFirst()
                 .orElseThrow(() -> new NotFoundException(String.format("No section with ID %s was found", sectionId)))
                 .setSectionStatus(sectionStatus);
+
+        updateMandatorySectionsCompletedFlag(submission);
+
         submissionRepository.save(submission);
         return sectionStatus;
+    }
+
+    private void updateMandatorySectionsCompletedFlag(final Submission submission) {
+        final boolean mandatorySectionsCompleted = isMandatorySectionsComplete(submission);
+        submission.setMandatorySectionsCompleted(mandatorySectionsCompleted);
+    }
+
+    private boolean isMandatorySectionsComplete(final Submission submission) {
+        return submission.getDefinition().getSections()
+                .stream()
+                .filter(section -> mandatoryQuestionSectionIds.contains(section.getSectionId()))
+                .allMatch(section -> section.getSectionStatus() == SubmissionSectionStatus.COMPLETED);
     }
 
     public SubmissionDefinition transformApplicationDefinitionToSubmissionDefinition(ApplicationDefinition applicationDefinition, int schemeVersion) throws JsonProcessingException {
