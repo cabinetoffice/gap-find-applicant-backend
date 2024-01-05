@@ -902,8 +902,13 @@ class SubmissionServiceTest {
                     .validation(mandatoryValidation).response("test").build();
             final SubmissionQuestion question2 = SubmissionQuestion.builder().questionId("APPLICANT_ORG_NAME")
                     .validation(optionalValidation).response("").build();
+            final SubmissionQuestion eligibilityQuestion = SubmissionQuestion.builder()
+                    .questionId("ELIGIBILITY")
+                    .response("Yes")
+                    .validation(mandatoryValidation)
+                    .build();
             final SubmissionSection section1 = SubmissionSection.builder().sectionId("ESSENTIAL")
-                    .sectionStatus(SubmissionSectionStatus.COMPLETED).questions(List.of(question)).build();
+                    .sectionStatus(SubmissionSectionStatus.COMPLETED).questions(List.of(question, eligibilityQuestion)).build();
             final SubmissionSection section2 = SubmissionSection.builder().questions(List.of(question2)).sectionId("SECOND")
                     .sectionStatus(SubmissionSectionStatus.COMPLETED).build();
             final SubmissionDefinition definition = SubmissionDefinition.builder().sections(List.of(section1, section2)).build();
@@ -929,8 +934,13 @@ class SubmissionServiceTest {
                     .validation(mandatoryValidation).multiResponse(new String[]{"Test"}).build();
             final SubmissionQuestion question2 = SubmissionQuestion.builder().questionId("APPLICANT_ORG_NAME")
                     .validation(optionalValidation).response("").build();
+            final SubmissionQuestion eligibilityQuestion = SubmissionQuestion.builder()
+                    .questionId("ELIGIBILITY")
+                    .response("Yes")
+                    .validation(mandatoryValidation)
+                    .build();
             final SubmissionSection section1 = SubmissionSection.builder().sectionId("ESSENTIAL")
-                    .sectionStatus(SubmissionSectionStatus.COMPLETED).questions(List.of(question)).build();
+                    .sectionStatus(SubmissionSectionStatus.COMPLETED).questions(List.of(question, eligibilityQuestion)).build();
             final SubmissionSection section2 = SubmissionSection.builder().questions(List.of(question2)).sectionId("SECOND")
                     .sectionStatus(SubmissionSectionStatus.COMPLETED).build();
             final SubmissionDefinition definition = SubmissionDefinition.builder().sections(List.of(section1, section2)).build();
