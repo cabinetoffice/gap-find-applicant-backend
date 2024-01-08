@@ -71,7 +71,7 @@ public class GrantMandatoryQuestionService {
             return grantMandatoryQuestionRepository.findByGrantSchemeAndCreatedBy(scheme, applicant).get(0);
         }
 
-        if (scheme.getGrantApplication().getApplicationStatus() != GrantApplicationStatus.PUBLISHED) {
+        if (scheme.getGrantApplication() != null && scheme.getGrantApplication().getApplicationStatus() != GrantApplicationStatus.PUBLISHED) {
             throw new GrantApplicationNotPublishedException(String.format("Mandatory question for scheme %d could not be created as the application is not published", scheme.getId()));
         }
 
