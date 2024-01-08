@@ -1,6 +1,6 @@
 package gov.cabinetoffice.gap.applybackend.web;
 
-import gov.cabinetoffice.gap.applybackend.enums.GrantApplicantStatus;
+import gov.cabinetoffice.gap.applybackend.enums.GrantApplicationStatus;
 import gov.cabinetoffice.gap.applybackend.exception.NotFoundException;
 import gov.cabinetoffice.gap.applybackend.model.GrantApplication;
 import gov.cabinetoffice.gap.applybackend.service.GrantApplicationService;
@@ -28,9 +28,9 @@ public class GrantApplicationControllerTest {
     @Test
     void getApplicationStatusFromSchemeId_returnsApplicationStatus() {
         GrantApplication mockGrantApplication = GrantApplication.builder().id(1)
-                .applicationStatus(GrantApplicantStatus.REMOVED).build();
+                .applicationStatus(GrantApplicationStatus.REMOVED).build();
         when(grantApplicationService.getGrantApplicationByGrantScheme(1)).thenReturn(mockGrantApplication);
-        String expected = GrantApplicantStatus.REMOVED.toString();
+        String expected = GrantApplicationStatus.REMOVED.toString();
 
         assertEquals(ResponseEntity.ok(expected),
                 controllerUnderTest.getApplicationStatusFromSchemeId(1));

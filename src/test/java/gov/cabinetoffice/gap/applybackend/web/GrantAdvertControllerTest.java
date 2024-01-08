@@ -93,7 +93,7 @@ class GrantAdvertControllerTest {
                     .thenReturn(applicant);
             when(grantAdvertService.getAdvertByContentfulSlug("slug"))
                     .thenReturn(grantAdvert);
-            when(grantMandatoryQuestionService.existsBySchemeIdAndApplicantId(scheme.getId(), applicant.getId()))
+            when(grantMandatoryQuestionService.mandatoryQuestionExistsBySchemeIdAndApplicantId(scheme.getId(), applicant.getId()))
                     .thenReturn(true);
             when(grantMandatoryQuestionService.getMandatoryQuestionBySchemeId(123, applicantUserId))
                     .thenReturn(grantMandatoryQuestions);
@@ -179,7 +179,7 @@ class GrantAdvertControllerTest {
                     .thenReturn(applicant);
             when(grantAdvertService.getAdvertBySchemeId(String.valueOf(schemeId)))
                     .thenReturn(grantAdvert);
-            when(grantMandatoryQuestionService.existsBySchemeIdAndApplicantId(scheme.getId(), applicant.getId()))
+            when(grantMandatoryQuestionService.mandatoryQuestionExistsBySchemeIdAndApplicantId(scheme.getId(), applicant.getId()))
                     .thenReturn(true);
             when(grantMandatoryQuestionService.getMandatoryQuestionBySchemeId(123, applicantUserId))
                     .thenReturn(grantMandatoryQuestions);

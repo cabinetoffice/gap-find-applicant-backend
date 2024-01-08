@@ -336,12 +336,12 @@ class GrantMandatoryQuestionsControllerTest {
 
         when(grantApplicantService.getApplicantById(jwtPayload.getSub())).thenReturn(applicant);
 
-        when(grantMandatoryQuestionService.existsBySchemeIdAndApplicantId(1, 1L)).thenReturn(true);
+        when(grantMandatoryQuestionService.mandatoryQuestionExistsBySchemeIdAndApplicantId(1, 1L)).thenReturn(true);
 
         final ResponseEntity<Boolean> methodResponse = controllerUnderTest
                 .existsBySchemeIdAndApplicantId(1);
 
-        verify(grantMandatoryQuestionService).existsBySchemeIdAndApplicantId(1, 1L);
+        verify(grantMandatoryQuestionService).mandatoryQuestionExistsBySchemeIdAndApplicantId(1, 1L);
         assertThat(methodResponse.getBody()).isEqualTo(Boolean.TRUE);
         assertThat(methodResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
 

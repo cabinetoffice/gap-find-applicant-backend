@@ -1,7 +1,7 @@
 package gov.cabinetoffice.gap.applybackend.model;
 
 import com.fasterxml.jackson.annotation.JsonManagedReference;
-import gov.cabinetoffice.gap.applybackend.enums.GrantApplicantStatus;
+import gov.cabinetoffice.gap.applybackend.enums.GrantApplicationStatus;
 import lombok.*;
 import org.hibernate.annotations.Type;
 
@@ -45,7 +45,7 @@ public class GrantApplication extends BaseEntity {
 
     @Column(name = "status")
     @Enumerated(EnumType.STRING)
-    private GrantApplicantStatus applicationStatus;
+    private GrantApplicationStatus applicationStatus;
 
     @Column(name = "definition", nullable = false, columnDefinition = "json")
     @Type(type = "json")
@@ -56,7 +56,7 @@ public class GrantApplication extends BaseEntity {
         this.version = 2;
         this.created = Instant.now();
         this.lastUpdated = Instant.now();
-        this.applicationStatus = GrantApplicantStatus.DRAFT;
+        this.applicationStatus = GrantApplicationStatus.DRAFT;
         this.grantScheme = grantScheme;
         this.lastUpdateBy = lastUpdateBy;
         this.applicationName = applicationName;

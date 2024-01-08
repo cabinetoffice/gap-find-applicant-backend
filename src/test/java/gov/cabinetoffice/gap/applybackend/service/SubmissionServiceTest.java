@@ -7,7 +7,7 @@ import gov.cabinetoffice.gap.applybackend.constants.APIConstants;
 import gov.cabinetoffice.gap.applybackend.dto.api.CreateQuestionResponseDto;
 import gov.cabinetoffice.gap.applybackend.dto.api.CreateSubmissionResponseDto;
 import gov.cabinetoffice.gap.applybackend.dto.api.GetNavigationParamsDto;
-import gov.cabinetoffice.gap.applybackend.enums.GrantApplicantStatus;
+import gov.cabinetoffice.gap.applybackend.enums.GrantApplicationStatus;
 import gov.cabinetoffice.gap.applybackend.enums.SubmissionSectionStatus;
 import gov.cabinetoffice.gap.applybackend.enums.SubmissionStatus;
 import gov.cabinetoffice.gap.applybackend.exception.NotFoundException;
@@ -881,7 +881,7 @@ class SubmissionServiceTest {
         @Test
         void isSubmissionReadyToBeSubmitted_returnsFalse_WhenGrantApplicationNotPublished() {
             GrantApplication grantApplication = GrantApplication.builder().id(1)
-                    .applicationStatus(GrantApplicantStatus.DRAFT).build();
+                    .applicationStatus(GrantApplicationStatus.DRAFT).build();
             submission.setApplication(grantApplication);
 
             doReturn(submission)
@@ -893,7 +893,7 @@ class SubmissionServiceTest {
         @Test
         void isSubmissionReadyToBeSubmitted_returnTrueWhenAllMandatoryQuestionsHaveBeenAnsweredAndAllSectionAreCompleted__responseCase() {
             final GrantApplication grantApplication = GrantApplication.builder().id(1)
-                    .applicationStatus(GrantApplicantStatus.PUBLISHED).build();
+                    .applicationStatus(GrantApplicationStatus.PUBLISHED).build();
             final SubmissionQuestionValidation mandatoryValidation = SubmissionQuestionValidation.builder().mandatory(true)
                     .build();
             final SubmissionQuestionValidation optionalValidation = SubmissionQuestionValidation.builder().mandatory(false)
@@ -925,7 +925,7 @@ class SubmissionServiceTest {
         @Test
         void isSubmissionReadyToBeSubmitted_returnTrueWhenAllMandatoryQuestionsHaveBeenAnsweredAndAllSectionHaveBeenCompleted__multiResponseCase() {
             final GrantApplication grantApplication = GrantApplication.builder().id(1)
-                    .applicationStatus(GrantApplicantStatus.PUBLISHED).build();
+                    .applicationStatus(GrantApplicationStatus.PUBLISHED).build();
             final SubmissionQuestionValidation mandatoryValidation = SubmissionQuestionValidation.builder().mandatory(true)
                     .build();
             final SubmissionQuestionValidation optionalValidation = SubmissionQuestionValidation.builder().mandatory(false)
@@ -957,7 +957,7 @@ class SubmissionServiceTest {
         @Test
         void isSubmissionReadyToBeSubmitted_returnFalseWhenAllMandatoryQuestionsHaveNotBeenAnswered() {
             GrantApplication grantApplication = GrantApplication.builder().id(1)
-                    .applicationStatus(GrantApplicantStatus.PUBLISHED).build();
+                    .applicationStatus(GrantApplicationStatus.PUBLISHED).build();
             SubmissionQuestionValidation validation = SubmissionQuestionValidation.builder().mandatory(true)
                     .build();
             question.setValidation(validation);
@@ -972,7 +972,7 @@ class SubmissionServiceTest {
         @Test
         void isSubmissionReadyToBeSubmitted_returnFalseWhenAllSectionAreNotCompleted() {
             final GrantApplication grantApplication = GrantApplication.builder().id(1)
-                    .applicationStatus(GrantApplicantStatus.PUBLISHED).build();
+                    .applicationStatus(GrantApplicationStatus.PUBLISHED).build();
             final SubmissionQuestionValidation mandatoryValidation = SubmissionQuestionValidation.builder().mandatory(true)
                     .build();
             final SubmissionQuestionValidation optionalValidation = SubmissionQuestionValidation.builder().mandatory(false)

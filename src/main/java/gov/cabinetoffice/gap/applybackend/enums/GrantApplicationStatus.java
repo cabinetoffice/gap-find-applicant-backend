@@ -1,6 +1,6 @@
 package gov.cabinetoffice.gap.applybackend.enums;
 
-public enum GrantApplicantStatus {
+public enum GrantApplicationStatus {
     DRAFT,
     PUBLISHED,
     REMOVED

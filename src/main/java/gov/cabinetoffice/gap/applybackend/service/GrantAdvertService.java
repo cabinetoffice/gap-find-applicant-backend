@@ -16,9 +16,6 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
-import java.net.URL;
-import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
@@ -133,7 +130,7 @@ public class GrantAdvertService {
         final GrantApplicant grantApplicant = grantApplicantService.getApplicantById(sub);
         GetGrantMandatoryQuestionDto mandatoryQuestionsDto = null;
 
-        if (grantMandatoryQuestionService.existsBySchemeIdAndApplicantId(schemeId, grantApplicant.getId())) {
+        if (grantMandatoryQuestionService.mandatoryQuestionExistsBySchemeIdAndApplicantId(schemeId, grantApplicant.getId())) {
             final GrantMandatoryQuestions grantMandatoryQuestions = grantMandatoryQuestionService
                     .getMandatoryQuestionBySchemeId(schemeId, sub);
             mandatoryQuestionsDto = grantMandatoryQuestionMapper.mapGrantMandatoryQuestionToGetGrantMandatoryQuestionDTO(grantMandatoryQuestions);

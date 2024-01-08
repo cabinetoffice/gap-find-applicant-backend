@@ -1,6 +1,6 @@
 package gov.cabinetoffice.gap.applybackend.service;
 
-import gov.cabinetoffice.gap.applybackend.enums.GrantApplicantStatus;
+import gov.cabinetoffice.gap.applybackend.enums.GrantApplicationStatus;
 import gov.cabinetoffice.gap.applybackend.exception.NotFoundException;
 import gov.cabinetoffice.gap.applybackend.model.GrantApplication;
 import gov.cabinetoffice.gap.applybackend.model.GrantScheme;
@@ -68,7 +68,7 @@ class GrantApplicationServiceTest {
     @Test
     void isGrantApplicationPublished__True() {
         final GrantApplication application = GrantApplication.builder()
-                .applicationStatus(GrantApplicantStatus.PUBLISHED)
+                .applicationStatus(GrantApplicationStatus.PUBLISHED)
                 .id(1)
                 .build();
 
@@ -83,7 +83,7 @@ class GrantApplicationServiceTest {
     @Test
     void isGrantApplicationPublished__False() {
         final GrantApplication application = GrantApplication.builder()
-                .applicationStatus(GrantApplicantStatus.DRAFT)
+                .applicationStatus(GrantApplicationStatus.DRAFT)
                 .id(1)
                 .build();
 
