@@ -1353,6 +1353,72 @@ class SubmissionServiceTest {
             final SubmissionSectionStatus response = serviceUnderTest.handleSectionReview(userId, SUBMISSION_ID, SECTION_ID_1, true);
             assertEquals(SubmissionSectionStatus.COMPLETED, response);
         }
+
+        @Test
+        void setsMandatorySectionsCompleteFlag_false() {
+            final Submission submission = Submission.builder()
+                    .id(SUBMISSION_ID)
+                    .definition(SubmissionDefinition.builder()
+                            .sections(List.of(
+                                    SubmissionSection.builder()
+                                            .sectionId("ELIGIBILITY")
+                                            .sectionStatus(SubmissionSectionStatus.COMPLETED)
+                                            .build(),
+                                    SubmissionSection.builder()
+                                            .sectionId("ORGANISATION_DETAILS")
+                                            .sectionStatus(SubmissionSectionStatus.COMPLETED)
+                                            .build(),
+                                    SubmissionSection.builder()
+                                            .sectionId("FUNDING_DETAILS")
+                                            .sectionStatus(SubmissionSectionStatus.IN_PROGRESS)
+                                            .build()
+                            ))
+                            .build())
+                    .build();
+            final ArgumentCaptor<Submission> submissionCaptor = ArgumentCaptor.forClass(Submission.class);
+
+            doReturn(submission).when(serviceUnderTest).getSubmissionFromDatabaseBySubmissionId(userId, SUBMISSION_ID);
+            when(submissionRepository.save(submission)).thenReturn(submission);
+
+            serviceUnderTest.handleSectionReview(userId, SUBMISSION_ID, "FUNDING_DETAILS", false);
+
+            verify(submissionRepository).save(submissionCaptor.capture());
+            final Submission capturedSubmission = submissionCaptor.getValue();
+            assertFalse(capturedSubmission.getMandatorySectionsCompleted());
+        }
+
+        @Test
+        void setsMandatorySectionsCompleteFlag_true() {
+            final Submission submission = Submission.builder()
+                    .id(SUBMISSION_ID)
+                    .definition(SubmissionDefinition.builder()
+                            .sections(List.of(
+                                    SubmissionSection.builder()
+                                            .sectionId("ELIGIBILITY")
+                                            .sectionStatus(SubmissionSectionStatus.COMPLETED)
+                                            .build(),
+                                    SubmissionSection.builder()
+                                            .sectionId("ORGANISATION_DETAILS")
+                                            .sectionStatus(SubmissionSectionStatus.COMPLETED)
+                                            .build(),
+                                    SubmissionSection.builder()
+                                            .sectionId("FUNDING_DETAILS")
+                                            .sectionStatus(SubmissionSectionStatus.IN_PROGRESS)
+                                            .build()
+                            ))
+                            .build())
+                    .build();
+            final ArgumentCaptor<Submission> submissionCaptor = ArgumentCaptor.forClass(Submission.class);
+
+            doReturn(submission).when(serviceUnderTest).getSubmissionFromDatabaseBySubmissionId(userId, SUBMISSION_ID);
+            when(submissionRepository.save(submission)).thenReturn(submission);
+
+            serviceUnderTest.handleSectionReview(userId, SUBMISSION_ID, "FUNDING_DETAILS", true);
+
+            verify(submissionRepository).save(submissionCaptor.capture());
+            final Submission capturedSubmission = submissionCaptor.getValue();
+            assertTrue(capturedSubmission.getMandatorySectionsCompleted());
+        }
     }
 
     @Nested

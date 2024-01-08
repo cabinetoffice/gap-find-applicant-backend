@@ -46,7 +46,6 @@ public class Submission extends BaseEntity {
     @JsonIgnoreProperties("submissions")
     private GrantApplicant applicant;
 
-
     @ManyToOne(cascade = CascadeType.ALL)
     @JoinColumn(name = "scheme_id")
     private GrantScheme scheme;
@@ -94,6 +93,10 @@ public class Submission extends BaseEntity {
 
     @Column(name = "last_required_checks_export")
     private Instant lastRequiredChecksExport;
+
+    @Column
+    @Builder.Default
+    private Boolean mandatorySectionsCompleted = false;
 
     public SubmissionSection getSection(String sectionId) {
         return this.getDefinition()
