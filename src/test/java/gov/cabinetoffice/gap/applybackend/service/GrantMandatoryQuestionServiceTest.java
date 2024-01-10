@@ -2,11 +2,9 @@ package gov.cabinetoffice.gap.applybackend.service;
 
 import gov.cabinetoffice.gap.applybackend.config.properties.EnvironmentProperties;
 import gov.cabinetoffice.gap.applybackend.constants.MandatoryQuestionConstants;
-import gov.cabinetoffice.gap.applybackend.enums.GrantMandatoryQuestionFundingLocation;
-import gov.cabinetoffice.gap.applybackend.enums.GrantMandatoryQuestionOrgType;
-import gov.cabinetoffice.gap.applybackend.enums.GrantMandatoryQuestionStatus;
-import gov.cabinetoffice.gap.applybackend.enums.SubmissionSectionStatus;
+import gov.cabinetoffice.gap.applybackend.enums.*;
 import gov.cabinetoffice.gap.applybackend.exception.ForbiddenException;
+import gov.cabinetoffice.gap.applybackend.exception.GrantApplicationNotPublishedException;
 import gov.cabinetoffice.gap.applybackend.exception.NotFoundException;
 import gov.cabinetoffice.gap.applybackend.mapper.GrantApplicantOrganisationProfileMapper;
 import gov.cabinetoffice.gap.applybackend.model.*;
@@ -250,6 +248,26 @@ class GrantMandatoryQuestionServiceTest {
             assertThat(methodResponse).isEqualTo(existingMandatoryQuestions);
         }
 
+        @Test
+        void createMandatoryQuestion_ThrowsErrorIfApplicationClosed() {
+            final GrantScheme scheme = GrantScheme
+                    .builder()
+                    .id(1)
+                    .grantApplication(GrantApplication.builder().applicationStatus(GrantApplicationStatus.REMOVED).build())
+                    .build();
+
+            final GrantApplicant applicant = GrantApplicant
+                    .builder()
+                    .userId(applicantUserId)
+                    .organisationProfile(organisationProfile)
+                    .build();
+
+            when(grantMandatoryQuestionRepository.existsByGrantScheme_IdAndCreatedBy_Id(scheme.getId(), applicant.getId()))
+                    .thenReturn(false);
+
+            assertThrows(GrantApplicationNotPublishedException.class, () -> serviceUnderTest.createMandatoryQuestion(scheme, applicant));
+        }
+
 
         @Test
         void createMandatoryQuestion_CreatesNewEntry_IfNoExistingQuestionsFound() {
@@ -257,6 +275,7 @@ class GrantMandatoryQuestionServiceTest {
             final GrantScheme scheme = GrantScheme
                     .builder()
                     .id(1)
+                    .grantApplication(GrantApplication.builder().applicationStatus(GrantApplicationStatus.PUBLISHED).build())
                     .build();
 
             final GrantApplicant applicant = GrantApplicant
@@ -295,6 +314,7 @@ class GrantMandatoryQuestionServiceTest {
 
             final GrantScheme scheme = GrantScheme
                     .builder()
+                    .grantApplication(GrantApplication.builder().applicationStatus(GrantApplicationStatus.PUBLISHED).build())
                     .id(1)
                     .build();
 

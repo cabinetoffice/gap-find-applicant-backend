@@ -4,6 +4,7 @@ import gov.cabinetoffice.gap.applybackend.config.properties.EnvironmentPropertie
 import gov.cabinetoffice.gap.applybackend.constants.MandatoryQuestionConstants;
 import gov.cabinetoffice.gap.applybackend.enums.*;
 import gov.cabinetoffice.gap.applybackend.exception.ForbiddenException;
+import gov.cabinetoffice.gap.applybackend.exception.GrantApplicationNotPublishedException;
 import gov.cabinetoffice.gap.applybackend.exception.NotFoundException;
 import gov.cabinetoffice.gap.applybackend.mapper.GrantApplicantOrganisationProfileMapper;
 import gov.cabinetoffice.gap.applybackend.model.*;
@@ -65,9 +66,13 @@ public class GrantMandatoryQuestionService {
     }
 
     public GrantMandatoryQuestions createMandatoryQuestion(GrantScheme scheme, GrantApplicant applicant) {
-        if (existsBySchemeIdAndApplicantId(scheme.getId(), applicant.getId())) {
+        if (mandatoryQuestionExistsBySchemeIdAndApplicantId(scheme.getId(), applicant.getId())) {
             log.debug("Mandatory question for scheme {}, and applicant {} already exist", scheme.getId(), applicant.getId());
             return grantMandatoryQuestionRepository.findByGrantSchemeAndCreatedBy(scheme, applicant).get(0);
+        }
+
+        if (scheme.getGrantApplication() != null && scheme.getGrantApplication().getApplicationStatus() == GrantApplicationStatus.REMOVED) {
+            throw new GrantApplicationNotPublishedException(String.format("Mandatory question for scheme %d could not be created as the application is not published", scheme.getId()));
         }
 
         final GrantApplicantOrganisationProfile organisationProfile = applicant.getOrganisationProfile();
@@ -227,7 +232,7 @@ public class GrantMandatoryQuestionService {
         };
     }
 
-    public boolean existsBySchemeIdAndApplicantId(Integer schemeId, Long applicantId) {
+    public boolean mandatoryQuestionExistsBySchemeIdAndApplicantId(Integer schemeId, Long applicantId) {
         return grantMandatoryQuestionRepository.existsByGrantScheme_IdAndCreatedBy_Id(schemeId, applicantId);
     }
 

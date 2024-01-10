@@ -8,7 +8,7 @@ import gov.cabinetoffice.gap.applybackend.constants.APIConstants;
 import gov.cabinetoffice.gap.applybackend.dto.api.CreateQuestionResponseDto;
 import gov.cabinetoffice.gap.applybackend.dto.api.CreateSubmissionResponseDto;
 import gov.cabinetoffice.gap.applybackend.dto.api.GetNavigationParamsDto;
-import gov.cabinetoffice.gap.applybackend.enums.GrantApplicantStatus;
+import gov.cabinetoffice.gap.applybackend.enums.GrantApplicationStatus;
 import gov.cabinetoffice.gap.applybackend.enums.SubmissionSectionStatus;
 import gov.cabinetoffice.gap.applybackend.enums.SubmissionStatus;
 import gov.cabinetoffice.gap.applybackend.exception.NotFoundException;
@@ -177,7 +177,7 @@ public class SubmissionService {
     public boolean isSubmissionReadyToBeSubmitted(final String userId, final UUID submissionId) {
         final Submission submission = getSubmissionFromDatabaseBySubmissionId(userId, submissionId);
         GrantApplication grantApplication = submission.getApplication();
-        if (!grantApplication.getApplicationStatus().equals(GrantApplicantStatus.PUBLISHED)) {
+        if (!grantApplication.getApplicationStatus().equals(GrantApplicationStatus.PUBLISHED)) {
             return false;
         }
 

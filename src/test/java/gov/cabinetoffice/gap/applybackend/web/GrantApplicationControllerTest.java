@@ -1,7 +1,6 @@
 package gov.cabinetoffice.gap.applybackend.web;
 
-import gov.cabinetoffice.gap.applybackend.enums.GrantApplicantStatus;
-import gov.cabinetoffice.gap.applybackend.exception.NotFoundException;
+import gov.cabinetoffice.gap.applybackend.enums.GrantApplicationStatus;
 import gov.cabinetoffice.gap.applybackend.model.GrantApplication;
 import gov.cabinetoffice.gap.applybackend.service.GrantApplicationService;
 import org.junit.jupiter.api.Test;
@@ -12,7 +11,6 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.ResponseEntity;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.when;
 
 
@@ -28,17 +26,19 @@ public class GrantApplicationControllerTest {
     @Test
     void getApplicationStatusFromSchemeId_returnsApplicationStatus() {
         GrantApplication mockGrantApplication = GrantApplication.builder().id(1)
-                .applicationStatus(GrantApplicantStatus.REMOVED).build();
+                .applicationStatus(GrantApplicationStatus.REMOVED).build();
         when(grantApplicationService.getGrantApplicationByGrantScheme(1)).thenReturn(mockGrantApplication);
-        String expected = GrantApplicantStatus.REMOVED.toString();
+        String expected = GrantApplicationStatus.REMOVED.toString();
 
         assertEquals(ResponseEntity.ok(expected),
                 controllerUnderTest.getApplicationStatusFromSchemeId(1));
     }
 
     @Test
-    void getApplicationStatusFromSchemeId_throwsNotFoundWhenNoApplicationFound() {
-        when(grantApplicationService.getGrantApplicationByGrantScheme(1)).thenThrow(NotFoundException.class);
-        assertThrows(NotFoundException.class, () -> controllerUnderTest.getApplicationStatusFromSchemeId(1));
+    void getApplicationStatusFromSchemeId_returnsExternalApplicationWhenNoApplication() {
+        when(grantApplicationService.getGrantApplicationByGrantScheme(1)).thenReturn(null);
+
+        assertEquals(ResponseEntity.ok("EXTERNAL_APPLICATION"),
+                controllerUnderTest.getApplicationStatusFromSchemeId(1));
     }
 }
