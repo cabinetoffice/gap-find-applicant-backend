@@ -29,8 +29,13 @@ public class GrantApplicationController {
     public ResponseEntity<String> getApplicationStatusFromSchemeId(
             @PathVariable("schemeId") Integer schemeId
     ) {
-        GrantApplication grantApplication = grantApplicationService.getGrantApplicationByGrantScheme(schemeId);
-        return ResponseEntity.ok(grantApplication.getApplicationStatus().toString());
+        try {
+            GrantApplication grantApplication = grantApplicationService.getGrantApplicationByGrantScheme(schemeId);
+            return ResponseEntity.ok(grantApplication.getApplicationStatus().toString());
+        } catch (Exception e) {
+            // From an applicants POV - if there is no application form then it is an external application.
+            return ResponseEntity.ok("EXTERNAL_APPLICATION");
+        }
     }
 
     @GetMapping("/{applicationId}")
