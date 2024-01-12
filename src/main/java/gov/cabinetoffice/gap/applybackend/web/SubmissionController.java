@@ -362,9 +362,9 @@ public class SubmissionController {
         byte[] odtBytes = outputStream.toByteArray();
         ByteArrayResource resource = new ByteArrayResource(odtBytes);
         HttpHeaders headers = new HttpHeaders();
-        headers.add(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=export.odt");
+        headers.add(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"export.odt\"");
         headers.add(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_OCTET_STREAM_VALUE);
-        return ResponseEntity.ok().contentLength(resource.contentLength()).contentType(MediaType.APPLICATION_OCTET_STREAM).body(resource);
+        return ResponseEntity.ok().headers(headers).contentLength(resource.contentLength()).contentType(MediaType.APPLICATION_OCTET_STREAM).body(resource);
     }
 
     @GetMapping("/{submissionId}/isApplicantEligible")
