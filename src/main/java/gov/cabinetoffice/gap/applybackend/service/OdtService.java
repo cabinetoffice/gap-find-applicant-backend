@@ -42,9 +42,9 @@ public class OdtService {
     }
 
     public static OdfTextDocument generateSingleOdt(final Submission submission, final String filename) throws Exception {
-        try {
             Integer schemeVersion = submission.getVersion();
             OdfTextDocument odt = OdfTextDocument.newTextDocument();
+        try {
             OdfContentDom contentDom = odt.getContentDom();
             OfficeTextElement documentText = odt.getContentRoot();
             String largeHeadingStyle = "Heading_20_2";
@@ -195,6 +195,7 @@ public class OdtService {
             logger.info("ODT file generated successfully");
             return odt;
         } catch (Exception e) {
+            odt.close();
             logger.error("Could not generate ODT for given submission", e);
             throw e;
         }
