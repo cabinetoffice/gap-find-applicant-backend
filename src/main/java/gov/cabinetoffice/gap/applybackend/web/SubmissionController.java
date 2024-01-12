@@ -3,17 +3,24 @@ package gov.cabinetoffice.gap.applybackend.web;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import gov.cabinetoffice.gap.applybackend.constants.APIConstants;
 import gov.cabinetoffice.gap.applybackend.dto.api.*;
+import gov.cabinetoffice.gap.eventservice.enums.EventType;
 import gov.cabinetoffice.gap.applybackend.enums.GrantAttachmentStatus;
 import gov.cabinetoffice.gap.applybackend.enums.GrantMandatoryQuestionOrgType;
 import gov.cabinetoffice.gap.applybackend.enums.SubmissionSectionStatus;
 import gov.cabinetoffice.gap.applybackend.enums.SubmissionStatus;
 import gov.cabinetoffice.gap.applybackend.exception.AttachmentException;
 import gov.cabinetoffice.gap.applybackend.exception.GrantApplicationNotPublishedException;
+import gov.cabinetoffice.gap.eventservice.exception.InvalidEventException;
 import gov.cabinetoffice.gap.applybackend.exception.NotFoundException;
 import gov.cabinetoffice.gap.applybackend.model.*;
 import gov.cabinetoffice.gap.applybackend.service.*;
 import gov.cabinetoffice.gap.eventservice.enums.EventType;
 import gov.cabinetoffice.gap.eventservice.exception.InvalidEventException;
+import gov.cabinetoffice.gap.eventservice.service.EventLogService;
+
+import static gov.cabinetoffice.gap.applybackend.utils.SecurityContextHelper.getJwtIdFromSecurityContext;
+import static gov.cabinetoffice.gap.applybackend.utils.SecurityContextHelper.getUserIdFromSecurityContext;
+
 import gov.cabinetoffice.gap.eventservice.service.EventLogService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -26,6 +33,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
+import javax.servlet.http.HttpServletRequest;
 import javax.validation.Valid;
 import java.time.Clock;
 import java.time.Instant;
