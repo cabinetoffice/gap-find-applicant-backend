@@ -14,5 +14,5 @@ public class CreateQuestionResponseDto {
     private String questionId;
     private String response;
     private String[] multiResponse;
-    private Boolean sectionComplete;
+    private Boolean shouldUpdateSectionStatus;
 }

@@ -120,14 +120,14 @@ public class SubmissionService {
 
         if (questionResponse.getResponse() != null) {
             submissionQuestion.setResponse(questionResponse.getResponse());
-            if (questionResponse.getSectionComplete() != true) {
+            if (questionResponse.getShouldUpdateSectionStatus()) {
                 submissionSection.setSectionStatus(SubmissionSectionStatus.IN_PROGRESS);
             }
         }
 
         if (questionResponse.getMultiResponse() != null) {
             submissionQuestion.setMultiResponse(questionResponse.getMultiResponse());
-            if (questionResponse.getSectionComplete() != true) {
+            if (questionResponse.getShouldUpdateSectionStatus()) {
                 submissionSection.setSectionStatus(SubmissionSectionStatus.IN_PROGRESS);
             }
         }
