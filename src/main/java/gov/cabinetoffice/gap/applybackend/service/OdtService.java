@@ -15,6 +15,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.time.ZoneId;
+import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.Objects;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -74,10 +75,15 @@ public class OdtService {
             mainHeading.addStyledContentWhitespace(smallHeadingStyle, nameHeadingPrefix + " name: " +
                     legalName + "\n\n");
 
-            mainHeading.addStyledContentWhitespace(smallHeadingStyle, "Gap ID: " +
-                    submission.getGapId() + "\n\n");
-            mainHeading.addStyledContentWhitespace(smallHeadingStyle, "Submitted date: " +
-                    dateTimeFormatter.format(submission.getSubmittedDate()) + "\n\n");
+            ZonedDateTime submittedDate = submission.getSubmittedDate();
+            if(submittedDate != null){
+                mainHeading.addStyledContentWhitespace(smallHeadingStyle, "Submitted date: " +
+                        dateTimeFormatter.format(submittedDate) + "\n\n");
+            } else {
+                mainHeading.addStyledContentWhitespace(smallHeadingStyle, "Submitted date: " +
+                        "Not submitted" + "\n\n");
+            }
+            
             mainHeading.addStyledContentWhitespace(smallHeadingStyle, "Amount applied for: £" +
                     submission.getQuestion(fundingSectionName, APPLICANT_AMOUNT).getResponse());
             documentText.appendChild(mainHeading);
@@ -194,10 +200,6 @@ public class OdtService {
         logger.info("ODT file generated successfully");
     }
 
-    /**
-     * Wouldn't you know it, there's no good docs on generating a table by hand using ODFDOM.
-     * There might be a better way to do it, but it sure isn't documented anywhere.
-     */
     private static TableTableElement generateEssentialTable(final OfficeTextElement documentText,
                                                             final SubmissionSection section,
                                                             final String email) {
