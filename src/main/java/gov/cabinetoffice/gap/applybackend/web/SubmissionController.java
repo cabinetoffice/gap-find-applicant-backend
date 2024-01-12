@@ -20,7 +20,9 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.io.FilenameUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.core.io.ByteArrayResource;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
@@ -145,6 +147,7 @@ public class SubmissionController {
         return ResponseEntity.ok(exemplarQuestionDto);
     }
 
+    //
     @PostMapping("/{submissionId}/sections/{sectionId}/questions/{questionId}")
     public ResponseEntity<GetNavigationParamsDto> save(@PathVariable final UUID submissionId,
                                                        @PathVariable final String sectionId,
@@ -345,6 +348,22 @@ public class SubmissionController {
                                                                                @RequestParam(required = false, defaultValue = "false") final boolean saveAndExit) {
         final String applicantId = getUserIdFromSecurityContext();
         return ResponseEntity.ok(submissionService.getNextNavigation(applicantId, submissionId, sectionId, questionId, saveAndExit));
+    }
+
+    @GetMapping("/{submissionId}/export")
+    public ResponseEntity<Void> exportSingleSubmission(@PathVariable final UUID submissionId) throws Exception {
+        // Delegate to service method for ODT Generation
+        // Byte array from ODT
+        // Byte Resource Array from the Byte Array
+
+        submissionService.getSubmissionExport(submissionId);
+        return ResponseEntity.ok().build();
+
+
+//        HttpHeaders headers = new HttpHeaders();
+//        headers.add(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=export.odt");
+//        headers.add(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_OCTET_STREAM_VALUE);
+//        return ResponseEntity.ok().contentLength(2).contentType(MediaType.APPLICATION_OCTET_STREAM).body(null);
     }
 
     @GetMapping("/{submissionId}/isApplicantEligible")

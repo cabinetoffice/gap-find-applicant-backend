@@ -27,6 +27,7 @@ import javax.persistence.Table;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZonedDateTime;
+import java.util.List;
 import java.util.UUID;
 
 @EntityListeners(AuditingEntityListener.class)
@@ -97,6 +98,10 @@ public class Submission extends BaseEntity {
     @Column
     @Builder.Default
     private Boolean mandatorySectionsCompleted = false;
+
+    public List<SubmissionSection> getSections() {
+        return this.getDefinition().getSections();
+    }
 
     public SubmissionSection getSection(String sectionId) {
         return this.getDefinition()

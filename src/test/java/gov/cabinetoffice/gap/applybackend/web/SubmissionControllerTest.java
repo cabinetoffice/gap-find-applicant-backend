@@ -32,6 +32,7 @@ import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.LocalDateTime;
@@ -389,7 +390,7 @@ class SubmissionControllerTest {
     @Nested
     class save {
         @Test
-        void save_savesQuestionResponseAndReturnsExpectedNextNav() {
+        void save_savesQuestionResponseAndReturnsExpectedNextNav() throws IOException {
 
             final GetNavigationParamsDto nextNav = GetNavigationParamsDto.builder().build();
             final CreateQuestionResponseDto questionResponse = CreateQuestionResponseDto.builder()
@@ -408,7 +409,7 @@ class SubmissionControllerTest {
         }
 
         @Test
-        void save_savesQuestionResponseButCantSaveEvent_shouldReturnFine() {
+        void save_savesQuestionResponseButCantSaveEvent_shouldReturnFine() throws IOException {
 
             final GetNavigationParamsDto nextNav = GetNavigationParamsDto.builder().build();
             final CreateQuestionResponseDto questionResponse = CreateQuestionResponseDto.builder()
