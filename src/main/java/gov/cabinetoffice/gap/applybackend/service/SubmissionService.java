@@ -22,7 +22,7 @@ import gov.cabinetoffice.gap.applybackend.repository.SubmissionRepository;
 import gov.cabinetoffice.gap.applybackend.utils.GapIdGenerator;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.core.io.ByteArrayResource;
+import org.odftoolkit.odfdom.doc.OdfTextDocument;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -581,10 +581,10 @@ public class SubmissionService {
         }
     }
 
-    public void getSubmissionExport(UUID submissionId) throws Exception {
+    public OdfTextDocument getSubmissionExport(UUID submissionId) throws Exception {
         final Submission submission = submissionRepository.findById(submissionId)
                 .orElseThrow(() -> new NotFoundException(String.format("No submission with ID %s was found", submissionId)));
-        OdtService.generateSingleOdt(submission, "test");
+       return OdtService.generateSingleOdt(submission, "test");
     }
 
     private List<String> getSectionIdsToSkipAfterEligibilitySectionCompleted(final int schemeVersion) {

@@ -18,6 +18,7 @@ import gov.cabinetoffice.gap.eventservice.service.EventLogService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.io.FilenameUtils;
+import org.odftoolkit.odfdom.doc.OdfTextDocument;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.core.io.ByteArrayResource;
@@ -29,6 +30,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import javax.validation.Valid;
+import java.io.ByteArrayOutputStream;
 import java.time.Clock;
 import java.time.Instant;
 import java.util.*;
@@ -351,19 +353,18 @@ public class SubmissionController {
     }
 
     @GetMapping("/{submissionId}/export")
-    public ResponseEntity<Void> exportSingleSubmission(@PathVariable final UUID submissionId) throws Exception {
-        // Delegate to service method for ODT Generation
-        // Byte array from ODT
-        // Byte Resource Array from the Byte Array
+    public ResponseEntity<ByteArrayResource> exportSingleSubmission(@PathVariable final UUID submissionId) throws Exception {
+        OdfTextDocument odt = submissionService.getSubmissionExport(submissionId);
+        ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+        odt.save(outputStream);
+        odt.close();
 
-        submissionService.getSubmissionExport(submissionId);
-        return ResponseEntity.ok().build();
-
-
-//        HttpHeaders headers = new HttpHeaders();
-//        headers.add(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=export.odt");
-//        headers.add(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_OCTET_STREAM_VALUE);
-//        return ResponseEntity.ok().contentLength(2).contentType(MediaType.APPLICATION_OCTET_STREAM).body(null);
+        byte[] odtBytes = outputStream.toByteArray();
+        ByteArrayResource resource = new ByteArrayResource(odtBytes);
+        HttpHeaders headers = new HttpHeaders();
+        headers.add(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=export.odt");
+        headers.add(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_OCTET_STREAM_VALUE);
+        return ResponseEntity.ok().contentLength(resource.contentLength()).contentType(MediaType.APPLICATION_OCTET_STREAM).body(resource);
     }
 
     @GetMapping("/{submissionId}/isApplicantEligible")

@@ -41,7 +41,7 @@ public class OdtService {
         throw new InvalidRequestStateException("This class should not be instantiated");
     }
 
-    public static void generateSingleOdt(final Submission submission, final String filename) throws Exception {
+    public static OdfTextDocument generateSingleOdt(final Submission submission, final String filename) throws Exception {
         try {
             Integer schemeVersion = submission.getVersion();
             OdfTextDocument odt = OdfTextDocument.newTextDocument();
@@ -192,12 +192,12 @@ public class OdtService {
             });
 
             odt.save(String.format("%s.odt", filename));
-            odt.close();
+            logger.info("ODT file generated successfully");
+            return odt;
         } catch (Exception e) {
             logger.error("Could not generate ODT for given submission", e);
             throw e;
         }
-        logger.info("ODT file generated successfully");
     }
 
     private static TableTableElement generateEssentialTable(final OfficeTextElement documentText,
