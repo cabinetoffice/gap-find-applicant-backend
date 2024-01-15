@@ -581,10 +581,10 @@ public class SubmissionService {
         }
     }
 
-    public OdfTextDocument getSubmissionExport(UUID submissionId) throws Exception {
+    public OdfTextDocument getSubmissionExport(UUID submissionId) {
         final Submission submission = submissionRepository.findById(submissionId)
                 .orElseThrow(() -> new NotFoundException(String.format("No submission with ID %s was found", submissionId)));
-       return OdtService.generateSingleOdt(submission, "test");
+       return OdtService.generateSingleOdt(submission);
     }
 
     private List<String> getSectionIdsToSkipAfterEligibilitySectionCompleted(final int schemeVersion) {

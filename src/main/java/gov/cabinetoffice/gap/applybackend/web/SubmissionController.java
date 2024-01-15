@@ -353,23 +353,26 @@ public class SubmissionController {
     }
 
     @GetMapping("/{submissionId}/export")
-    public ResponseEntity<ByteArrayResource> exportSingleSubmission(@PathVariable final UUID submissionId) throws Exception {
-        OdfTextDocument odt = submissionService.getSubmissionExport(submissionId);
-        ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
-        odt.save(outputStream);
-        odt.close();
-        outputStream.close();
-        // Replace all this manual streaming with try with resources
+    public ResponseEntity<ByteArrayResource> exportSingleSubmission(@PathVariable final UUID submissionId) {
+        try (OdfTextDocument odt = submissionService.getSubmissionExport(submissionId);
+             ByteArrayOutputStream outputStream = new ByteArrayOutputStream()) {
 
-        byte[] odtBytes = outputStream.toByteArray();
-        ByteArrayResource resource = new ByteArrayResource(odtBytes);
-        HttpHeaders headers = new HttpHeaders();
-        headers.add(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"Submission.odt\"");
-        headers.add(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_OCTET_STREAM_VALUE);
-        return ResponseEntity.ok().headers(headers).contentLength(resource.contentLength()).contentType(MediaType.APPLICATION_OCTET_STREAM).body(resource);
+            odt.save(outputStream);
+            byte[] odtBytes = outputStream.toByteArray();
+            ByteArrayResource resource = new ByteArrayResource(odtBytes);
+
+            HttpHeaders headers = new HttpHeaders();
+            headers.add(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"Submission.odt\"");
+            headers.add(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_OCTET_STREAM_VALUE);
+
+            return ResponseEntity.ok().headers(headers).contentLength(resource.contentLength()).contentType(MediaType.APPLICATION_OCTET_STREAM).body(resource);
+        } catch (Exception e) {
+            log.error("Could not generate ODT. Exception: ", e);
+            throw new RuntimeException(e);
+        }
     }
 
-    @GetMapping("/{submissionId}/isApplicantEligible")
+        @GetMapping("/{submissionId}/isApplicantEligible")
     public ResponseEntity<Boolean>  isApplicantEligible(@PathVariable final UUID submissionId) {
         final String applicantId = getUserIdFromSecurityContext();
         return ResponseEntity.ok(submissionService.isApplicantEligible(applicantId, submissionId, "ELIGIBILITY"));

@@ -41,10 +41,9 @@ public class OdtService {
         throw new InvalidRequestStateException("This class should not be instantiated");
     }
 
-    public static OdfTextDocument generateSingleOdt(final Submission submission, final String filename) throws Exception {
+    public static OdfTextDocument generateSingleOdt(final Submission submission) {
             Integer schemeVersion = submission.getVersion();
-            OdfTextDocument odt = OdfTextDocument.newTextDocument();
-        try {
+        try (OdfTextDocument odt = OdfTextDocument.newTextDocument()) {
             OdfContentDom contentDom = odt.getContentDom();
             OfficeTextElement documentText = odt.getContentRoot();
             String largeHeadingStyle = "Heading_20_2";
@@ -191,13 +190,11 @@ public class OdtService {
                 }
             });
 
-            odt.save(String.format("%s.odt", filename));
             logger.info("ODT file generated successfully");
             return odt;
         } catch (Exception e) {
-            odt.close();
             logger.error("Could not generate ODT for given submission", e);
-            throw e;
+            throw new RuntimeException(e);
         }
     }
 
