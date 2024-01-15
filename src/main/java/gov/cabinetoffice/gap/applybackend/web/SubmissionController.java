@@ -371,6 +371,7 @@ public class SubmissionController {
                 .grantSchemeId(submission.getScheme().getId())
                 .applicationName(submission.getApplicationName())
                 .submissionStatus(submission.getStatus())
+                .submittedDate(submission.getSubmittedDate())
                 .sections(sections)
                 .build();
     }

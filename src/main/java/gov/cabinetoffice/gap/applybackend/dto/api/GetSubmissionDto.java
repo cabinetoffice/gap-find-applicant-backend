@@ -6,6 +6,7 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -20,6 +21,7 @@ public class GetSubmissionDto {
     private UUID grantSubmissionId;
     private String applicationName;
     private SubmissionStatus submissionStatus;
+    private ZonedDateTime submittedDate;
     @Builder.Default
     private List<GetSectionDto> sections = new ArrayList<>();
 }
