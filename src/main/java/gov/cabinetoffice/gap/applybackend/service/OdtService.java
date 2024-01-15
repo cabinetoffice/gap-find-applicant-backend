@@ -42,8 +42,9 @@ public class OdtService {
     }
 
     public static OdfTextDocument generateSingleOdt(final Submission submission) {
+        try {
             Integer schemeVersion = submission.getVersion();
-        try (OdfTextDocument odt = OdfTextDocument.newTextDocument()) {
+            OdfTextDocument odt = OdfTextDocument.newTextDocument();
             OdfContentDom contentDom = odt.getContentDom();
             OfficeTextElement documentText = odt.getContentRoot();
             String largeHeadingStyle = "Heading_20_2";
@@ -75,14 +76,14 @@ public class OdtService {
                     legalName + "\n\n");
 
             ZonedDateTime submittedDate = submission.getSubmittedDate();
-            if(submittedDate != null){
+            if (submittedDate != null) {
                 mainHeading.addStyledContentWhitespace(smallHeadingStyle, "Submitted date: " +
                         dateTimeFormatter.format(submittedDate) + "\n\n");
             } else {
                 mainHeading.addStyledContentWhitespace(smallHeadingStyle, "Submitted date: " +
                         "Not submitted" + "\n\n");
             }
-            
+
             mainHeading.addStyledContentWhitespace(smallHeadingStyle, "Amount applied for: £" +
                     submission.getQuestion(fundingSectionName, APPLICANT_AMOUNT).getResponse());
             documentText.appendChild(mainHeading);
@@ -115,7 +116,7 @@ public class OdtService {
             documentText.appendChild(requiredCheckHeading);
             documentText.appendChild(new OdfTextParagraph(contentDom).addContentWhitespace(""));
             //submission.getApplicant().getId() - getEmailFromId
-            documentText.appendChild(generateEssentialTable(documentText, requiredCheckSection,"TODO_GET_EMAIL_FROM_USER_ID@gmail.com"));
+            documentText.appendChild(generateEssentialTable(documentText, requiredCheckSection, "TODO_GET_EMAIL_FROM_USER_ID@gmail.com"));
 
             locationQuestion.addStyledContent(smallHeadingStyle, "Where this funding will be spent");
 
