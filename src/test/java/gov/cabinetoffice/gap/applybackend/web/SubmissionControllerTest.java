@@ -23,6 +23,9 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.odftoolkit.odfdom.doc.OdfTextDocument;
+import org.springframework.core.io.ByteArrayResource;
+import org.springframework.core.io.InputStreamResource;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -32,6 +35,7 @@ import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.time.Clock;
 import java.time.Instant;
@@ -1021,6 +1025,20 @@ class SubmissionControllerTest {
 
             assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
             assertThat(response.getBody()).isFalse();
+        }
+
+        @Test
+        void exportSingleSubmissionReturnsOdtFile() throws Exception {
+            // Test will complain about stubbing as it doesn't make use of anything in the before each just yet
+            UUID submissionID = UUID.randomUUID();
+            OdfTextDocument odfTextDocument = OdfTextDocument.newTextDocument();
+            odfTextDocument.addText("Test Text");
+            when(submissionService.getSubmissionExport(submissionID)).thenReturn(odfTextDocument);
+            ResponseEntity<ByteArrayResource> response = controllerUnderTest.exportSingleSubmission(submissionID);
+            assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+            assertThat(response.getHeaders().get("Content-Disposition").get(0)).isEqualTo("attachment; filename=\"Submission.odt\"");
+            assertThat(response.getHeaders().get("Content-Type").get(0)).isEqualTo(MediaType.APPLICATION_OCTET_STREAM_VALUE);
+            assertThat(response.getBody()).isNotNull();
         }
     }
 
