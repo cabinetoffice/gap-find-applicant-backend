@@ -1040,6 +1040,14 @@ class SubmissionControllerTest {
             assertThat(response.getHeaders().get("Content-Type").get(0)).isEqualTo(MediaType.APPLICATION_OCTET_STREAM_VALUE);
             assertThat(response.getBody()).isNotNull();
         }
+
+        @Test
+        void exportSingleSubmissionThrowsRuntimeError() {
+            // Test will complain about stubbing as it doesn't make use of anything in the before each just yet
+            UUID submissionID = UUID.randomUUID();
+            when(submissionService.getSubmissionExport(submissionID)).thenThrow(new RuntimeException("Test Exception"));
+            assertThrows(RuntimeException.class, () -> controllerUnderTest.exportSingleSubmission(submissionID));
+        }
     }
 
 }
