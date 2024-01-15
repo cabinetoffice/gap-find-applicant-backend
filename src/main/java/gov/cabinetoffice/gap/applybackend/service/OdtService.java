@@ -41,9 +41,9 @@ public class OdtService {
         throw new InvalidRequestStateException("This class should not be instantiated");
     }
 
-    public static OdfTextDocument generateSingleOdt(final Submission submission) {
+    public static OdfTextDocument generateSingleOdt(final Submission submission, final String email) throws Exception {
         try {
-            Integer schemeVersion = submission.getVersion();
+            int schemeVersion = submission.getVersion();
             OdfTextDocument odt = OdfTextDocument.newTextDocument();
             OdfContentDom contentDom = odt.getContentDom();
             OfficeTextElement documentText = odt.getContentRoot();
@@ -75,6 +75,7 @@ public class OdtService {
             mainHeading.addStyledContentWhitespace(smallHeadingStyle, nameHeadingPrefix + " name: " +
                     legalName + "\n\n");
 
+
             ZonedDateTime submittedDate = submission.getSubmittedDate();
             if (submittedDate != null) {
                 mainHeading.addStyledContentWhitespace(smallHeadingStyle, "Submitted date: " +
@@ -83,7 +84,6 @@ public class OdtService {
                 mainHeading.addStyledContentWhitespace(smallHeadingStyle, "Submitted date: " +
                         "Not submitted" + "\n\n");
             }
-
             mainHeading.addStyledContentWhitespace(smallHeadingStyle, "Amount applied for: £" +
                     submission.getQuestion(fundingSectionName, APPLICANT_AMOUNT).getResponse());
             documentText.appendChild(mainHeading);
@@ -115,9 +115,7 @@ public class OdtService {
                     "Required checks");
             documentText.appendChild(requiredCheckHeading);
             documentText.appendChild(new OdfTextParagraph(contentDom).addContentWhitespace(""));
-            //submission.getApplicant().getId() - getEmailFromId
-            documentText.appendChild(generateEssentialTable(documentText, requiredCheckSection, "TODO_GET_EMAIL_FROM_USER_ID@gmail.com"));
-
+            documentText.appendChild(generateEssentialTable(documentText, requiredCheckSection, email));
             locationQuestion.addStyledContent(smallHeadingStyle, "Where this funding will be spent");
 
             locationResponse.addContentWhitespace(String.join(",\n",

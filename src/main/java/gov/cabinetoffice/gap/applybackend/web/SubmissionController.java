@@ -12,12 +12,14 @@ import gov.cabinetoffice.gap.applybackend.exception.GrantApplicationNotPublished
 import gov.cabinetoffice.gap.applybackend.exception.NotFoundException;
 import gov.cabinetoffice.gap.applybackend.model.*;
 import gov.cabinetoffice.gap.applybackend.service.*;
+import gov.cabinetoffice.gap.applybackend.utils.Rest;
 import gov.cabinetoffice.gap.eventservice.enums.EventType;
 import gov.cabinetoffice.gap.eventservice.exception.InvalidEventException;
 import gov.cabinetoffice.gap.eventservice.service.EventLogService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.io.FilenameUtils;
+import org.jetbrains.annotations.NotNull;
 import org.odftoolkit.odfdom.doc.OdfTextDocument;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -29,6 +31,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
+import javax.servlet.http.HttpServletRequest;
 import javax.validation.Valid;
 import java.io.ByteArrayOutputStream;
 import java.time.Clock;
@@ -352,20 +355,25 @@ public class SubmissionController {
         return ResponseEntity.ok(submissionService.getNextNavigation(applicantId, submissionId, sectionId, questionId, saveAndExit));
     }
 
-    @GetMapping("/{submissionId}/export")
-    public ResponseEntity<ByteArrayResource> exportSingleSubmission(@PathVariable final UUID submissionId) {
-        try (OdfTextDocument odt = submissionService.getSubmissionExport(submissionId);
-             ByteArrayOutputStream outputStream = new ByteArrayOutputStream()) {
 
+    @GetMapping("/{submissionId}/download-summary")
+    public ResponseEntity<ByteArrayResource> exportSingleSubmission(
+            @PathVariable final UUID submissionId, HttpServletRequest request) throws Exception {
+        final String userSub = getUserIdFromSecurityContext();
+        final String userEmail = grantApplicantService.getEmailById(userSub, request);
+        
+        try (OdfTextDocument odt = submissionService.getSubmissionExport(submissionId, userEmail, userSub);
+             ByteArrayOutputStream outputStream = new ByteArrayOutputStream()) {
             odt.save(outputStream);
             byte[] odtBytes = outputStream.toByteArray();
             ByteArrayResource resource = new ByteArrayResource(odtBytes);
 
             HttpHeaders headers = new HttpHeaders();
-            headers.add(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"Submission.odt\"");
+            headers.add(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"export.odt\"");
             headers.add(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_OCTET_STREAM_VALUE);
 
-            return ResponseEntity.ok().headers(headers).contentLength(resource.contentLength()).contentType(MediaType.APPLICATION_OCTET_STREAM).body(resource);
+            return ResponseEntity.ok().headers(headers).contentLength(resource.contentLength())
+                    .contentType(MediaType.APPLICATION_OCTET_STREAM).body(resource);
         } catch (Exception e) {
             log.error("Could not generate ODT. Exception: ", e);
             throw new RuntimeException(e);
