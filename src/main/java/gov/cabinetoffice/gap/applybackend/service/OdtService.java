@@ -168,10 +168,21 @@ public class OdtService {
                                 break;
                             case Date:
                                 if (question.getMultiResponse() != null) {
-                                    responseParagraph.addContentWhitespace(String.join("-",
-                                            question.getMultiResponse()) + "\n");
+                                    final String date = String.join("-", question.getMultiResponse());
+                                    responseParagraph.addContentWhitespace((date.equals("--") ? "Not provided" : date) + "\n");
                                 } else {
-                                    responseParagraph.addContentWhitespace("\n");
+                                    responseParagraph.addContentWhitespace("Not provided");
+                                }
+                                break;
+                            case YesNo:
+                            case Dropdown:
+                            case ShortAnswer:
+                            case LongAnswer:
+                            case Numeric:
+                                if(question.getResponse() == null || question.getResponse().isEmpty()) {
+                                    responseParagraph.addContentWhitespace("Not provided");
+                                } else {
+                                    responseParagraph.addContentWhitespace(question.getResponse() + "\n");
                                 }
                                 break;
                             default:
