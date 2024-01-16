@@ -41,7 +41,7 @@ public class OdtService {
         throw new InvalidRequestStateException("This class should not be instantiated");
     }
 
-    public static OdfTextDocument generateSingleOdt(final Submission submission, final String email) throws Exception {
+    public static OdfTextDocument generateSingleOdt(final Submission submission, final String email) {
         try {
             int schemeVersion = submission.getVersion();
             OdfTextDocument odt = OdfTextDocument.newTextDocument();
@@ -52,11 +52,10 @@ public class OdtService {
             DateTimeFormatter dateTimeFormatter = DateTimeFormatter.ofPattern("dd/MM/yyyy").withZone(ZoneId.of("GMT"));
             final String fundingSectionName = schemeVersion == 1 ? ESSENTIAL_SECTION_ID : FUNDING_DETAILS_SECTION_ID;
             final String requiredCheckSectionName = schemeVersion == 1 ? ESSENTIAL_SECTION_ID : ORGANISATION_DETAILS_SECTION_ID;
-
             final SubmissionSection eligibilitySection = submission.getSection(ELIGIBILITY_SECTION_ID);
             final SubmissionSection requiredCheckSection = submission.getSection(requiredCheckSectionName);
             final String orgType = requiredCheckSection.getQuestionById(APPLICANT_TYPE).getResponse();
-            final Boolean isIndividual = Objects.equals(orgType, APPLICANT_ORG_TYPE_INDIVIDUAL);
+            final boolean isIndividual = Objects.equals(orgType, APPLICANT_ORG_TYPE_INDIVIDUAL);
 
             OdfTextParagraph sectionBreak = new OdfTextParagraph(contentDom);
             sectionBreak.addContentWhitespace("\n\n");
@@ -80,8 +79,10 @@ public class OdtService {
                 mainHeading.addStyledContentWhitespace(smallHeadingStyle, "Submitted date: " +
                         dateTimeFormatter.format(submittedDate) + "\n\n");
             } else {
-                mainHeading.addStyledContentWhitespace(smallHeadingStyle, "Submitted date: " +
-                        "Not submitted" + "\n\n");
+                mainHeading.addStyledContentWhitespace(smallHeadingStyle, """
+                        Submitted date: Not submitted
+
+                        """);
             }
             mainHeading.addStyledContentWhitespace(smallHeadingStyle, "Amount applied for: £" +
                     submission.getQuestion(fundingSectionName, APPLICANT_AMOUNT).getResponse());
@@ -245,8 +246,8 @@ public class OdtService {
         odfTable.getRowByIndex(7).getCellByIndex(1)
                 .setStringValue(email);
 
-        Integer index = 8;
-        final Boolean hasCharityCommissionNumber = section
+        int index = 8;
+        final boolean hasCharityCommissionNumber = section
                 .optionalGetQuestionById(APPLICANT_ORG_CHARITY_NUMBER)
                 .isPresent();
         if (hasCharityCommissionNumber) {
@@ -263,7 +264,7 @@ public class OdtService {
             index++;
         }
 
-        final Boolean hasCompaniesHouseNumber = section
+        final boolean hasCompaniesHouseNumber = section
                 .optionalGetQuestionById(APPLICANT_ORG_COMPANIES_HOUSE)
                 .isPresent();
         if (hasCompaniesHouseNumber) {

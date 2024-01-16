@@ -75,8 +75,8 @@ class OdtServiceTest {
 
     @Test
     void compareTestGenerateSingleOdtForLimitedCompanyWithoutCCAndCHForSchemeVersion2() throws Exception {
-        final Submission submission = V2_SUBMISSION_LIMITED_COMPANY_WITHOUT_CC_AND_CH;
-        final OdfDocument generatedDoc = OdtService.generateSingleOdt(submission, "testEmail");
+        final OdfDocument generatedDoc = OdtService.generateSingleOdt(
+                V2_SUBMISSION_LIMITED_COMPANY_WITHOUT_CC_AND_CH, "testEmail");
         final String generatedContent = docToString(generatedDoc.getContentDom());
 
         assertThat(generatedContent).contains("Organisation name: V2_Company name");
@@ -88,9 +88,11 @@ class OdtServiceTest {
         assertThat(generatedContent).contains("V2_Edinburgh");
         assertThat(generatedContent).contains("V2_POSTCODE");
         assertThat(generatedContent).contains("V2_Limited company");
-        assertThat(generatedContent).contains("Companies House number if the organisation has one (if blank, number has not been entered)");
+        assertThat(generatedContent).contains(
+                "Companies House number if the organisation has one (if blank, number has not been entered)");
         assertThat(generatedContent).doesNotContain("V2_CHN");
-        assertThat(generatedContent).contains("Charities Commission number if the organisation has one (if blank, number has not been entered)");
+        assertThat(generatedContent).contains(
+                "Charities Commission number if the organisation has one (if blank, number has not been entered)");
         assertThat(generatedContent).doesNotContain("V2_CMSN_NO");
         assertThat(generatedContent).contains("V2_Scotland", "V2_North East England");
         assertThat(generatedContent).doesNotContain("V1_test address");
@@ -105,8 +107,7 @@ class OdtServiceTest {
 
     @Test
     void compareTestGenerateSingleOdtForNonLimitedCompanyForSchemeVersion2() throws Exception {
-        final Submission submission = V2_SUBMISSION_NON_LIMITED_COMPANY;
-        final OdfDocument generatedDoc = OdtService.generateSingleOdt(submission, "testEmail");
+        final OdfDocument generatedDoc = OdtService.generateSingleOdt(V2_SUBMISSION_NON_LIMITED_COMPANY, "testEmail");
         final String generatedContent = docToString(generatedDoc.getContentDom());
 
         assertThat(generatedContent).contains("Organisation name: V2_Company name");
@@ -118,9 +119,11 @@ class OdtServiceTest {
         assertThat(generatedContent).contains("V2_Edinburgh");
         assertThat(generatedContent).contains("V2_POSTCODE");
         assertThat(generatedContent).contains("Non-limited company");
-        assertThat(generatedContent).doesNotContain("Companies House number if the organisation has one (if blank, number has not been entered)");
+        assertThat(generatedContent).doesNotContain(
+                "Companies House number if the organisation has one (if blank, number has not been entered)");
         assertThat(generatedContent).doesNotContain("V2_CHN");
-        assertThat(generatedContent).doesNotContain("Charities Commission number if the organisation has one (if blank, number has not been entered)");
+        assertThat(generatedContent).doesNotContain(
+                "Charities Commission number if the organisation has one (if blank, number has not been entered)");
         assertThat(generatedContent).doesNotContain("V2_CMSN_NO");
         assertThat(generatedContent).contains("V2_Scotland", "V2_North East England");
         assertThat(generatedContent).doesNotContain("V1_test address");
@@ -135,8 +138,7 @@ class OdtServiceTest {
 
     @Test
     void compareTestGenerateSingleOdtForIndividualForSchemeVersion2() throws Exception {
-        final Submission submission = V2_SUBMISSION_INDIVIDUAL;
-        final OdfDocument generatedDoc = OdtService.generateSingleOdt(submission, "testFileName5");
+        final OdfDocument generatedDoc = OdtService.generateSingleOdt(V2_SUBMISSION_INDIVIDUAL, "testFileName5");
         final String generatedContent = docToString(generatedDoc.getContentDom());
 
         assertThat(generatedContent).contains("Applicant name: V2_Company name");
@@ -148,9 +150,11 @@ class OdtServiceTest {
         assertThat(generatedContent).contains("V2_Edinburgh");
         assertThat(generatedContent).contains("V2_POSTCODE");
         assertThat(generatedContent).contains("I am applying as an individual");
-        assertThat(generatedContent).doesNotContain("Companies House number if the organisation has one (if blank, number has not been entered)");
+        assertThat(generatedContent).doesNotContain(
+                "Companies House number if the organisation has one (if blank, number has not been entered)");
         assertThat(generatedContent).doesNotContain("V2_CHN");
-        assertThat(generatedContent).doesNotContain("Charities Commission number if the organisation has one (if blank, number has not been entered)");
+        assertThat(generatedContent).doesNotContain(
+                "Charities Commission number if the organisation has one (if blank, number has not been entered)");
         assertThat(generatedContent).doesNotContain("V2_CMSN_NO");
         assertThat(generatedContent).contains("V2_Scotland", "V2_North East England");
         assertThat(generatedContent).doesNotContain("V1_test address");
