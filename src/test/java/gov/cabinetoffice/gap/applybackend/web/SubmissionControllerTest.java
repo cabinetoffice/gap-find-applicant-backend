@@ -395,7 +395,7 @@ class SubmissionControllerTest {
     @Nested
     class save {
         @Test
-        void save_savesQuestionResponseAndReturnsExpectedNextNav() throws IOException {
+        void save_savesQuestionResponseAndReturnsExpectedNextNav() {
 
             final GetNavigationParamsDto nextNav = GetNavigationParamsDto.builder().build();
             final CreateQuestionResponseDto questionResponse = CreateQuestionResponseDto.builder()
@@ -414,7 +414,7 @@ class SubmissionControllerTest {
         }
 
         @Test
-        void save_savesQuestionResponseButCantSaveEvent_shouldReturnFine() throws IOException {
+        void save_savesQuestionResponseButCantSaveEvent_shouldReturnFine() {
 
             final GetNavigationParamsDto nextNav = GetNavigationParamsDto.builder().build();
             final CreateQuestionResponseDto questionResponse = CreateQuestionResponseDto.builder()
