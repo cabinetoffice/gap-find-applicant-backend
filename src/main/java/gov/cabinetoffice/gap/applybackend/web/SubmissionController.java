@@ -152,7 +152,6 @@ public class SubmissionController {
         return ResponseEntity.ok(exemplarQuestionDto);
     }
 
-    //
     @PostMapping("/{submissionId}/sections/{sectionId}/questions/{questionId}")
     public ResponseEntity<GetNavigationParamsDto> save(@PathVariable final UUID submissionId,
                                                        @PathVariable final String sectionId,

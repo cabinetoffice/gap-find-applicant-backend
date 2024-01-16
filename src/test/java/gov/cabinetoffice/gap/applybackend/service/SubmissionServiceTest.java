@@ -10,6 +10,7 @@ import gov.cabinetoffice.gap.applybackend.dto.api.GetNavigationParamsDto;
 import gov.cabinetoffice.gap.applybackend.enums.GrantApplicationStatus;
 import gov.cabinetoffice.gap.applybackend.enums.SubmissionSectionStatus;
 import gov.cabinetoffice.gap.applybackend.enums.SubmissionStatus;
+import gov.cabinetoffice.gap.applybackend.exception.ForbiddenException;
 import gov.cabinetoffice.gap.applybackend.exception.NotFoundException;
 import gov.cabinetoffice.gap.applybackend.exception.SubmissionAlreadySubmittedException;
 import gov.cabinetoffice.gap.applybackend.exception.SubmissionNotReadyException;
@@ -18,17 +19,18 @@ import gov.cabinetoffice.gap.applybackend.repository.DiligenceCheckRepository;
 import gov.cabinetoffice.gap.applybackend.repository.GrantBeneficiaryRepository;
 import gov.cabinetoffice.gap.applybackend.repository.GrantMandatoryQuestionRepository;
 import gov.cabinetoffice.gap.applybackend.repository.SubmissionRepository;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Nested;
-import org.junit.jupiter.api.Test;
+import org.apache.http.impl.client.HttpClients;
+import org.junit.jupiter.api.*;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
+import org.mockito.MockedStatic;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.odftoolkit.odfdom.doc.OdfTextDocument;
 
 import java.time.*;
 import java.time.format.DateTimeFormatter;
@@ -68,6 +70,8 @@ class SubmissionServiceTest {
     private GrantMandatoryQuestionRepository grantMandatoryQuestionRepository;
     @Mock
     private GovNotifyClient notifyClient;
+    @Mock
+    private OdtService odtService;
     private SubmissionService serviceUnderTest;
     private SubmissionQuestion question;
     private SubmissionSection section;
@@ -75,9 +79,16 @@ class SubmissionServiceTest {
 
     private GrantApplication grantApplication;
 
+    private static MockedStatic<OdtService> odtServiceMockedStatic;
+
+    @AfterEach
+    void tearDown() {
+        odtServiceMockedStatic.close();
+    }
 
     @BeforeEach
     void setup() {
+        odtServiceMockedStatic = mockStatic(OdtService.class);
 
         EnvironmentProperties envProperties = EnvironmentProperties.builder()
                 .environmentName("LOCAL")
@@ -997,7 +1008,6 @@ class SubmissionServiceTest {
         }
     }
 
-
     @Nested
     class submit {
 
@@ -1603,7 +1613,7 @@ class SubmissionServiceTest {
                     .sectionStatus(SubmissionSectionStatus.COMPLETED)
                     .questions(List.of(eligibilityQuestion))
                     .build();
-            submission.getDefinition().getSections().set(0,eligibilitySection);
+            submission.getDefinition().getSections().set(0, eligibilitySection);
 
             when(submissionRepository.findByIdAndApplicantUserId(SUBMISSION_ID, userId))
                     .thenReturn(Optional.ofNullable(submission));
@@ -1617,4 +1627,53 @@ class SubmissionServiceTest {
 
     }
 
+    @Nested
+    class getSubmissionExport {
+        @Test
+        void getSubmissionExport_success() throws Exception {
+            UUID submissionId = UUID.randomUUID();
+            String email = "test@example.com";
+            String userSub = "userId";
+            Submission submission = Submission.builder().applicant(GrantApplicant.builder().userId("userId").build())
+                    .build();
+            Mockito.when(submissionRepository.findById(submissionId)).thenReturn(Optional.of(submission));
+            OdfTextDocument odfTextDocument = OdfTextDocument.newTextDocument();
+            when(OdtService.generateSingleOdt(submission, email)).thenReturn(odfTextDocument);
+            OdfTextDocument result = serviceUnderTest.getSubmissionExport(submissionId, email, userSub);
+
+            Mockito.verify(submissionRepository).findById(submissionId);
+            Assertions.assertEquals(result, odfTextDocument);
+        }
+
+        @Test
+        void getSubmissionExport_forbiddenUser() throws Exception {
+            UUID submissionId = UUID.randomUUID();
+            String email = "test@example.com";
+            String userSub = "differentUserId";
+            Submission submission = Submission.builder().applicant(GrantApplicant.builder().userId("userId").build())
+                    .build();
+            Mockito.when(submissionRepository.findById(submissionId)).thenReturn(Optional.of(submission));
+            ForbiddenException thrownException = assertThrows(ForbiddenException.class, () -> {
+                serviceUnderTest.getSubmissionExport(submissionId, email, userSub);
+            });
+
+            Mockito.verify(submissionRepository).findById(submissionId);
+            Assertions.assertEquals("You can't access this submission", thrownException.getMessage());
+        }
+
+        @Test
+        void getSubmissionExport_submissionNotFound() throws Exception {
+            UUID submissionId = UUID.randomUUID();
+            String email = "test@example.com";
+            String userSub = "userId";
+            Mockito.when(submissionRepository.findById(submissionId)).thenReturn(Optional.empty());
+            NotFoundException thrownException = assertThrows(NotFoundException.class, () -> {
+                serviceUnderTest.getSubmissionExport(submissionId, email, userSub);
+            });
+
+            Mockito.verify(submissionRepository).findById(submissionId);
+            Assertions.assertEquals("No submission with ID " + submissionId + " was found", thrownException.getMessage());
+        }
+
+    }
 }
