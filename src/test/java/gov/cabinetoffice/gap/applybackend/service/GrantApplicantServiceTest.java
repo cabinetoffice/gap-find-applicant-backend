@@ -1,23 +1,27 @@
 package gov.cabinetoffice.gap.applybackend.service;
 
+import gov.cabinetoffice.gap.applybackend.config.UserServiceConfig;
 import gov.cabinetoffice.gap.applybackend.exception.NotFoundException;
 import gov.cabinetoffice.gap.applybackend.model.GrantApplicant;
 import gov.cabinetoffice.gap.applybackend.repository.GrantApplicantRepository;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.http.*;
+import org.springframework.web.client.RestTemplate;
 
+import javax.servlet.http.HttpServletRequest;
 import java.util.Optional;
 
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class GrantApplicantServiceTest {
@@ -27,6 +31,20 @@ class GrantApplicantServiceTest {
     private GrantApplicantRepository grantApplicantRepository;
     @InjectMocks
     private GrantApplicantService serviceUnderTest;
+
+    @Mock
+    private RestTemplate restTemplate;
+
+    @BeforeEach
+    void setup() {
+        UserServiceConfig userServiceConfig = UserServiceConfig.builder()
+                .domain("http://localhost:8082")
+                .cookieName("user-service-token")
+                .build();
+
+        serviceUnderTest = new GrantApplicantService(userServiceConfig, restTemplate, grantApplicantRepository);
+    }
+
 
     @Test
     void getApplicantById_Success() {
@@ -69,5 +87,30 @@ class GrantApplicantServiceTest {
                 .isEqualTo(grantApplicant.getUserId());
         assertThat(capturedApplicant.getId())
                 .isEqualTo(grantApplicant.getId());
+    }
+
+    @Test
+    void getEmailById() {
+        String applicantId = "yourApplicantId";
+        String expectedEmail = "emailAddress";
+        HttpServletRequest request = mock(HttpServletRequest.class);
+        when(request.getHeader(HttpHeaders.AUTHORIZATION)).thenReturn("Bearer yourJwtToken");
+        when(restTemplate.exchange(anyString(), eq(HttpMethod.GET), any(), eq(String.class)))
+                .thenReturn(ResponseEntity.of(Optional.of(expectedEmail)));
+        String actualEmail = serviceUnderTest.getEmailById(applicantId, request);
+
+        assertEquals(expectedEmail, actualEmail);
+    }
+
+    @Test
+    void getEmailByIdWhen404() {
+        String applicantId = "nonExistentId";
+        HttpServletRequest request = mock(HttpServletRequest.class);
+        when(request.getHeader(HttpHeaders.AUTHORIZATION)).thenReturn("Bearer yourJwtToken");
+        when(restTemplate.exchange(anyString(), eq(HttpMethod.GET), any(), eq(String.class)))
+                .thenReturn(new ResponseEntity<>(HttpStatus.NOT_FOUND));
+        String actualEmail = serviceUnderTest.getEmailById(applicantId, request);
+
+        assertNull(actualEmail);
     }
 }
