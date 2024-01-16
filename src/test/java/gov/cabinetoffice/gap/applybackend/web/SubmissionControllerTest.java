@@ -29,6 +29,7 @@ import org.springframework.core.io.InputStreamResource;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContext;
@@ -1029,24 +1030,30 @@ class SubmissionControllerTest {
 
         @Test
         void exportSingleSubmissionReturnsOdtFile() throws Exception {
-            // Test will complain about stubbing as it doesn't make use of anything in the before each just yet
             UUID submissionID = UUID.randomUUID();
             OdfTextDocument odfTextDocument = OdfTextDocument.newTextDocument();
             odfTextDocument.addText("Test Text");
-            when(submissionService.getSubmissionExport(submissionID)).thenReturn(odfTextDocument);
-            ResponseEntity<ByteArrayResource> response = controllerUnderTest.exportSingleSubmission(submissionID);
+            when(submissionService.getSubmissionExport(submissionID,
+                    null, APPLICANT_USER_ID)).thenReturn(odfTextDocument);
+            final MockHttpServletRequest request = new MockHttpServletRequest();
+            ResponseEntity<ByteArrayResource> response = controllerUnderTest
+                    .exportSingleSubmission(submissionID, request);
+
             assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
-            assertThat(response.getHeaders().get("Content-Disposition").get(0)).isEqualTo("attachment; filename=\"Submission.odt\"");
-            assertThat(response.getHeaders().get("Content-Type").get(0)).isEqualTo(MediaType.APPLICATION_OCTET_STREAM_VALUE);
+            assertThat(response.getHeaders().get("Content-Disposition").get(0))
+                    .isEqualTo("attachment; filename=\"export.odt\"");
+            assertThat(response.getHeaders().get("Content-Type").get(0))
+                    .isEqualTo(MediaType.APPLICATION_OCTET_STREAM_VALUE);
             assertThat(response.getBody()).isNotNull();
         }
 
         @Test
-        void exportSingleSubmissionThrowsRuntimeError() {
-            // Test will complain about stubbing as it doesn't make use of anything in the before each just yet
+        void exportSingleSubmissionThrowsRuntimeError() throws Exception {
             UUID submissionID = UUID.randomUUID();
-            when(submissionService.getSubmissionExport(submissionID)).thenThrow(new RuntimeException("Test Exception"));
-            assertThrows(RuntimeException.class, () -> controllerUnderTest.exportSingleSubmission(submissionID));
+            final MockHttpServletRequest request = new MockHttpServletRequest();
+            when(submissionService.getSubmissionExport(Mockito.any(), Mockito.anyString(), Mockito.anyString()))
+                    .thenThrow(new RuntimeException("Test Exception"));
+            assertThrows(RuntimeException.class, () -> controllerUnderTest.exportSingleSubmission(submissionID, request));
         }
     }
 
