@@ -148,16 +148,15 @@ public class OdtService {
                         questionParagraph.addStyledContent(smallHeadingStyle, question.getFieldTitle());
 
                         switch (question.getResponseType()) {
-                            case AddressInput:
-                            case MultipleSelection:
+                            case AddressInput, MultipleSelection -> {
                                 if (question.getMultiResponse() != null) {
                                     responseParagraph.addContentWhitespace(String.join(",\n",
                                             question.getMultiResponse()) + "\n");
                                 } else {
                                     responseParagraph.addContentWhitespace("\n");
                                 }
-                                break;
-                            case SingleFileUpload:
+                            }
+                            case SingleFileUpload -> {
                                 if (question.getResponse() != null) {
                                     int index = question.getResponse().lastIndexOf(".");
 
@@ -166,29 +165,23 @@ public class OdtService {
                                 } else {
                                     responseParagraph.addContentWhitespace("\n");
                                 }
-                                break;
-                            case Date:
+                            }
+                            case Date -> {
                                 if (question.getMultiResponse() != null) {
                                     final String date = String.join("-", question.getMultiResponse());
                                     responseParagraph.addContentWhitespace((date.equals("--") ? "Not provided" : date) + "\n");
                                 } else {
                                     responseParagraph.addContentWhitespace("Not provided");
                                 }
-                                break;
-                            case YesNo:
-                            case Dropdown:
-                            case ShortAnswer:
-                            case LongAnswer:
-                            case Numeric:
-                                if(question.getResponse() == null || question.getResponse().isEmpty()) {
+                            }
+                            case YesNo, Dropdown, ShortAnswer, LongAnswer, Numeric -> {
+                                if (question.getResponse() == null || question.getResponse().isEmpty()) {
                                     responseParagraph.addContentWhitespace("Not provided");
                                 } else {
                                     responseParagraph.addContentWhitespace(question.getResponse() + "\n");
                                 }
-                                break;
-                            default:
-                                responseParagraph.addContentWhitespace(question.getResponse() + "\n");
-                                break;
+                            }
+                            default -> responseParagraph.addContentWhitespace(question.getResponse() + "\n");
                         }
 
                         documentText.appendChild(questionParagraph);
