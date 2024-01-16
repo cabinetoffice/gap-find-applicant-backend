@@ -62,9 +62,6 @@ public class OdtService {
             sectionBreak.addContentWhitespace("\n\n");
 
             OdfTextHeading mainHeading = new OdfTextHeading(contentDom);
-
-            mainHeading.addStyledContentWhitespace(smallHeadingStyle, "Scheme applied for: " +
-                    submission.getScheme().getName() + "\n\n");
             final String nameHeadingPrefix = isIndividual ? "Applicant" : "Organisation";
 
             String legalName = submission.getVersion() == 1 ?
@@ -72,9 +69,11 @@ public class OdtService {
                     :
                     submission.getSection("ORGANISATION_DETAILS").getQuestionById("APPLICANT_ORG_NAME").getResponse();
 
+            mainHeading.addStyledContentWhitespace(smallHeadingStyle, "Scheme applied for: " +
+                    submission.getScheme().getName() + "\n\n");
+
             mainHeading.addStyledContentWhitespace(smallHeadingStyle, nameHeadingPrefix + " name: " +
                     legalName + "\n\n");
-
 
             ZonedDateTime submittedDate = submission.getSubmittedDate();
             if (submittedDate != null) {
@@ -88,7 +87,6 @@ public class OdtService {
                     submission.getQuestion(fundingSectionName, APPLICANT_AMOUNT).getResponse());
             documentText.appendChild(mainHeading);
 
-            // ELIGIBILITY SECTION
             OdfTextHeading eligibilityHeading = new OdfTextHeading(contentDom);
             OdfTextParagraph eligibilityStatement = new OdfTextParagraph(contentDom);
             OdfTextParagraph eligibilityResponse = new OdfTextParagraph(contentDom);
