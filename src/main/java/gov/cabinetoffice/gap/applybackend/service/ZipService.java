@@ -4,10 +4,7 @@ import com.amazonaws.AmazonServiceException;
 import com.amazonaws.regions.Regions;
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.AmazonS3ClientBuilder;
-import com.amazonaws.services.s3.model.GetObjectRequest;
-import com.amazonaws.services.s3.model.ListObjectsV2Request;
-import com.amazonaws.services.s3.model.ListObjectsV2Result;
-import com.amazonaws.services.s3.model.S3ObjectSummary;
+import com.amazonaws.services.s3.model.*;
 import gov.cabinetoffice.gap.applybackend.model.Submission;
 import org.apache.commons.io.FileUtils;
 import org.slf4j.Logger;
@@ -24,12 +21,10 @@ public class ZipService {
 
     private static final Logger logger = LoggerFactory.getLogger(ZipService.class);
 
-    private static final String TMP_DIR = "";
-
     private static final String LOCAL_ZIP_FILE_NAME = "submission.zip";
 
-    //FIX ME
-    private static final String SUBMISSION_ATTACHMENTS_BUCKET_NAME = "gap-devs";
+    //FIX ME!
+    private static final String SUBMISSION_ATTACHMENTS_BUCKET_NAME = "use-env-var-here";
     //regex for any special character that are not allowed in window os : <, >, ", /, \, |, ?, or *
     private static final String SPECIAL_CHARACTER_REGEX = "[<>\"\\/|?*\\\\]";
 
@@ -43,13 +38,12 @@ public class ZipService {
                                  final String submissionId, final byte[] odtContent) throws IOException {
         final List<String> submissionAttachmentFileNames = getSubmissionAttachmentFileNames(client, applicationId,
                 submissionId);
+        List<S3Object> s3ObjectList = new ArrayList<>();
         for (String fileName : submissionAttachmentFileNames) {
-            downloadFile(fileName);
+            downloadFile(fileName, s3ObjectList);
         }
 
-        final List<String> fileNamesToZIP = new ArrayList<>(submissionAttachmentFileNames);
-
-        ByteArrayOutputStream zip = zipFiles(fileNamesToZIP, applicationId, submissionId, odtContent);
+        ByteArrayOutputStream zip = zipFiles(s3ObjectList, applicationId, submissionId, odtContent);
         logger.info("Zip file created");
         return zip;
     }
@@ -93,10 +87,9 @@ public class ZipService {
                 .collect(Collectors.toList());
     }
 
-    private static void downloadFile(final String fileName) {
+    private static void downloadFile(final String fileName, List<S3Object> list) {
         try {
-            File localFile = new File(TMP_DIR + fileName);
-            client.getObject(new GetObjectRequest(SUBMISSION_ATTACHMENTS_BUCKET_NAME, fileName), localFile);
+            list.add(client.getObject(new GetObjectRequest(SUBMISSION_ATTACHMENTS_BUCKET_NAME, fileName)));
         } catch (AmazonServiceException e) {
             logger.error("Could not download file: " + fileName + " from bucket: " + SUBMISSION_ATTACHMENTS_BUCKET_NAME,
                     e);
@@ -126,13 +119,13 @@ public class ZipService {
         }
     }
 
-    private static ByteArrayOutputStream zipFiles(final List<String> files, final String applicationId,
+    private static ByteArrayOutputStream zipFiles(final List<S3Object> files, final String applicationId,
                                  final String submissionId,final byte[] odtContent) throws IOException {
         try (final ByteArrayOutputStream fout = new ByteArrayOutputStream();
              final ZipOutputStream zout = new ZipOutputStream(fout)) {
             int index = 1;
-            for (String filename : files) {
-                addFileToZip(filename, zout, index, applicationId, submissionId);
+            for (S3Object file : files) {
+                addFileToZip(file, zout, index, applicationId, submissionId);
                 index++;
             }
             ZipEntry submissionEntry = new ZipEntry("submission.odt");
@@ -150,24 +143,24 @@ public class ZipService {
         }
     }
 
-    private static void addFileToZip(final String filename, final ZipOutputStream zout,
+    private static void addFileToZip(final S3Object file, final ZipOutputStream zout,
                                      final int index, final String applicationId,
                                      final String submissionId) throws IOException {
-        try (final FileInputStream fis = new FileInputStream(TMP_DIR + filename)) {
-            final ZipEntry ze = new ZipEntry(parseFileName(filename, index, applicationId, submissionId));
+        try (final InputStream s3ObjectStream = file.getObjectContent()) {
+            final ZipEntry ze = new ZipEntry(parseFileName(file.getKey(), index, applicationId, submissionId));
             zout.putNextEntry(ze);
             // Copy file contents over to zip entry
             int length;
             byte[] buffer = new byte[1024];
-            while ((length = fis.read(buffer)) > 0) {
+            while ((length = s3ObjectStream.read(buffer)) > 0) {
                 zout.write(buffer, 0, length);
             }
             zout.closeEntry();
         } catch (FileNotFoundException e) {
-            logger.error("Could not create a zip entry with the name: " + filename, e);
+            logger.error("Could not create a zip entry with the name: " + file.getKey(), e);
             throw e;
         } catch (IOException e) {
-            logger.error("IO exception while creating the zip entry with the name: " + filename, e);
+            logger.error("IO exception while creating the zip entry with the name: " + file.getKey(), e);
             throw e;
         }
     }
