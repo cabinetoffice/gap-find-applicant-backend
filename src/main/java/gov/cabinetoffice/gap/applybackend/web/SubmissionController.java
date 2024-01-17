@@ -11,6 +11,7 @@ import gov.cabinetoffice.gap.applybackend.exception.GrantApplicationNotPublished
 import gov.cabinetoffice.gap.applybackend.exception.NotFoundException;
 import gov.cabinetoffice.gap.applybackend.model.*;
 import gov.cabinetoffice.gap.applybackend.service.*;
+import gov.cabinetoffice.gap.applybackend.utils.ZipHelper;
 import gov.cabinetoffice.gap.eventservice.enums.EventType;
 import gov.cabinetoffice.gap.eventservice.exception.InvalidEventException;
 import gov.cabinetoffice.gap.eventservice.service.EventLogService;
@@ -34,6 +35,7 @@ import java.io.ByteArrayOutputStream;
 import java.time.Clock;
 import java.time.Instant;
 import java.util.*;
+import java.util.zip.ZipOutputStream;
 
 import static gov.cabinetoffice.gap.applybackend.utils.SecurityContextHelper.getJwtIdFromSecurityContext;
 import static gov.cabinetoffice.gap.applybackend.utils.SecurityContextHelper.getUserIdFromSecurityContext;
@@ -357,10 +359,21 @@ public class SubmissionController {
             @PathVariable final UUID submissionId, HttpServletRequest request) throws Exception {
         final String userSub = getUserIdFromSecurityContext();
         final String userEmail = grantApplicantService.getEmailById(userSub, request);
+
+        final Submission submission = submissionService.getSubmissionById(submissionId);
         
-        try (OdfTextDocument odt = submissionService.getSubmissionExport(submissionId, userEmail, userSub);
+        try (OdfTextDocument odt = submissionService.getSubmissionExport(submission, userEmail, userSub);
              ByteArrayOutputStream outputStream = new ByteArrayOutputStream()) {
+
+            final String filename = ZipHelper.generateFilename(submission.getLegalName(),
+                    String.valueOf(submission.getApplicant().getId()));
+
+            //this works, we just need to zip the odt into the zip and then somehow send in memory. follow the fns
+            ZipOutputStream zip = ZipService.createZip(filename, String.valueOf(submission.getApplication().getId()),
+                    String.valueOf(submissionId));
+
             odt.save(outputStream);
+
             byte[] odtBytes = outputStream.toByteArray();
             ByteArrayResource resource = new ByteArrayResource(odtBytes);
 

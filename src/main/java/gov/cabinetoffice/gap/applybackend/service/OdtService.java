@@ -96,10 +96,7 @@ public class OdtService {
         OdfTextHeading mainHeading = new OdfTextHeading(contentDom);
         final String nameHeadingPrefix = isIndividual ? "Applicant" : "Organisation";
 
-        String legalName = submission.getVersion() == 1 ?
-                submission.getSection("ESSENTIAL").getQuestionById("APPLICANT_ORG_NAME").getResponse()
-                :
-                submission.getSection("ORGANISATION_DETAILS").getQuestionById("APPLICANT_ORG_NAME").getResponse();
+        String legalName = submission.getLegalName();
 
         mainHeading.addStyledContentWhitespace(smallHeadingStyle, "Scheme applied for: " +
                 submission.getScheme().getName() + "\n\n");

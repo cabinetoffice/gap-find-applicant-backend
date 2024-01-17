@@ -61,6 +61,12 @@ public class SubmissionService {
     private final Clock clock;
     private final EnvironmentProperties envProperties;
 
+    public Submission getSubmissionById(final UUID submissionId) {
+        return submissionRepository.findById(submissionId)
+                .orElseThrow(() -> new NotFoundException(
+                        String.format("No Submission with ID %s was found", submissionId)));
+    }
+
     public Submission getSubmissionFromDatabaseBySubmissionId(final String userId, final UUID submissionId) {
         Submission submission = submissionRepository
                 .findByIdAndApplicantUserId(submissionId, userId)
@@ -582,9 +588,8 @@ public class SubmissionService {
         }
     }
 
-    public OdfTextDocument getSubmissionExport(UUID submissionId, String email, String userSub) throws Exception {
-        final Submission submission = submissionRepository.findById(submissionId)
-                .orElseThrow(() -> new NotFoundException(String.format("No submission with ID %s was found", submissionId)));
+    public OdfTextDocument getSubmissionExport(Submission submission, String email, String userSub) throws Exception {
+
         String submissionOwner = submission.getApplicant().getUserId();
 
         if (!Objects.equals(submissionOwner, userSub)) {
