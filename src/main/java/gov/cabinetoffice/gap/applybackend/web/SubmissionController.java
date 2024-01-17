@@ -356,7 +356,7 @@ public class SubmissionController {
 
     @GetMapping("/{submissionId}/download-summary")
     public ResponseEntity<ByteArrayResource> exportSingleSubmission(
-            @PathVariable final UUID submissionId, HttpServletRequest request) throws Exception {
+            @PathVariable final UUID submissionId, HttpServletRequest request) {
         final String userSub = getUserIdFromSecurityContext();
         final String userEmail = grantApplicantService.getEmailById(userSub, request);
 
@@ -365,24 +365,23 @@ public class SubmissionController {
         try (OdfTextDocument odt = submissionService.getSubmissionExport(submission, userEmail, userSub);
              ByteArrayOutputStream outputStream = new ByteArrayOutputStream()) {
 
-            final String filename = ZipHelper.generateFilename(submission.getLegalName(),
-                    String.valueOf(submission.getApplicant().getId()));
-
-            //this works, we just need to zip the odt into the zip and then somehow send in memory. follow the fns
-            ZipOutputStream zip = ZipService.createZip(filename, String.valueOf(submission.getApplication().getId()),
-                    String.valueOf(submissionId));
-
             odt.save(outputStream);
 
             byte[] odtBytes = outputStream.toByteArray();
-            ByteArrayResource resource = new ByteArrayResource(odtBytes);
 
-            HttpHeaders headers = new HttpHeaders();
-            headers.add(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"export.odt\"");
-            headers.add(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_OCTET_STREAM_VALUE);
+            try(ByteArrayOutputStream zipOutputStream = ZipService.createSubmissionZip(
+                    String.valueOf(submission.getApplication().getId()), String.valueOf(submissionId), odtBytes);
+            ) {
+                byte[] zipBytes = zipOutputStream.toByteArray();
+                ByteArrayResource zipResource = new ByteArrayResource(zipBytes);
 
-            return ResponseEntity.ok().headers(headers).contentLength(resource.contentLength())
-                    .contentType(MediaType.APPLICATION_OCTET_STREAM).body(resource);
+                HttpHeaders headers = new HttpHeaders();
+                headers.add(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"submission.zip\"");
+                headers.add(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_OCTET_STREAM_VALUE);
+
+                return ResponseEntity.ok().headers(headers).contentLength(zipResource.contentLength())
+                        .contentType(MediaType.APPLICATION_OCTET_STREAM).body(zipResource);
+            }
         } catch (Exception e) {
             log.error("Could not generate ODT. Exception: ", e);
             throw new RuntimeException(e);
@@ -434,7 +433,7 @@ public class SubmissionController {
             }
 
         } catch (Exception e) {
-            // If anything goes wrong logging to event service, log and continue
+            // If anything goes wrong logging to event-service, log and continue
             log.error("Could not send to event service. Exception: ", e);
         }
     }

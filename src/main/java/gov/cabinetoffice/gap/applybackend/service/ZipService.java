@@ -13,11 +13,7 @@ import org.apache.commons.io.FileUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
-import java.io.IOException;
+import java.io.*;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -43,9 +39,8 @@ public class ZipService {
             .build();
 
 
-    public static ZipOutputStream createZip(final String filename, final String applicationId,
-                                 final String submissionId) throws IOException {
-
+    public static ByteArrayOutputStream createSubmissionZip(final String applicationId,
+                                 final String submissionId, final byte[] odtContent) throws IOException {
         final List<String> submissionAttachmentFileNames = getSubmissionAttachmentFileNames(client, applicationId,
                 submissionId);
         for (String fileName : submissionAttachmentFileNames) {
@@ -53,9 +48,8 @@ public class ZipService {
         }
 
         final List<String> fileNamesToZIP = new ArrayList<>(submissionAttachmentFileNames);
-//        fileNamesToZIP.add(filename + ".odt");
 
-        ZipOutputStream zip = zipFiles(fileNamesToZIP, applicationId, submissionId);
+        ByteArrayOutputStream zip = zipFiles(fileNamesToZIP, applicationId, submissionId, odtContent);
         logger.info("Zip file created");
         return zip;
     }
@@ -132,17 +126,20 @@ public class ZipService {
         }
     }
 
-    private static ZipOutputStream zipFiles(final List<String> files, final String applicationId,
-                                 final String submissionId) throws IOException {
-        try (
-                final FileOutputStream fout = new FileOutputStream(TMP_DIR + LOCAL_ZIP_FILE_NAME);
-                final ZipOutputStream zout = new ZipOutputStream(fout)) {
+    private static ByteArrayOutputStream zipFiles(final List<String> files, final String applicationId,
+                                 final String submissionId,final byte[] odtContent) throws IOException {
+        try (final ByteArrayOutputStream fout = new ByteArrayOutputStream();
+             final ZipOutputStream zout = new ZipOutputStream(fout)) {
             int index = 1;
             for (String filename : files) {
                 addFileToZip(filename, zout, index, applicationId, submissionId);
                 index++;
             }
-            return zout;
+            ZipEntry submissionEntry = new ZipEntry("submission.odt");
+            zout.putNextEntry(submissionEntry);
+            zout.write(odtContent);
+            zout.closeEntry();
+            return fout;
 
         } catch (FileNotFoundException e) {
             logger.error("Could not create the locally zipped file: " + LOCAL_ZIP_FILE_NAME, e);
@@ -157,8 +154,6 @@ public class ZipService {
                                      final int index, final String applicationId,
                                      final String submissionId) throws IOException {
         try (final FileInputStream fis = new FileInputStream(TMP_DIR + filename)) {
-            // Create zip entry within the zipped file
-
             final ZipEntry ze = new ZipEntry(parseFileName(filename, index, applicationId, submissionId));
             zout.putNextEntry(ze);
             // Copy file contents over to zip entry
