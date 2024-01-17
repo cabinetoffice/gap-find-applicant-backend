@@ -17,7 +17,7 @@ import java.util.UUID;
 @AllArgsConstructor
 @Builder
 @Entity
-@Table(name= "spotlight_batch")
+@Table(name = "spotlight_batch")
 public class SpotlightBatch {
 
     @Id

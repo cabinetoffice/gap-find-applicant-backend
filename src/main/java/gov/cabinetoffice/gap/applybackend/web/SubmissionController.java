@@ -7,12 +7,16 @@ import gov.cabinetoffice.gap.eventservice.enums.EventType;
 import gov.cabinetoffice.gap.applybackend.enums.GrantAttachmentStatus;
 import gov.cabinetoffice.gap.applybackend.enums.GrantMandatoryQuestionOrgType;
 import gov.cabinetoffice.gap.applybackend.enums.SubmissionSectionStatus;
+import gov.cabinetoffice.gap.applybackend.enums.SubmissionStatus;
 import gov.cabinetoffice.gap.applybackend.exception.AttachmentException;
 import gov.cabinetoffice.gap.applybackend.exception.GrantApplicationNotPublishedException;
 import gov.cabinetoffice.gap.eventservice.exception.InvalidEventException;
 import gov.cabinetoffice.gap.applybackend.exception.NotFoundException;
 import gov.cabinetoffice.gap.applybackend.model.*;
 import gov.cabinetoffice.gap.applybackend.service.*;
+import gov.cabinetoffice.gap.eventservice.enums.EventType;
+import gov.cabinetoffice.gap.eventservice.exception.InvalidEventException;
+import gov.cabinetoffice.gap.eventservice.service.EventLogService;
 
 import static gov.cabinetoffice.gap.applybackend.utils.SecurityContextHelper.getJwtIdFromSecurityContext;
 import static gov.cabinetoffice.gap.applybackend.utils.SecurityContextHelper.getUserIdFromSecurityContext;
@@ -34,6 +38,9 @@ import javax.validation.Valid;
 import java.time.Clock;
 import java.time.Instant;
 import java.util.*;
+
+import static gov.cabinetoffice.gap.applybackend.utils.SecurityContextHelper.getJwtIdFromSecurityContext;
+import static gov.cabinetoffice.gap.applybackend.utils.SecurityContextHelper.getUserIdFromSecurityContext;
 
 // TODO This class could probably be broken up into a few smaller more targeted classes
 @Slf4j
@@ -230,10 +237,10 @@ public class SubmissionController {
 
     @PutMapping("/{submissionId}/question/{questionId}/attachment/scanresult")
     public ResponseEntity<String> updateAttachment(
-                                                   @PathVariable final UUID submissionId,
-                                                   @PathVariable final String questionId,
-                                                   @RequestBody final UpdateAttachmentDto updateDetails,
-                                                   @RequestHeader(HttpHeaders.AUTHORIZATION) final String authHeader) {
+            @PathVariable final UUID submissionId,
+            @PathVariable final String questionId,
+            @RequestBody final UpdateAttachmentDto updateDetails,
+            @RequestHeader(HttpHeaders.AUTHORIZATION) final String authHeader) {
         final String applicantId = getUserIdFromSecurityContext();
 
         secretAuthService.authenticateSecret(authHeader);
@@ -258,10 +265,10 @@ public class SubmissionController {
 
     @PostMapping("/{submissionId}/sections/{sectionId}/questions/{questionId}/attach")
     public ResponseEntity<GetNavigationParamsDto> postAttachment(
-                                                                 @PathVariable final UUID submissionId,
-                                                                 @PathVariable final String sectionId,
-                                                                 @PathVariable final String questionId,
-                                                                 @RequestBody final MultipartFile attachment) {
+            @PathVariable final UUID submissionId,
+            @PathVariable final String sectionId,
+            @PathVariable final String questionId,
+            @RequestBody final MultipartFile attachment) {
         final String applicantId = getUserIdFromSecurityContext();
         final GrantApplicant applicant = grantApplicantService.getApplicantFromPrincipal();
         final Submission submission = submissionService.getSubmissionFromDatabaseBySubmissionId(applicantId, submissionId);
@@ -280,7 +287,7 @@ public class SubmissionController {
             throw new AttachmentException("You can only select up to 1 file at the same time");
         }
 
-        final String cleanedOriginalFilename =  attachment.getOriginalFilename().replaceAll(SPECIAL_CHARACTER_REGEX, "_");
+        final String cleanedOriginalFilename = attachment.getOriginalFilename().replaceAll(SPECIAL_CHARACTER_REGEX, "_");
         String extension = FilenameUtils.getExtension(attachment.getOriginalFilename()).toLowerCase();
         Arrays.stream(question.getValidation().getAllowedTypes())
                 .filter(item -> Objects.equals(item.toLowerCase(), extension))
@@ -314,9 +321,9 @@ public class SubmissionController {
 
     @DeleteMapping("/{submissionId}/sections/{sectionId}/questions/{questionId}/attachments/{attachmentId}")
     public ResponseEntity<GetNavigationParamsDto> removeAttachment(@PathVariable final UUID submissionId,
-                                                                 @PathVariable final String sectionId,
-                                                                 @PathVariable final String questionId,
-                                                                 @PathVariable final UUID attachmentId) {
+                                                                   @PathVariable final String sectionId,
+                                                                   @PathVariable final String questionId,
+                                                                   @PathVariable final UUID attachmentId) {
         final String applicantId = getUserIdFromSecurityContext();
         final Submission submission = submissionService.getSubmissionFromDatabaseBySubmissionId(applicantId, submissionId);
         final int applicationId = submission.getApplication().getId();
@@ -346,6 +353,12 @@ public class SubmissionController {
                                                                                @RequestParam(required = false, defaultValue = "false") final boolean saveAndExit) {
         final String applicantId = getUserIdFromSecurityContext();
         return ResponseEntity.ok(submissionService.getNextNavigation(applicantId, submissionId, sectionId, questionId, saveAndExit));
+    }
+
+    @GetMapping("/{submissionId}/isApplicantEligible")
+    public ResponseEntity<Boolean>  isApplicantEligible(@PathVariable final UUID submissionId) {
+        final String applicantId = getUserIdFromSecurityContext();
+        return ResponseEntity.ok(submissionService.isApplicantEligible(applicantId, submissionId, "ELIGIBILITY"));
     }
 
     private GetSubmissionDto buildSubmissionDto(Submission submission) {
@@ -385,8 +398,7 @@ public class SubmissionController {
                 default -> throw new InvalidEventException("Invalid event provided: " + eventType);
             }
 
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
             // If anything goes wrong logging to event service, log and continue
             log.error("Could not send to event service. Exception: ", e);
         }

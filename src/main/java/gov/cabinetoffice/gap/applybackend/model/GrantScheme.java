@@ -27,7 +27,7 @@ public class GrantScheme {
     @Builder.Default
     @Column(name = "version", nullable = false)
     private Integer version = 1;
-    
+
     @Builder.Default
     @Column(name = "created_date", nullable = false)
     private Instant createdDate = Instant.now();

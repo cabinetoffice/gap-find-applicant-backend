@@ -35,7 +35,7 @@ import java.util.UUID;
 @AllArgsConstructor
 @Builder
 @Entity
-@Table(name= "grant_submission")
+@Table(name = "grant_submission")
 public class Submission extends BaseEntity {
     @Id
     @GeneratedValue
@@ -45,7 +45,6 @@ public class Submission extends BaseEntity {
     @JoinColumn(name = "applicant_id", referencedColumnName = "id")
     @JsonIgnoreProperties("submissions")
     private GrantApplicant applicant;
-
 
     @ManyToOne(cascade = CascadeType.ALL)
     @JoinColumn(name = "scheme_id")
@@ -94,6 +93,10 @@ public class Submission extends BaseEntity {
 
     @Column(name = "last_required_checks_export")
     private Instant lastRequiredChecksExport;
+
+    @Column
+    @Builder.Default
+    private Boolean mandatorySectionsCompleted = false;
 
     public SubmissionSection getSection(String sectionId) {
         return this.getDefinition()

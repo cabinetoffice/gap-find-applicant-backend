@@ -18,6 +18,7 @@ public class SecretAuthService {
      * Intended to authenticate requests coming from lambdas, which shouldn't pass through
      * the JWT auth process. TODO I think this could be converted into an annotation for
      * lambda controller methods
+     *
      * @param authHeader value taken from Authorization header
      */
     public void authenticateSecret(String authHeader) {

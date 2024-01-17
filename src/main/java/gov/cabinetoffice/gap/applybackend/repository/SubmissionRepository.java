@@ -10,6 +10,5 @@ import java.util.UUID;
 public interface SubmissionRepository extends JpaRepository<Submission, UUID> {
     List<Submission> findByApplicantId(long applicantId);
     Optional<Submission> findByApplicantIdAndApplicationId(long applicantId, Integer applicationId);
-
     Optional<Submission> findByIdAndApplicantUserId(UUID id, String userId);
 }

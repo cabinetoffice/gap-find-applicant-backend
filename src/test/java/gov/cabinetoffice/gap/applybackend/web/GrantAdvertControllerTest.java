@@ -28,7 +28,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.Assert.assertThrows;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class GrantAdvertControllerTest {
@@ -93,7 +93,7 @@ class GrantAdvertControllerTest {
                     .thenReturn(applicant);
             when(grantAdvertService.getAdvertByContentfulSlug("slug"))
                     .thenReturn(grantAdvert);
-            when(grantMandatoryQuestionService.existsBySchemeIdAndApplicantId(scheme.getId(), applicant.getId()))
+            when(grantMandatoryQuestionService.mandatoryQuestionExistsBySchemeIdAndApplicantId(scheme.getId(), applicant.getId()))
                     .thenReturn(true);
             when(grantMandatoryQuestionService.getMandatoryQuestionBySchemeId(123, applicantUserId))
                     .thenReturn(grantMandatoryQuestions);
@@ -179,7 +179,7 @@ class GrantAdvertControllerTest {
                     .thenReturn(applicant);
             when(grantAdvertService.getAdvertBySchemeId(String.valueOf(schemeId)))
                     .thenReturn(grantAdvert);
-            when(grantMandatoryQuestionService.existsBySchemeIdAndApplicantId(scheme.getId(), applicant.getId()))
+            when(grantMandatoryQuestionService.mandatoryQuestionExistsBySchemeIdAndApplicantId(scheme.getId(), applicant.getId()))
                     .thenReturn(true);
             when(grantMandatoryQuestionService.getMandatoryQuestionBySchemeId(123, applicantUserId))
                     .thenReturn(grantMandatoryQuestions);
@@ -202,6 +202,35 @@ class GrantAdvertControllerTest {
                     .thenThrow(IllegalArgumentException.class);
 
             assertThrows(IllegalArgumentException.class, () -> grantAdvertController.generateGetGrantAdvertDtoFromSchemeId(String.valueOf(schemeId)));
+        }
+    }
+
+    @Nested
+    class validateGrantWebpageUrl {
+        @Test
+        void validatesGrantWebpageUrl_returnsSuccessWithValidArgs(){
+            final String grantWebpageUrl = "https://www.example.com/external-advert";
+            final String contentfulSlug = "internal-contentful-slug";
+            doNothing().when(grantAdvertService).validateGrantWebpageUrl(grantWebpageUrl, contentfulSlug);
+            ResponseEntity<String> response = grantAdvertController.validateGrantWebpageUrl(grantWebpageUrl, contentfulSlug);
+
+            assertThat(response).isEqualTo(ResponseEntity.ok("Success"));
+        }
+
+        @Test
+        void validatesGrantWebpageUrl_returnsNotFound(){
+            final String grantWebpageUrl = "https://www.maliciousdomain.com/extenal";
+            final String contentfulSlug = "internal-contentful-slug";
+            doThrow(NotFoundException.class).when(grantAdvertService).validateGrantWebpageUrl(grantWebpageUrl, contentfulSlug);
+            assertThrows(NotFoundException.class, ()-> grantAdvertController.validateGrantWebpageUrl(grantWebpageUrl, contentfulSlug));
+        }
+
+        @Test
+        void validatesGrantWebpageUrl_ThrowsNotFoundException(){
+            final String grantWebpageUrl = "https://www.maliciousdomain.com/extenal";
+            final String contentfulSlug = "internal-contentful-slug";
+            doThrow(NotFoundException.class).when(grantAdvertService).validateGrantWebpageUrl(grantWebpageUrl, contentfulSlug);
+            assertThrows(NotFoundException.class, ()-> grantAdvertController.validateGrantWebpageUrl(grantWebpageUrl, contentfulSlug));
         }
     }
 }

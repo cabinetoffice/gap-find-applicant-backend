@@ -55,7 +55,7 @@ class GrantSchemeServiceTest {
 
         Exception result = assertThrows(NotFoundException.class, () -> serviceUnderTest.getSchemeById(SCHEME_ID));
         verify(grantSchemeRepository).findById(SCHEME_ID);
-        
-        assertTrue(result.getMessage().contains("No Grant Scheme with ID "+ SCHEME_ID + " was found"));
+
+        assertTrue(result.getMessage().contains("No Grant Scheme with ID " + SCHEME_ID + " was found"));
     }
 }

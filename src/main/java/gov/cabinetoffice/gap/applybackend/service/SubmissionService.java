@@ -8,7 +8,7 @@ import gov.cabinetoffice.gap.applybackend.constants.APIConstants;
 import gov.cabinetoffice.gap.applybackend.dto.api.CreateQuestionResponseDto;
 import gov.cabinetoffice.gap.applybackend.dto.api.CreateSubmissionResponseDto;
 import gov.cabinetoffice.gap.applybackend.dto.api.GetNavigationParamsDto;
-import gov.cabinetoffice.gap.applybackend.enums.GrantApplicantStatus;
+import gov.cabinetoffice.gap.applybackend.enums.GrantApplicationStatus;
 import gov.cabinetoffice.gap.applybackend.enums.SubmissionSectionStatus;
 import gov.cabinetoffice.gap.applybackend.enums.SubmissionStatus;
 import gov.cabinetoffice.gap.applybackend.exception.NotFoundException;
@@ -49,6 +49,7 @@ public class SubmissionService {
     private static final String APPLICANT_ORG_CHARITY_NUMBER = "APPLICANT_ORG_CHARITY_NUMBER";
     private static final String BENEFITIARY_LOCATION = "BENEFITIARY_LOCATION";
     private static final String ELIGIBILITY = "ELIGIBILITY";
+    private static final List<String> mandatoryQuestionSectionIds = List.of(ELIGIBILITY, ORGANISATION_DETAILS, FUNDING_DETAILS);
     private final SubmissionRepository submissionRepository;
     private final DiligenceCheckRepository diligenceCheckRepository;
     private final GrantBeneficiaryRepository grantBeneficiaryRepository;
@@ -176,7 +177,7 @@ public class SubmissionService {
     public boolean isSubmissionReadyToBeSubmitted(final String userId, final UUID submissionId) {
         final Submission submission = getSubmissionFromDatabaseBySubmissionId(userId, submissionId);
         GrantApplication grantApplication = submission.getApplication();
-        if (!grantApplication.getApplicationStatus().equals(GrantApplicantStatus.PUBLISHED)) {
+        if (!grantApplication.getApplicationStatus().equals(GrantApplicationStatus.PUBLISHED)) {
             return false;
         }
 
@@ -204,7 +205,14 @@ public class SubmissionService {
                 .toList()
                 .isEmpty();
 
-        return questionsAreAllAnswered && sectionAreAllCompleted;
+        final boolean isEligible = sections.stream()
+                .flatMap(section -> section.getQuestions().stream())
+                .anyMatch(question ->
+                        question.getQuestionId().equals("ELIGIBILITY") &&
+                                "Yes".equals(question.getResponse())
+                );
+
+        return questionsAreAllAnswered && sectionAreAllCompleted && isEligible;
     }
 
     @Transactional
@@ -353,8 +361,8 @@ public class SubmissionService {
     }
 
     public boolean hasSubmissionBeenSubmitted(final String userId, final UUID submissionId) {
-        return !this.getSubmissionFromDatabaseBySubmissionId(userId, submissionId)
-                .getStatus().equals(SubmissionStatus.IN_PROGRESS);
+        return this.getSubmissionFromDatabaseBySubmissionId(userId, submissionId)
+                .getStatus().equals(SubmissionStatus.SUBMITTED);
     }
 
 
@@ -420,7 +428,8 @@ public class SubmissionService {
                 } else {
                     final String organisationDefault = switch (question.getQuestionId()) {
                         case APPLICANT_ORG_NAME -> grantApplicantOrgProfile.getLegalName();
-                        case APPLICANT_ORG_TYPE -> grantApplicantOrgProfile.getType() != null ? grantApplicantOrgProfile.getType().toString() : null;
+                        case APPLICANT_ORG_TYPE -> grantApplicantOrgProfile.getType() != null
+                                ? grantApplicantOrgProfile.getType().toString() : null;
                         case APPLICANT_ORG_CHARITY_NUMBER -> grantApplicantOrgProfile.getCharityCommissionNumber();
                         case APPLICANT_ORG_COMPANIES_HOUSE -> grantApplicantOrgProfile.getCompaniesHouseNumber();
                         default -> null;
@@ -489,8 +498,23 @@ public class SubmissionService {
                 .findFirst()
                 .orElseThrow(() -> new NotFoundException(String.format("No section with ID %s was found", sectionId)))
                 .setSectionStatus(sectionStatus);
+
+        updateMandatorySectionsCompletedFlag(submission);
+
         submissionRepository.save(submission);
         return sectionStatus;
+    }
+
+    private void updateMandatorySectionsCompletedFlag(final Submission submission) {
+        final boolean mandatorySectionsCompleted = isMandatorySectionsComplete(submission);
+        submission.setMandatorySectionsCompleted(mandatorySectionsCompleted);
+    }
+
+    private boolean isMandatorySectionsComplete(final Submission submission) {
+        return submission.getDefinition().getSections()
+                .stream()
+                .filter(section -> mandatoryQuestionSectionIds.contains(section.getSectionId()))
+                .allMatch(section -> section.getSectionStatus() == SubmissionSectionStatus.COMPLETED);
     }
 
     public SubmissionDefinition transformApplicationDefinitionToSubmissionDefinition(ApplicationDefinition applicationDefinition, int schemeVersion) throws JsonProcessingException {
@@ -531,8 +555,12 @@ public class SubmissionService {
                     .getVersion();
 
             if (schemeVersion > 1) {
-                submission.getSection(ORGANISATION_DETAILS).setSectionStatus(SubmissionSectionStatus.IN_PROGRESS);
-                submission.getSection(FUNDING_DETAILS).setSectionStatus(SubmissionSectionStatus.IN_PROGRESS);
+                if (submission.getSection(ORGANISATION_DETAILS).getSectionStatus().equals(SubmissionSectionStatus.CANNOT_START_YET)) {
+                    submission.getSection(ORGANISATION_DETAILS).setSectionStatus(SubmissionSectionStatus.IN_PROGRESS);
+                }
+                if (submission.getSection(FUNDING_DETAILS).getSectionStatus().equals(SubmissionSectionStatus.CANNOT_START_YET)) {
+                    submission.getSection(FUNDING_DETAILS).setSectionStatus(SubmissionSectionStatus.IN_PROGRESS);
+                }
             }
 
             submission.getDefinition()
@@ -563,6 +591,12 @@ public class SubmissionService {
         }
 
         return sectionIds;
+    }
+
+    public boolean isApplicantEligible(final String userId, final UUID submissionId, final String questionId){
+        final Submission submission = getSubmissionFromDatabaseBySubmissionId(userId, submissionId);
+        final Optional<SubmissionQuestion> eligibilityResponse = getQuestionResponseByQuestionId(submission ,"ELIGIBILITY");
+        return eligibilityResponse.map(submissionQuestion -> submissionQuestion.getResponse().equals("Yes")).orElse(false);
     }
 }
 

@@ -59,10 +59,10 @@ public class AttachmentService {
             final AmazonS3URI s3Uri = new AmazonS3URI(attachment.getLocation());
             final String key = applicationId + "/" + submissionId + "/" + questionId + "/" + attachment.getFilename();
             s3Client.deleteObject(new DeleteObjectRequest(s3Uri.getBucket(), key));
+            s3Client.deleteObject(new DeleteObjectRequest(s3Properties.getAttachmentsBucket(), key));
             grantAttachmentRepository.delete(attachment);
         } catch (SdkClientException e) {
             log.error("An error occurred deleting the file: ", e);
-            e.printStackTrace();
         }
     }
 }

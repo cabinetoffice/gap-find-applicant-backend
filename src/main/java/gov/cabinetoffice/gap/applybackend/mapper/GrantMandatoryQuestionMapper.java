@@ -23,7 +23,7 @@ import java.util.Optional;
 public interface GrantMandatoryQuestionMapper {
 
 
-    @Mapping(source= "grantScheme.id", target = "schemeId")
+    @Mapping(source = "grantScheme.id", target = "schemeId")
     @Mapping(source = "orgType", target = "orgType", qualifiedByName = "mapEntityOrgTypeToDtoOrgType")
     @Mapping(source = "fundingAmount", target = "fundingAmount", qualifiedByName = "mapEntityFundingAmountToDtoFundingAmount")
     @Mapping(source = "fundingLocation", target = "fundingLocation", qualifiedByName = "mapEntityFundingLocationToDtoFundingLocation")

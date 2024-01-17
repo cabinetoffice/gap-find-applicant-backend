@@ -107,7 +107,6 @@ public class ControllerExceptionHandler {
     }
 
 
-
     @ResponseStatus(HttpStatus.BAD_REQUEST)
     @ExceptionHandler({
             GrantApplicationNotPublishedException.class,

@@ -1,6 +1,5 @@
 package gov.cabinetoffice.gap.applybackend.service;
 
-import com.contentful.java.cda.AbsQuery;
 import com.contentful.java.cda.CDAArray;
 import com.contentful.java.cda.CDAClient;
 import com.contentful.java.cda.CDAEntry;
@@ -22,6 +21,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.HashMap;
@@ -31,7 +31,10 @@ import java.util.Optional;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatNoException;
 import static org.junit.Assert.assertThrows;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -48,9 +51,8 @@ class GrantAdvertServiceTest {
     private GrantAdvertService grantAdvertService;
     @Mock
     private CDAArray contentfulResults;
-
     @Mock
-    private AbsQuery query;
+    CDAEntry mockCDAEntry;
 
     @Mock
     private FetchQuery fetchQuery;
@@ -421,6 +423,56 @@ class GrantAdvertServiceTest {
             when(grantAdvertRepository.findBySchemeId(Integer.parseInt(schemeId))).thenReturn(Optional.empty());
 
             assertThrows(NotFoundException.class, () -> grantAdvertService.getAdvertBySchemeId(schemeId));
+        }
+    }
+
+    @Nested
+    class validateGrantWebpageUrl {
+        @Test
+        void SuccessfullyValidatesWebpageUrl() {
+            final String advertSlug = "chargepoint-grant-for-homeowners-1";
+            final String grantWebpageUrl = "https://example.domain.org/some/deeper/path";
+            final Map<String, String> entry = new HashMap<>();
+            final Map<String, Object> entries = new HashMap<>();
+            entry.put("0", grantWebpageUrl);
+            entries.put("grantWebpageUrl", entry);
+            when((mockCDAEntry).rawFields()).thenReturn(entries);
+            when(contentfulDeliveryClient.fetch(CDAEntry.class))
+                    .thenReturn(fetchQuery);
+            when(fetchQuery.withContentType("grantDetails"))
+                    .thenReturn(fetchQuery);
+            when(fetchQuery.where("fields.label", advertSlug))
+                    .thenReturn(fetchQuery);
+            when(fetchQuery.all())
+                    .thenReturn(contentfulResults);
+            when(contentfulResults.items())
+                    .thenReturn(List.of(mockCDAEntry));
+
+            assertThatNoException().isThrownBy(() -> grantAdvertService.validateGrantWebpageUrl(advertSlug, grantWebpageUrl));
+        }
+
+        @Test
+        void throwsNotFound__WhenProvidedInvalidWebpageUrl() {
+            final String advertSlug = "chargepoint-grant-for-homeowners-1";
+            final String grantWebpageUrl = "https://malicious.domain.org/path";
+            final String contentfulGrantWebpageUrl = "https://example.domain.org/some/deeper/path";
+            final Map<String, String> entry = new HashMap<>();
+            final Map<String, Object> entries = new HashMap<>();
+            entry.put("0", contentfulGrantWebpageUrl);
+            entries.put("grantWebpageUrl", entry);
+            when((mockCDAEntry).rawFields()).thenReturn(entries);
+            when(contentfulDeliveryClient.fetch(CDAEntry.class))
+                    .thenReturn(fetchQuery);
+            when(fetchQuery.withContentType("grantDetails"))
+                    .thenReturn(fetchQuery);
+            when(fetchQuery.where("fields.label", advertSlug))
+                    .thenReturn(fetchQuery);
+            when(fetchQuery.all())
+                    .thenReturn(contentfulResults);
+            when(contentfulResults.items())
+                    .thenReturn(List.of(mockCDAEntry));
+
+            assertThrows(NotFoundException.class, () -> grantAdvertService.validateGrantWebpageUrl(advertSlug, grantWebpageUrl));
         }
     }
 }

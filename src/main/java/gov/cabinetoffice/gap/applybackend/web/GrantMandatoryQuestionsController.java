@@ -114,7 +114,7 @@ public class GrantMandatoryQuestionsController {
         final JwtPayload jwtPayload = (JwtPayload) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
         final GrantApplicant applicant = grantApplicantService.getApplicantById(jwtPayload.getSub());
 
-        return ResponseEntity.ok(grantMandatoryQuestionService.existsBySchemeIdAndApplicantId(schemeId, applicant.getId()));
+        return ResponseEntity.ok(grantMandatoryQuestionService.mandatoryQuestionExistsBySchemeIdAndApplicantId(schemeId, applicant.getId()));
     }
 
 

@@ -18,7 +18,7 @@ import java.util.UUID;
 @AllArgsConstructor
 @Builder
 @Entity
-@Table(name= "spotlight_submission")
+@Table(name = "spotlight_submission")
 public class SpotlightSubmission {
 
     @Id

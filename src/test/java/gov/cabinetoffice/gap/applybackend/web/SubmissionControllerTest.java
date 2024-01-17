@@ -32,7 +32,6 @@ import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.multipart.MultipartFile;
 
-import javax.servlet.http.HttpServletRequest;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.LocalDateTime;
@@ -168,7 +167,7 @@ class SubmissionControllerTest {
             .postcode("G2 1QQ")
             .county("Renfrewshire")
             .build();
-    private final String APPLICANT_USER_ID ="75ab5fbd-0682-4d3d-a467-01c7a447f07c";
+    private final String APPLICANT_USER_ID = "75ab5fbd-0682-4d3d-a467-01c7a447f07c";
     final GrantApplicant grantApplicant = GrantApplicant.builder()
             .id(APPLICANT_ID)
             .userId(APPLICANT_USER_ID)
@@ -758,7 +757,7 @@ class SubmissionControllerTest {
 
             final SubmissionQuestionValidation validation = SubmissionQuestionValidation.builder()
                     .mandatory(true)
-                    .allowedTypes(new String[] {"txt"})
+                    .allowedTypes(new String[]{"txt"})
                     .build();
 
             final SubmissionQuestion question = SubmissionQuestion.builder()
@@ -805,7 +804,7 @@ class SubmissionControllerTest {
 
             final SubmissionQuestionValidation validation = SubmissionQuestionValidation.builder()
                     .mandatory(true)
-                    .allowedTypes(new String[] {"txt"})
+                    .allowedTypes(new String[]{"txt"})
                     .build();
 
             final SubmissionQuestion question = SubmissionQuestion.builder()
@@ -833,7 +832,7 @@ class SubmissionControllerTest {
 
             final SubmissionQuestionValidation validation = SubmissionQuestionValidation.builder()
                     .mandatory(true)
-                    .allowedTypes(new String[] {"txt"})
+                    .allowedTypes(new String[]{"txt"})
                     .build();
 
             final SubmissionQuestion question = SubmissionQuestion.builder()
@@ -868,7 +867,7 @@ class SubmissionControllerTest {
 
             final SubmissionQuestionValidation validation = SubmissionQuestionValidation.builder()
                     .mandatory(true)
-                    .allowedTypes(new String[] {"txt"})
+                    .allowedTypes(new String[]{"txt"})
                     .build();
 
             final SubmissionQuestion question = SubmissionQuestion.builder()
@@ -904,7 +903,7 @@ class SubmissionControllerTest {
 
             final SubmissionQuestionValidation validation = SubmissionQuestionValidation.builder()
                     .mandatory(true)
-                    .allowedTypes(new String[] {"txt"})
+                    .allowedTypes(new String[]{"txt"})
                     .build();
 
             final SubmissionQuestion question = SubmissionQuestion.builder()
@@ -944,7 +943,6 @@ class SubmissionControllerTest {
             assertThat(methodResponse.getBody()).isEqualTo(expectedNavigation);
         }
     }
-
 
 
     @Test
@@ -1000,5 +998,29 @@ class SubmissionControllerTest {
         assertThat(methodResponse.getBody()).isEqualTo(expectedNav);
     }
 
+    @Nested
+    class isApplicantEligible {
+        @Test
+        void isApplicantEligible_ReturnsExpectedResponse_ReturnTrue() {
+            when(submissionService.isApplicantEligible(APPLICANT_USER_ID, SUBMISSION_ID, "ELIGIBILITY"))
+                    .thenReturn(true);
+
+            final ResponseEntity<Boolean> response = controllerUnderTest.isApplicantEligible(SUBMISSION_ID);
+
+            assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+            assertThat(response.getBody()).isTrue();
+        }
+
+        @Test
+        void isApplicantEligible_ReturnsExpectedResponse_ReturnFalse() {
+            when(submissionService.isApplicantEligible(APPLICANT_USER_ID, SUBMISSION_ID, "ELIGIBILITY"))
+                    .thenReturn(false);
+
+            final ResponseEntity<Boolean> response = controllerUnderTest.isApplicantEligible(SUBMISSION_ID);
+
+            assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+            assertThat(response.getBody()).isFalse();
+        }
+    }
 
 }

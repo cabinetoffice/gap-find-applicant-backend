@@ -1,6 +1,6 @@
 package gov.cabinetoffice.gap.applybackend.service;
 
-import gov.cabinetoffice.gap.applybackend.enums.GrantApplicantStatus;
+import gov.cabinetoffice.gap.applybackend.enums.GrantApplicationStatus;
 import gov.cabinetoffice.gap.applybackend.exception.NotFoundException;
 import gov.cabinetoffice.gap.applybackend.model.GrantApplication;
 import gov.cabinetoffice.gap.applybackend.model.GrantScheme;
@@ -38,13 +38,17 @@ class GrantApplicationServiceTest {
         assertEquals(methodResponse, application);
     }
 
+    @Test
     void getGrantApplicationByGrantScheme__NotFound() {
-        when(grantApplicationRepository.getGrantApplicationByGrantSchemeId(1)).thenReturn(Optional.empty());
+        final int schemeId = 1;
 
-        verify(grantApplicationRepository).getGrantApplicationByGrantSchemeId(1);
-        assertThrows(NotFoundException.class, () -> serviceUnderTest.getGrantApplicationByGrantScheme(1));
+        when(grantApplicationRepository.getGrantApplicationByGrantSchemeId(schemeId)).thenReturn(Optional.empty());
+
+        Exception result = assertThrows(NotFoundException.class, () -> serviceUnderTest.getGrantApplicationByGrantScheme(schemeId));
+        verify(grantApplicationRepository).getGrantApplicationByGrantSchemeId(schemeId);
+
+        assertTrue(result.getMessage().contains("No Application with scheme ID " + schemeId + " was found"));
     }
-
 
     @Test
     void getGrantApplicationById__Success() {
@@ -54,7 +58,7 @@ class GrantApplicationServiceTest {
 
         when(grantApplicationRepository.findById(1)).thenReturn(Optional.of(application));
 
-       final GrantApplication methodResponse = serviceUnderTest.getGrantApplicationById(1);
+        final GrantApplication methodResponse = serviceUnderTest.getGrantApplicationById(1);
 
         verify(grantApplicationRepository).findById(1);
         assertEquals(methodResponse, application);
@@ -64,7 +68,7 @@ class GrantApplicationServiceTest {
     @Test
     void isGrantApplicationPublished__True() {
         final GrantApplication application = GrantApplication.builder()
-                .applicationStatus(GrantApplicantStatus.PUBLISHED)
+                .applicationStatus(GrantApplicationStatus.PUBLISHED)
                 .id(1)
                 .build();
 
@@ -79,7 +83,7 @@ class GrantApplicationServiceTest {
     @Test
     void isGrantApplicationPublished__False() {
         final GrantApplication application = GrantApplication.builder()
-                .applicationStatus(GrantApplicantStatus.DRAFT)
+                .applicationStatus(GrantApplicationStatus.DRAFT)
                 .id(1)
                 .build();
 

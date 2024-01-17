@@ -33,7 +33,7 @@ class EmailAddressMatchValidatorTest {
     private ConstraintValidatorContext.ConstraintViolationBuilder.NodeBuilderCustomizableContext nodeBuilder;
 
     @BeforeEach
-    void setup () {
+    void setup() {
         nodeBuilder = mock(ConstraintValidatorContext.ConstraintViolationBuilder.NodeBuilderCustomizableContext.class);
         builder = mock(ConstraintValidatorContext.ConstraintViolationBuilder.class);
         validatorContext = mock(ConstraintValidatorContext.class);
@@ -47,9 +47,9 @@ class EmailAddressMatchValidatorTest {
                 // validation only kicks in if both values are not blank
                 Arguments.of(
                         RegisterApplicant.builder()
-                        .email("")
-                        .emailConfirmed("")
-                        .build()
+                                .email("")
+                                .emailConfirmed("")
+                                .build()
                 ),
                 Arguments.of(
                         RegisterApplicant.builder()
@@ -79,7 +79,7 @@ class EmailAddressMatchValidatorTest {
     void isValid_ReturnsTrueWhenExpected(RegisterApplicant registrationData) {
         final String emailField = "email";
         final String emailMatchField = "emailConfirmed";
-        final Map<String, Object> map = Map.of("field",emailField, "fieldMatch", emailMatchField);
+        final Map<String, Object> map = Map.of("field", emailField, "fieldMatch", emailMatchField);
         final EmailAddressesMatch fieldsMatch = new AnnotationDescriptor.Builder<>(EmailAddressesMatch.class, map).build().getAnnotation();
 
         emailAddressesMatchValidator.initialize(fieldsMatch);
@@ -93,7 +93,7 @@ class EmailAddressMatchValidatorTest {
         final String message = "fields do not match";
         final String emailField = "email";
         final String emailMatchField = "emailConfirmed";
-        final Map<String, Object> map = Map.of("field",emailField, "fieldMatch", emailMatchField, "message", message);
+        final Map<String, Object> map = Map.of("field", emailField, "fieldMatch", emailMatchField, "message", message);
         final EmailAddressesMatch fieldsMatch = new AnnotationDescriptor.Builder<>(EmailAddressesMatch.class, map).build().getAnnotation();
 
         final RegisterApplicant registrationData = RegisterApplicant.builder()

@@ -45,7 +45,7 @@ class ControllerExceptionHandlerTest {
         return Stream.of(
                 Arguments.of(new HttpClientErrorException(HttpStatus.NOT_FOUND, "Bad query")),
                 Arguments.of(new NotFoundException("Not Found"))
-                );
+        );
     }
 
     @ParameterizedTest
@@ -175,7 +175,6 @@ class ControllerExceptionHandlerTest {
 
         final WebRequest webRequest = new ServletWebRequest(request);
 
-        final String errorMessage = "File must be of type TXT, CSV, XLSX, DOCX";
         final ErrorMessage expectedError = ErrorMessage.builder()
                 .status(HttpStatus.BAD_REQUEST)
                 .date(ZonedDateTime.now(clock))

@@ -11,7 +11,6 @@ import gov.cabinetoffice.gap.applybackend.testingextensions.ErrorLogCapture;
 import gov.cabinetoffice.gap.applybackend.testingextensions.ErrorLogCaptureExtension;
 import gov.cabinetoffice.gap.applybackend.testingextensions.InfoLogCapture;
 import gov.cabinetoffice.gap.applybackend.testingextensions.InfoLogCaptureExtension;
-import gov.cabinetoffice.gap.eventservice.service.EventLogService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -193,7 +192,7 @@ class EventLogServiceTest {
             EventLog actualEventLog = eventLogArgumentCaptor.getValue();
 
             assertThat(actualEventLog.getEventType()).isEqualTo(EventType.SUBMISSION_PUBLISHED);
-            
+
             assertThat(actualEventLog.getSessionId()).isEqualTo(sessionId);
             assertThat(actualEventLog.getUserSub()).isEqualTo(userSub);
             assertThat(actualEventLog.getObjectId()).isEqualTo(objectId);
@@ -234,7 +233,5 @@ class EventLogServiceTest {
                     .isEqualTo("Event Service Queue is disabled. Returning without sending.");
             verifyNoInteractions(amazonSQS, objectMapper);
         }
-
     }
-    
 }

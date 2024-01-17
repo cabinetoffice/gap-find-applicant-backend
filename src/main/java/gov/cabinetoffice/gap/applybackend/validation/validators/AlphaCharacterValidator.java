@@ -6,7 +6,7 @@ import org.apache.commons.lang3.StringUtils;
 import javax.validation.ConstraintValidator;
 import javax.validation.ConstraintValidatorContext;
 
-public class AlphaCharacterValidator implements ConstraintValidator<ContainsOnlyAlphaChars, String>  {
+public class AlphaCharacterValidator implements ConstraintValidator<ContainsOnlyAlphaChars, String> {
     @Override
     public boolean isValid(String fieldValue, ConstraintValidatorContext constraintValidatorContext) {
         boolean validWithDashes = false;

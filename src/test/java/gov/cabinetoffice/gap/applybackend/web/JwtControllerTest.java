@@ -17,8 +17,6 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 
-import java.text.ParseException;
-import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
@@ -59,10 +57,9 @@ class JwtControllerTest {
     }
 
     @Test
-    void validateToken_ReturnsExpectedResponse_ReturnFalse() throws JwkException, ParseException {
+    void validateToken_ReturnsExpectedResponse_ReturnFalse() {
         ZonedDateTime zdt = ZonedDateTime.now();
         Date date = Date.from(zdt.toInstant());
-        Instant i = date.toInstant();
 
         final TestDecodedJwt decodeJwt = new TestDecodedJwt();
         decodeJwt.setExpiresAt(date);
@@ -142,5 +139,3 @@ class JwtControllerTest {
         assertThrows(JwtTokenUndefinedException.class, () -> controllerUnderTest.isAdmin(emptyJwt));
     }
 }
-
-

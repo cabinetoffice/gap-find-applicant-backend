@@ -87,7 +87,7 @@ class GrantApplicantControllerTest {
 
         when(securityContext.getAuthentication()).thenReturn(authentication);
         SecurityContextHolder.setContext(securityContext);
-        JwtPayload jwtPayload = JwtPayload.builder().sub(APPLICANT_USER_ID.toString())
+        JwtPayload jwtPayload = JwtPayload.builder().sub(APPLICANT_USER_ID)
                 .givenName("John")
                 .familyName("Smith")
                 .build();
@@ -110,10 +110,10 @@ class GrantApplicantControllerTest {
     }
 
     @Test
-    void doesApplicantExist_ReturnTrue(){
+    void doesApplicantExist_ReturnTrue() {
         when(securityContext.getAuthentication()).thenReturn(authentication);
         SecurityContextHolder.setContext(securityContext);
-        JwtPayload jwtPayload = JwtPayload.builder().sub(APPLICANT_USER_ID.toString())
+        JwtPayload jwtPayload = JwtPayload.builder().sub(APPLICANT_USER_ID)
                 .build();
         when(SecurityContextHolder.getContext().getAuthentication().getPrincipal()).thenReturn(jwtPayload);
         GrantApplicant grantApplicant = GrantApplicant.builder().userId(APPLICANT_USER_ID).build();
@@ -124,10 +124,10 @@ class GrantApplicantControllerTest {
     }
 
     @Test
-    void doesApplicantExist_ReturnFalse(){
+    void doesApplicantExist_ReturnFalse() {
         when(securityContext.getAuthentication()).thenReturn(authentication);
         SecurityContextHolder.setContext(securityContext);
-        JwtPayload jwtPayload = JwtPayload.builder().sub(APPLICANT_USER_ID.toString())
+        JwtPayload jwtPayload = JwtPayload.builder().sub(APPLICANT_USER_ID)
                 .build();
         when(SecurityContextHolder.getContext().getAuthentication().getPrincipal()).thenReturn(jwtPayload);
         when(grantApplicantService.getApplicantById(APPLICANT_USER_ID)).thenThrow(new NotFoundException(""));
@@ -140,7 +140,7 @@ class GrantApplicantControllerTest {
     @Test
     void createApplicant_CreatesApplicant() {
         final JwtPayload jwtPayload = JwtPayload.builder()
-                .sub(APPLICANT_USER_ID.toString())
+                .sub(APPLICANT_USER_ID)
                 .givenName("John")
                 .familyName("Smith")
                 .build();
@@ -178,8 +178,4 @@ class GrantApplicantControllerTest {
         final GrantApplicantOrganisationProfile createdProfile = profileCaptor.getValue();
         assertThat(createdProfile).isEqualTo(profile);
     }
-
-
 }
-
-

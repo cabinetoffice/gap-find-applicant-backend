@@ -14,7 +14,7 @@ public enum GrantApplicantOrganisationType {
 
     private String name;
 
-    private GrantApplicantOrganisationType(String name) {
+    GrantApplicantOrganisationType(String name) {
         this.name = name;
     }
 

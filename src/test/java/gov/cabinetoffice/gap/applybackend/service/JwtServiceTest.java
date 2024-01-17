@@ -136,7 +136,6 @@ class JwtServiceTest {
         final String eventId = jsonObject.getString("event_id");
         final String tokenUse = jsonObject.getString("token_use");
         final String phoneNumber = jsonObject.getString("custom:phoneNumber");
-        final int authTime = jsonObject.getInt("auth_time");
         final int exp = jsonObject.getInt("exp");
         final int iat = jsonObject.getInt("iat");
         final String familyName = jsonObject.getString("family_name");

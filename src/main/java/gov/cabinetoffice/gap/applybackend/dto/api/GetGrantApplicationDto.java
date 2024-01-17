@@ -1,6 +1,6 @@
 package gov.cabinetoffice.gap.applybackend.dto.api;
 
-import gov.cabinetoffice.gap.applybackend.enums.GrantApplicantStatus;
+import gov.cabinetoffice.gap.applybackend.enums.GrantApplicationStatus;
 import lombok.Data;
 import lombok.RequiredArgsConstructor;
 
@@ -16,5 +16,5 @@ public class GetGrantApplicationDto {
     private Instant lastUpdated;
     private Integer lastUpdatedBy;
     private String applicationName;
-    private GrantApplicantStatus applicationStatus;
+    private GrantApplicationStatus applicationStatus;
 }

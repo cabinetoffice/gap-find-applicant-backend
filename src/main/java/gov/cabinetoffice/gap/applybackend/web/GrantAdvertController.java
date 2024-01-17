@@ -60,7 +60,7 @@ public class GrantAdvertController {
 
             GetGrantMandatoryQuestionDto mandatoryQuestionsDto = null;
 
-            if (grantMandatoryQuestionService.existsBySchemeIdAndApplicantId(advert.getScheme().getId(), grantApplicant.getId())) {
+            if (grantMandatoryQuestionService.mandatoryQuestionExistsBySchemeIdAndApplicantId(advert.getScheme().getId(), grantApplicant.getId())) {
                 final GrantMandatoryQuestions grantMandatoryQuestions = grantMandatoryQuestionService.getMandatoryQuestionBySchemeId(advert.getScheme().getId(), jwtPayload.getSub());
                 mandatoryQuestionsDto = mapper.mapGrantMandatoryQuestionToGetGrantMandatoryQuestionDTO(grantMandatoryQuestions);
             }
@@ -90,7 +90,7 @@ public class GrantAdvertController {
 
         GetGrantMandatoryQuestionDto mandatoryQuestionsDto = null;
 
-        if (grantMandatoryQuestionService.existsBySchemeIdAndApplicantId(Integer.parseInt(schemeId), grantApplicant.getId())) {
+        if (grantMandatoryQuestionService.mandatoryQuestionExistsBySchemeIdAndApplicantId(Integer.parseInt(schemeId), grantApplicant.getId())) {
             final GrantMandatoryQuestions grantMandatoryQuestions = grantMandatoryQuestionService
                     .getMandatoryQuestionBySchemeId(Integer.parseInt(schemeId), jwtPayload.getSub());
             mandatoryQuestionsDto = mapper.mapGrantMandatoryQuestionToGetGrantMandatoryQuestionDTO(grantMandatoryQuestions);
@@ -99,7 +99,6 @@ public class GrantAdvertController {
         return ResponseEntity.ok(grantAdvertService.generateGetGrantAdvertDto(advert, mandatoryQuestionsDto));
     }
 
-
     @GetMapping("{advertSlug}/exists-in-contentful")
     @Operation(summary = "Check whether a grant advert exists in Contentful with the given slug")
     @ApiResponses(value = {
@@ -107,6 +106,7 @@ public class GrantAdvertController {
             @ApiResponse(responseCode = "400", description = "Required path variable not provided in expected format",
                     content = @Content(mediaType = "application/json"))
     })
+    
     public ResponseEntity<GetContentfulAdvertExistsDto> advertExistsInContentful(@PathVariable final String advertSlug) {
         final boolean advertExists = grantAdvertService.advertExistsInContentful(advertSlug);
 
@@ -116,5 +116,14 @@ public class GrantAdvertController {
                         .isAdvertInContentful(advertExists)
                         .build()
         );
+    }
+
+    @GetMapping("/validate-grant-webpage-url")
+    @Operation(summary = "Check if a grant webpage url matches the grant-webpage-url attached to the slug")
+    public ResponseEntity<String> validateGrantWebpageUrl(
+            @RequestParam @NotBlank String contentfulSlug,@RequestParam @NotBlank String grantWebpageUrl) {
+        grantAdvertService.validateGrantWebpageUrl(contentfulSlug, grantWebpageUrl);
+
+        return ResponseEntity.ok("Success");
     }
 }

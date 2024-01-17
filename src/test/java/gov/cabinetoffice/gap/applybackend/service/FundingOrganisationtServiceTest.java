@@ -48,7 +48,7 @@ class FundingOrganisationServiceTest {
 
         Exception result = assertThrows(NotFoundException.class, () -> serviceUnderTest.getFundingOrganisationById(FUNDER_ID));
         verify(fundingOrganisationRepository).findById(FUNDER_ID);
-        
-        assertTrue(result.getMessage().contains("No Funder with ID "+ FUNDER_ID + " was found"));
+
+        assertTrue(result.getMessage().contains("No Funder with ID " + FUNDER_ID + " was found"));
     }
 }

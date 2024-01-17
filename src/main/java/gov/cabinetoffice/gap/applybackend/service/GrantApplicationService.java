@@ -1,6 +1,6 @@
 package gov.cabinetoffice.gap.applybackend.service;
 
-import gov.cabinetoffice.gap.applybackend.enums.GrantApplicantStatus;
+import gov.cabinetoffice.gap.applybackend.enums.GrantApplicationStatus;
 import gov.cabinetoffice.gap.applybackend.exception.NotFoundException;
 import gov.cabinetoffice.gap.applybackend.model.GrantApplication;
 import gov.cabinetoffice.gap.applybackend.model.GrantScheme;
@@ -28,7 +28,7 @@ public class GrantApplicationService {
     }
 
     public boolean isGrantApplicationPublished(final int applicationId) {
-        return getGrantApplicationById(applicationId).getApplicationStatus().equals(GrantApplicantStatus.PUBLISHED);
+        return getGrantApplicationById(applicationId).getApplicationStatus().equals(GrantApplicationStatus.PUBLISHED);
     }
 
     public boolean doesSchemeHaveApplication(final GrantScheme grantScheme) {

@@ -7,7 +7,7 @@ import gov.cabinetoffice.gap.applybackend.constants.APIConstants;
 import gov.cabinetoffice.gap.applybackend.dto.api.CreateQuestionResponseDto;
 import gov.cabinetoffice.gap.applybackend.dto.api.CreateSubmissionResponseDto;
 import gov.cabinetoffice.gap.applybackend.dto.api.GetNavigationParamsDto;
-import gov.cabinetoffice.gap.applybackend.enums.GrantApplicantStatus;
+import gov.cabinetoffice.gap.applybackend.enums.GrantApplicationStatus;
 import gov.cabinetoffice.gap.applybackend.enums.SubmissionSectionStatus;
 import gov.cabinetoffice.gap.applybackend.enums.SubmissionStatus;
 import gov.cabinetoffice.gap.applybackend.exception.NotFoundException;
@@ -83,8 +83,17 @@ class SubmissionServiceTest {
                 .environmentName("LOCAL")
                 .build();
 
-        serviceUnderTest = Mockito.spy(new SubmissionService(submissionRepository, diligenceCheckRepository,
-                grantBeneficiaryRepository,  grantMandatoryQuestionRepository,notifyClient, clock, envProperties));
+        serviceUnderTest = Mockito.spy(
+                new SubmissionService(
+                        submissionRepository,
+                        diligenceCheckRepository,
+                        grantBeneficiaryRepository,
+                        grantMandatoryQuestionRepository,
+                        notifyClient,
+                        clock,
+                        envProperties
+                )
+        );
 
         question = SubmissionQuestion.builder()
                 .questionId(QUESTION_ID)
@@ -163,7 +172,7 @@ class SubmissionServiceTest {
                 .build();
 
         SubmissionDefinition definition = SubmissionDefinition.builder()
-                .sections(new ArrayList(List.of(section, eligibilitySection, sectionNotStarted, sectionCannotStartYet)))
+                .sections(new ArrayList<>(List.of(section, eligibilitySection, sectionNotStarted, sectionCannotStartYet)))
                 .build();
 
         final GrantApplicant grantApplicant = GrantApplicant.builder().id(1)
@@ -618,7 +627,7 @@ class SubmissionServiceTest {
                     .findFirst()
                     .ifPresentOrElse(
                             capturedSectionResponse -> assertThat(capturedSectionResponse.getSectionStatus()).isEqualTo(SubmissionSectionStatus.IN_PROGRESS),
-                            () -> fail(String.format("No section with ID 'ORGANISATION_DETAILS' found"))
+                            () -> fail("No section with ID 'ORGANISATION_DETAILS' found")
                     );
 
             submissionCaptor.getValue()
@@ -629,7 +638,100 @@ class SubmissionServiceTest {
                     .findFirst()
                     .ifPresentOrElse(
                             capturedSectionResponse -> assertThat(capturedSectionResponse.getSectionStatus()).isEqualTo(SubmissionSectionStatus.IN_PROGRESS),
-                            () -> fail(String.format("No section with ID 'FUNDING_DETAILS' found"))
+                            () -> fail("No section with ID 'FUNDING_DETAILS' found")
+                    );
+        }
+
+        @Test
+        void saveQuestionResponse_DoesNotReAssignSectionStatus_IfSectionStatusIsNot_CannotStart() {
+
+            // set the scheme to version 2
+            submission.getApplication().getGrantScheme().setVersion(2);
+
+            // remove eligibility section
+            submission.getDefinition()
+                    .getSections()
+                    .removeIf(section -> section.getSectionId().equals("ESSENTIAL"));
+
+            // add organisation details and funding details sections
+            final SubmissionSection orgDetails = SubmissionSection.builder()
+                    .sectionId("ORGANISATION_DETAILS")
+                    .sectionStatus(SubmissionSectionStatus.COMPLETED)
+                    .build();
+
+            final SubmissionSection fundingDetails = SubmissionSection.builder()
+                    .sectionId("FUNDING_DETAILS")
+                    .sectionStatus(SubmissionSectionStatus.COMPLETED)
+                    .build();
+
+            submission.getDefinition()
+                    .getSections()
+                    .add(1, orgDetails);
+
+            submission.getDefinition()
+                    .getSections()
+                    .add(2, fundingDetails);
+
+            final CreateQuestionResponseDto questionResponse = CreateQuestionResponseDto.builder()
+                    .questionId("ELIGIBILITY")
+                    .submissionId(SUBMISSION_ID)
+                    .response("Yes")
+                    .build();
+
+            doReturn(submission)
+                    .when(serviceUnderTest).getSubmissionFromDatabaseBySubmissionId(userId, SUBMISSION_ID);
+
+            final ArgumentCaptor<Submission> submissionCaptor = ArgumentCaptor.forClass(Submission.class);
+
+
+            serviceUnderTest.saveQuestionResponse(questionResponse, userId, SUBMISSION_ID, "ELIGIBILITY");
+
+
+            verify(submissionRepository).save(submissionCaptor.capture());
+
+            submissionCaptor.getValue()
+                    .getDefinition()
+                    .getSections()
+                    .stream()
+                    .filter(section -> section.getSectionId().equals(SECTION_ID_SECTION_CANNOT_START_YET))
+                    .findFirst()
+                    .ifPresentOrElse(
+                            capturedSectionResponse -> assertThat(capturedSectionResponse.getSectionStatus()).isEqualTo(SubmissionSectionStatus.NOT_STARTED),
+                            () -> fail(String.format("No section with ID '%s' found", SECTION_ID_SECTION_CANNOT_START_YET))
+                    );
+
+            submissionCaptor.getValue()
+                    .getDefinition()
+                    .getSections()
+                    .stream()
+                    .filter(section -> section.getSectionId().equals(SECTION_ID_NOT_STARTED))
+                    .findFirst()
+                    .ifPresentOrElse(
+                            capturedSectionResponse -> assertThat(capturedSectionResponse.getSectionStatus()).isEqualTo(SubmissionSectionStatus.NOT_STARTED),
+                            () -> fail(String.format("No section with ID '%s' found", SECTION_ID_NOT_STARTED))
+                    );
+
+            // organisation details and funding details should be set to in progress
+            submissionCaptor.getValue()
+                    .getDefinition()
+                    .getSections()
+                    .stream()
+                    .filter(section -> section.getSectionId().equals("ORGANISATION_DETAILS"))
+                    .findFirst()
+                    .ifPresentOrElse(
+                            capturedSectionResponse -> assertThat(capturedSectionResponse.getSectionStatus()).isEqualTo(SubmissionSectionStatus.COMPLETED),
+                            () -> fail("No section with ID 'ORGANISATION_DETAILS' found")
+                    );
+
+            submissionCaptor.getValue()
+                    .getDefinition()
+                    .getSections()
+                    .stream()
+                    .filter(section -> section.getSectionId().equals("FUNDING_DETAILS"))
+                    .findFirst()
+                    .ifPresentOrElse(
+                            capturedSectionResponse -> assertThat(capturedSectionResponse.getSectionStatus()).isEqualTo(SubmissionSectionStatus.COMPLETED),
+                            () -> fail("No section with ID 'FUNDING_DETAILS' found")
                     );
         }
 
@@ -779,7 +881,7 @@ class SubmissionServiceTest {
         @Test
         void isSubmissionReadyToBeSubmitted_returnsFalse_WhenGrantApplicationNotPublished() {
             GrantApplication grantApplication = GrantApplication.builder().id(1)
-                    .applicationStatus(GrantApplicantStatus.DRAFT).build();
+                    .applicationStatus(GrantApplicationStatus.DRAFT).build();
             submission.setApplication(grantApplication);
 
             doReturn(submission)
@@ -791,7 +893,7 @@ class SubmissionServiceTest {
         @Test
         void isSubmissionReadyToBeSubmitted_returnTrueWhenAllMandatoryQuestionsHaveBeenAnsweredAndAllSectionAreCompleted__responseCase() {
             final GrantApplication grantApplication = GrantApplication.builder().id(1)
-                    .applicationStatus(GrantApplicantStatus.PUBLISHED).build();
+                    .applicationStatus(GrantApplicationStatus.PUBLISHED).build();
             final SubmissionQuestionValidation mandatoryValidation = SubmissionQuestionValidation.builder().mandatory(true)
                     .build();
             final SubmissionQuestionValidation optionalValidation = SubmissionQuestionValidation.builder().mandatory(false)
@@ -800,8 +902,13 @@ class SubmissionServiceTest {
                     .validation(mandatoryValidation).response("test").build();
             final SubmissionQuestion question2 = SubmissionQuestion.builder().questionId("APPLICANT_ORG_NAME")
                     .validation(optionalValidation).response("").build();
+            final SubmissionQuestion eligibilityQuestion = SubmissionQuestion.builder()
+                    .questionId("ELIGIBILITY")
+                    .response("Yes")
+                    .validation(mandatoryValidation)
+                    .build();
             final SubmissionSection section1 = SubmissionSection.builder().sectionId("ESSENTIAL")
-                    .sectionStatus(SubmissionSectionStatus.COMPLETED).questions(List.of(question)).build();
+                    .sectionStatus(SubmissionSectionStatus.COMPLETED).questions(List.of(question, eligibilityQuestion)).build();
             final SubmissionSection section2 = SubmissionSection.builder().questions(List.of(question2)).sectionId("SECOND")
                     .sectionStatus(SubmissionSectionStatus.COMPLETED).build();
             final SubmissionDefinition definition = SubmissionDefinition.builder().sections(List.of(section1, section2)).build();
@@ -818,7 +925,7 @@ class SubmissionServiceTest {
         @Test
         void isSubmissionReadyToBeSubmitted_returnTrueWhenAllMandatoryQuestionsHaveBeenAnsweredAndAllSectionHaveBeenCompleted__multiResponseCase() {
             final GrantApplication grantApplication = GrantApplication.builder().id(1)
-                    .applicationStatus(GrantApplicantStatus.PUBLISHED).build();
+                    .applicationStatus(GrantApplicationStatus.PUBLISHED).build();
             final SubmissionQuestionValidation mandatoryValidation = SubmissionQuestionValidation.builder().mandatory(true)
                     .build();
             final SubmissionQuestionValidation optionalValidation = SubmissionQuestionValidation.builder().mandatory(false)
@@ -827,8 +934,13 @@ class SubmissionServiceTest {
                     .validation(mandatoryValidation).multiResponse(new String[]{"Test"}).build();
             final SubmissionQuestion question2 = SubmissionQuestion.builder().questionId("APPLICANT_ORG_NAME")
                     .validation(optionalValidation).response("").build();
+            final SubmissionQuestion eligibilityQuestion = SubmissionQuestion.builder()
+                    .questionId("ELIGIBILITY")
+                    .response("Yes")
+                    .validation(mandatoryValidation)
+                    .build();
             final SubmissionSection section1 = SubmissionSection.builder().sectionId("ESSENTIAL")
-                    .sectionStatus(SubmissionSectionStatus.COMPLETED).questions(List.of(question)).build();
+                    .sectionStatus(SubmissionSectionStatus.COMPLETED).questions(List.of(question, eligibilityQuestion)).build();
             final SubmissionSection section2 = SubmissionSection.builder().questions(List.of(question2)).sectionId("SECOND")
                     .sectionStatus(SubmissionSectionStatus.COMPLETED).build();
             final SubmissionDefinition definition = SubmissionDefinition.builder().sections(List.of(section1, section2)).build();
@@ -845,7 +957,7 @@ class SubmissionServiceTest {
         @Test
         void isSubmissionReadyToBeSubmitted_returnFalseWhenAllMandatoryQuestionsHaveNotBeenAnswered() {
             GrantApplication grantApplication = GrantApplication.builder().id(1)
-                    .applicationStatus(GrantApplicantStatus.PUBLISHED).build();
+                    .applicationStatus(GrantApplicationStatus.PUBLISHED).build();
             SubmissionQuestionValidation validation = SubmissionQuestionValidation.builder().mandatory(true)
                     .build();
             question.setValidation(validation);
@@ -860,7 +972,7 @@ class SubmissionServiceTest {
         @Test
         void isSubmissionReadyToBeSubmitted_returnFalseWhenAllSectionAreNotCompleted() {
             final GrantApplication grantApplication = GrantApplication.builder().id(1)
-                    .applicationStatus(GrantApplicantStatus.PUBLISHED).build();
+                    .applicationStatus(GrantApplicationStatus.PUBLISHED).build();
             final SubmissionQuestionValidation mandatoryValidation = SubmissionQuestionValidation.builder().mandatory(true)
                     .build();
             final SubmissionQuestionValidation optionalValidation = SubmissionQuestionValidation.builder().mandatory(false)
@@ -1135,7 +1247,7 @@ class SubmissionServiceTest {
             final String date = currentDate.format(formatter);
 
             final String emailAddress = "test@email.com";
-            final String gapId = "GAP-LOCAL-" + date +"-12-1";
+            final String gapId = "GAP-LOCAL-" + date + "-12-1";
             final ArgumentCaptor<Submission> submissionCaptor = ArgumentCaptor.forClass(Submission.class);
             final GrantApplicant grantApplicant = GrantApplicant.builder()
                     .userId(userId)
@@ -1240,6 +1352,72 @@ class SubmissionServiceTest {
             when(submissionRepository.save(submission)).thenReturn(submission);
             final SubmissionSectionStatus response = serviceUnderTest.handleSectionReview(userId, SUBMISSION_ID, SECTION_ID_1, true);
             assertEquals(SubmissionSectionStatus.COMPLETED, response);
+        }
+
+        @Test
+        void setsMandatorySectionsCompleteFlag_false() {
+            final Submission submission = Submission.builder()
+                    .id(SUBMISSION_ID)
+                    .definition(SubmissionDefinition.builder()
+                            .sections(List.of(
+                                    SubmissionSection.builder()
+                                            .sectionId("ELIGIBILITY")
+                                            .sectionStatus(SubmissionSectionStatus.COMPLETED)
+                                            .build(),
+                                    SubmissionSection.builder()
+                                            .sectionId("ORGANISATION_DETAILS")
+                                            .sectionStatus(SubmissionSectionStatus.COMPLETED)
+                                            .build(),
+                                    SubmissionSection.builder()
+                                            .sectionId("FUNDING_DETAILS")
+                                            .sectionStatus(SubmissionSectionStatus.IN_PROGRESS)
+                                            .build()
+                            ))
+                            .build())
+                    .build();
+            final ArgumentCaptor<Submission> submissionCaptor = ArgumentCaptor.forClass(Submission.class);
+
+            doReturn(submission).when(serviceUnderTest).getSubmissionFromDatabaseBySubmissionId(userId, SUBMISSION_ID);
+            when(submissionRepository.save(submission)).thenReturn(submission);
+
+            serviceUnderTest.handleSectionReview(userId, SUBMISSION_ID, "FUNDING_DETAILS", false);
+
+            verify(submissionRepository).save(submissionCaptor.capture());
+            final Submission capturedSubmission = submissionCaptor.getValue();
+            assertFalse(capturedSubmission.getMandatorySectionsCompleted());
+        }
+
+        @Test
+        void setsMandatorySectionsCompleteFlag_true() {
+            final Submission submission = Submission.builder()
+                    .id(SUBMISSION_ID)
+                    .definition(SubmissionDefinition.builder()
+                            .sections(List.of(
+                                    SubmissionSection.builder()
+                                            .sectionId("ELIGIBILITY")
+                                            .sectionStatus(SubmissionSectionStatus.COMPLETED)
+                                            .build(),
+                                    SubmissionSection.builder()
+                                            .sectionId("ORGANISATION_DETAILS")
+                                            .sectionStatus(SubmissionSectionStatus.COMPLETED)
+                                            .build(),
+                                    SubmissionSection.builder()
+                                            .sectionId("FUNDING_DETAILS")
+                                            .sectionStatus(SubmissionSectionStatus.IN_PROGRESS)
+                                            .build()
+                            ))
+                            .build())
+                    .build();
+            final ArgumentCaptor<Submission> submissionCaptor = ArgumentCaptor.forClass(Submission.class);
+
+            doReturn(submission).when(serviceUnderTest).getSubmissionFromDatabaseBySubmissionId(userId, SUBMISSION_ID);
+            when(submissionRepository.save(submission)).thenReturn(submission);
+
+            serviceUnderTest.handleSectionReview(userId, SUBMISSION_ID, "FUNDING_DETAILS", true);
+
+            verify(submissionRepository).save(submissionCaptor.capture());
+            final Submission capturedSubmission = submissionCaptor.getValue();
+            assertTrue(capturedSubmission.getMandatorySectionsCompleted());
         }
     }
 
@@ -1398,5 +1576,45 @@ class SubmissionServiceTest {
         }
     }
 
+    @Nested
+    class isApplicantEligible {
+        @Test
+        void isApplicantEligible_returnTrue() {
+            when(submissionRepository.findByIdAndApplicantUserId(SUBMISSION_ID, userId))
+                    .thenReturn(Optional.ofNullable(submission));
+
+            final boolean result = serviceUnderTest.isApplicantEligible(userId, SUBMISSION_ID, "ELIGIBILITY");
+
+            verify(submissionRepository).findByIdAndApplicantUserId(SUBMISSION_ID, userId);
+
+            assertThat(result).isTrue();
+        }
+
+        @Test
+        void isApplicantEligible_returnFalse() {
+            final SubmissionQuestion eligibilityQuestion = SubmissionQuestion.builder()
+                    .questionId("ELIGIBILITY")
+                    .response("No")
+                    .validation(null)
+                    .build();
+
+            final SubmissionSection eligibilitySection = SubmissionSection.builder()
+                    .sectionId("ELIGIBILITY")
+                    .sectionStatus(SubmissionSectionStatus.COMPLETED)
+                    .questions(List.of(eligibilityQuestion))
+                    .build();
+            submission.getDefinition().getSections().set(0,eligibilitySection);
+
+            when(submissionRepository.findByIdAndApplicantUserId(SUBMISSION_ID, userId))
+                    .thenReturn(Optional.ofNullable(submission));
+
+            final boolean result = serviceUnderTest.isApplicantEligible(userId, SUBMISSION_ID, "ELIGIBILITY");
+
+            verify(submissionRepository).findByIdAndApplicantUserId(SUBMISSION_ID, userId);
+
+            assertThat(result).isFalse();
+        }
+
+    }
 
 }
