@@ -353,14 +353,18 @@ public class SubmissionController {
     }
 
     @GetMapping("/{submissionId}/application/status")
-    public ResponseEntity<String> schemeStatus(@PathVariable final UUID submissionId) {
+    public ResponseEntity<String> applicationStatus(@PathVariable final UUID submissionId) {
         final String applicantId = getUserIdFromSecurityContext();
         Optional<Submission> submission = submissionService.getSubmissionById(submissionId);
-        final String submissionApplicant = submission.get().getApplicant().getUserId();
-        if (submission.isPresent() && submissionApplicant.equals(applicantId )) {
-            return ResponseEntity.ok(submission.get().getApplication().getApplicationStatus().toString());
-        } else {
+        if (submission.isEmpty()) {
             return ResponseEntity.notFound().build();
+        }
+
+        String submissionApplicant = submission.get().getApplicant().getUserId();
+        if (submissionApplicant.equals(applicantId)) {
+            return ResponseEntity.ok(submission.get().getApplication().getApplicationStatus().name());
+        } else {
+            return ResponseEntity.status(401).build();
         }
     }
 

@@ -1021,6 +1021,37 @@ class SubmissionControllerTest {
             assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
             assertThat(response.getBody()).isFalse();
         }
+
+        @Test
+        void applicationStatus_ReturnsExpectedResponse() {
+            GrantApplicant applicant = GrantApplicant.builder().userId(APPLICANT_USER_ID).build();
+            GrantApplication application = GrantApplication.builder().applicationStatus(GrantApplicationStatus.REMOVED).build();
+            Submission submission = Submission.builder().id(SUBMISSION_ID).application(application).applicant(applicant).build();
+            when(submissionService.getSubmissionById(SUBMISSION_ID)).thenReturn(Optional.ofNullable(submission));
+            final ResponseEntity<String> response = controllerUnderTest.applicationStatus(SUBMISSION_ID);
+
+            assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+            assertThat(response.getBody()).isEqualTo("REMOVED");
+        }
+
+        @Test
+        void applicationStatus_ReturnsExpectedResponse_WhenSubmissionNotFound() {
+            when(submissionService.getSubmissionById(SUBMISSION_ID)).thenReturn(Optional.empty());
+            final ResponseEntity<String> response = controllerUnderTest.applicationStatus(SUBMISSION_ID);
+
+            assertThat(response.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
+        }
+
+        @Test
+        void applicationStatus_ReturnsUnauthorised_WhenIdMismatch() {
+            GrantApplicant applicant = GrantApplicant.builder().userId("testUserId").build();
+            GrantApplication application = GrantApplication.builder().applicationStatus(GrantApplicationStatus.REMOVED).build();
+            Submission submission = Submission.builder().id(SUBMISSION_ID).application(application).applicant(applicant).build();
+            when(submissionService.getSubmissionById(SUBMISSION_ID)).thenReturn(Optional.ofNullable(submission));
+            final ResponseEntity<String> response = controllerUnderTest.applicationStatus(SUBMISSION_ID);
+
+            assertThat(response.getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
+        }
     }
 
 }
