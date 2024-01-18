@@ -11,6 +11,7 @@ import gov.cabinetoffice.gap.applybackend.dto.api.GetNavigationParamsDto;
 import gov.cabinetoffice.gap.applybackend.enums.GrantApplicationStatus;
 import gov.cabinetoffice.gap.applybackend.enums.SubmissionSectionStatus;
 import gov.cabinetoffice.gap.applybackend.enums.SubmissionStatus;
+import gov.cabinetoffice.gap.applybackend.exception.ForbiddenException;
 import gov.cabinetoffice.gap.applybackend.exception.NotFoundException;
 import gov.cabinetoffice.gap.applybackend.exception.SubmissionAlreadySubmittedException;
 import gov.cabinetoffice.gap.applybackend.exception.SubmissionNotReadyException;
@@ -22,6 +23,7 @@ import gov.cabinetoffice.gap.applybackend.repository.SubmissionRepository;
 import gov.cabinetoffice.gap.applybackend.utils.GapIdGenerator;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.odftoolkit.odfdom.doc.OdfTextDocument;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -578,6 +580,19 @@ public class SubmissionService {
                     .filter(section -> !section.getSectionId().equals(ELIGIBILITY))
                     .forEach(section -> section.setSectionStatus(SubmissionSectionStatus.CANNOT_START_YET));
         }
+    }
+
+    public OdfTextDocument getSubmissionExport(UUID submissionId, String email, String userSub) throws Exception {
+        final Submission submission = submissionRepository.findById(submissionId)
+                .orElseThrow(() -> new NotFoundException(String.format("No submission with ID %s was found", submissionId)));
+        String submissionOwner = submission.getApplicant().getUserId();
+
+        if (!Objects.equals(submissionOwner, userSub)) {
+            log.error("User " + userSub +  " attempted to access submission belonging to " + submissionOwner);
+            throw new ForbiddenException("You can't access this submission");
+        }
+
+       return OdtService.generateSingleOdt(submission, email);
     }
 
     private List<String> getSectionIdsToSkipAfterEligibilitySectionCompleted(final int schemeVersion) {

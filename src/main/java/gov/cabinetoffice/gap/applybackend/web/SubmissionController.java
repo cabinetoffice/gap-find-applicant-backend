@@ -6,7 +6,6 @@ import gov.cabinetoffice.gap.applybackend.dto.api.*;
 import gov.cabinetoffice.gap.applybackend.enums.GrantAttachmentStatus;
 import gov.cabinetoffice.gap.applybackend.enums.GrantMandatoryQuestionOrgType;
 import gov.cabinetoffice.gap.applybackend.enums.SubmissionSectionStatus;
-import gov.cabinetoffice.gap.applybackend.enums.SubmissionStatus;
 import gov.cabinetoffice.gap.applybackend.exception.AttachmentException;
 import gov.cabinetoffice.gap.applybackend.exception.GrantApplicationNotPublishedException;
 import gov.cabinetoffice.gap.applybackend.exception.NotFoundException;
@@ -18,15 +17,20 @@ import gov.cabinetoffice.gap.eventservice.service.EventLogService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.io.FilenameUtils;
+import org.odftoolkit.odfdom.doc.OdfTextDocument;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.core.io.ByteArrayResource;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
+import javax.servlet.http.HttpServletRequest;
 import javax.validation.Valid;
+import java.io.ByteArrayOutputStream;
 import java.time.Clock;
 import java.time.Instant;
 import java.util.*;
@@ -347,7 +351,32 @@ public class SubmissionController {
         return ResponseEntity.ok(submissionService.getNextNavigation(applicantId, submissionId, sectionId, questionId, saveAndExit));
     }
 
-    @GetMapping("/{submissionId}/isApplicantEligible")
+
+    @GetMapping("/{submissionId}/download-summary")
+    public ResponseEntity<ByteArrayResource> exportSingleSubmission(
+            @PathVariable final UUID submissionId, HttpServletRequest request) throws Exception {
+        final String userSub = getUserIdFromSecurityContext();
+        final String userEmail = grantApplicantService.getEmailById(userSub, request);
+        
+        try (OdfTextDocument odt = submissionService.getSubmissionExport(submissionId, userEmail, userSub);
+             ByteArrayOutputStream outputStream = new ByteArrayOutputStream()) {
+            odt.save(outputStream);
+            byte[] odtBytes = outputStream.toByteArray();
+            ByteArrayResource resource = new ByteArrayResource(odtBytes);
+
+            HttpHeaders headers = new HttpHeaders();
+            headers.add(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"export.odt\"");
+            headers.add(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_OCTET_STREAM_VALUE);
+
+            return ResponseEntity.ok().headers(headers).contentLength(resource.contentLength())
+                    .contentType(MediaType.APPLICATION_OCTET_STREAM).body(resource);
+        } catch (Exception e) {
+            log.error("Could not generate ODT. Exception: ", e);
+            throw new RuntimeException(e);
+        }
+    }
+
+        @GetMapping("/{submissionId}/isApplicantEligible")
     public ResponseEntity<Boolean>  isApplicantEligible(@PathVariable final UUID submissionId) {
         final String applicantId = getUserIdFromSecurityContext();
         return ResponseEntity.ok(submissionService.isApplicantEligible(applicantId, submissionId, "ELIGIBILITY"));
