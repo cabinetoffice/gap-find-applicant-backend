@@ -588,7 +588,7 @@ public class SubmissionService {
         String submissionOwner = submission.getApplicant().getUserId();
 
         if (!Objects.equals(submissionOwner, userSub)) {
-            log.error("User " + userSub +  "is not allowed to access submission belonging to " + submissionOwner);
+            log.error("User " + userSub +  " attempted to access submission belonging to " + submissionOwner);
             throw new ForbiddenException("You can't access this submission");
         }
 
