@@ -587,7 +587,7 @@ public class SubmissionService {
                 .orElseThrow(() -> new NotFoundException(String.format("No submission with ID %s was found", submissionId)));
         String submissionOwner = submission.getApplicant().getUserId();
 
-        if(!Objects.equals(submissionOwner, userSub)) {
+        if (!Objects.equals(submissionOwner, userSub)) {
             log.error("User " + userSub +  "is not allowed to access submission belonging to " + submissionOwner);
             throw new ForbiddenException("You can't access this submission");
         }
