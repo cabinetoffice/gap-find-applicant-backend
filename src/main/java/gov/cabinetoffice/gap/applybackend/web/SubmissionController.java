@@ -382,6 +382,22 @@ public class SubmissionController {
         return ResponseEntity.ok(submissionService.isApplicantEligible(applicantId, submissionId, "ELIGIBILITY"));
     }
 
+    @GetMapping("/{submissionId}/application/status")
+    public ResponseEntity<String> applicationStatus(@PathVariable final UUID submissionId) {
+        final String applicantId = getUserIdFromSecurityContext();
+        Optional<Submission> submission = submissionService.getSubmissionById(submissionId);
+        if (submission.isEmpty()) {
+            return ResponseEntity.notFound().build();
+        }
+
+        String submissionApplicant = submission.get().getApplicant().getUserId();
+        if (submissionApplicant.equals(applicantId)) {
+            return ResponseEntity.ok(submission.get().getApplication().getApplicationStatus().name());
+        } else {
+            return ResponseEntity.status(401).build();
+        }
+    }
+
     private GetSubmissionDto buildSubmissionDto(Submission submission) {
         List<GetSectionDto> sections = new ArrayList<>();
         for (SubmissionSection section : submission.getDefinition().getSections()) {

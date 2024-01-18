@@ -1625,6 +1625,15 @@ class SubmissionServiceTest {
             assertThat(result).isFalse();
         }
 
+        @Test
+        void getSubmissionById_ReturnsCorrectSubmission() {
+            Submission submission = Submission.builder().id(SUBMISSION_ID).build();
+            when(submissionRepository.findById(SUBMISSION_ID)).thenReturn(Optional.of(submission));
+            Optional<Submission> result = serviceUnderTest.getSubmissionById(SUBMISSION_ID);
+            assertThat(result).isPresent();
+            assertThat(result.get()).isEqualTo(submission);
+        }
+
     }
 
     @Nested

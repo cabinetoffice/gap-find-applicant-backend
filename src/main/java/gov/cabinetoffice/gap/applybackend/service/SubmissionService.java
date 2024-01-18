@@ -613,5 +613,9 @@ public class SubmissionService {
         final Optional<SubmissionQuestion> eligibilityResponse = getQuestionResponseByQuestionId(submission ,"ELIGIBILITY");
         return eligibilityResponse.map(submissionQuestion -> submissionQuestion.getResponse().equals("Yes")).orElse(false);
     }
+
+    public Optional<Submission> getSubmissionById(final UUID submissionId) {
+        return submissionRepository.findById(submissionId);
+    }
 }
 
