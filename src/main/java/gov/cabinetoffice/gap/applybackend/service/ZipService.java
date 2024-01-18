@@ -5,10 +5,14 @@ import com.amazonaws.regions.Regions;
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.AmazonS3ClientBuilder;
 import com.amazonaws.services.s3.model.*;
-import gov.cabinetoffice.gap.applybackend.model.Submission;
-import org.apache.commons.io.FileUtils;
+import gov.cabinetoffice.gap.applybackend.config.properties.S3ConfigProperties;
+import lombok.Data;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Service;
 
 import java.io.*;
 import java.util.ArrayList;
@@ -16,27 +20,30 @@ import java.util.List;
 import java.util.stream.Collectors;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
-
+@Slf4j
+@RequiredArgsConstructor
+@Service
 public class ZipService {
+
+    @Value("${aws.bucket}")
+    private String s3Bucket;
 
     private static final Logger logger = LoggerFactory.getLogger(ZipService.class);
 
     private static final String LOCAL_ZIP_FILE_NAME = "submission.zip";
 
-    //FIX ME!
-    private static final String SUBMISSION_ATTACHMENTS_BUCKET_NAME = "use-env-var-here";
     //regex for any special character that are not allowed in window os : <, >, ", /, \, |, ?, or *
     private static final String SPECIAL_CHARACTER_REGEX = "[<>\"\\/|?*\\\\]";
 
-    public static final Integer LONG_FILE_NAME_LENGTH = 50; //50 characters may be too strict but can revisit if required
-    private static final AmazonS3 client =  AmazonS3ClientBuilder.standard()
+    public static final Integer LONG_FILE_NAME_LENGTH = 50;
+
+    private final AmazonS3 client = AmazonS3ClientBuilder.standard()
             .withRegion(Regions.EU_WEST_2)
             .build();
 
-
-    public static ByteArrayOutputStream createSubmissionZip(final String applicationId,
+    public ByteArrayOutputStream createSubmissionZip(final String applicationId,
                                  final String submissionId, final byte[] odtContent) throws IOException {
-        final List<String> submissionAttachmentFileNames = getSubmissionAttachmentFileNames(client, applicationId,
+        final List<String> submissionAttachmentFileNames = getSubmissionAttachmentFileNames(applicationId,
                 submissionId);
         List<S3Object> s3ObjectList = new ArrayList<>();
         for (String fileName : submissionAttachmentFileNames) {
@@ -48,25 +55,11 @@ public class ZipService {
         return zip;
     }
 
-    public static String uploadZip(final Submission submission, final String zipFilename) {
-        try {
-            final String objectKey = submission.getGapId() + "/" + zipFilename + ".zip";
-            client.putObject(System.getenv("SUBMISSION_EXPORTS_BUCKET_NAME"), objectKey,
-                    new File(TMP_DIR + LOCAL_ZIP_FILE_NAME));
-            logger.info("Zip file uploaded to S3");
-            return objectKey;
-        } catch (Exception e) {
-            logger.error("Could not upload to S3", e);
-            throw e;
-        }
-    }
-
-    public static List<String> getSubmissionAttachmentFileNames(final AmazonS3 s3Client,
-                                                                final String applicationId,
-                                                                final String submissionId) {
-        final ListObjectsV2Request req = new ListObjectsV2Request().withBucketName(SUBMISSION_ATTACHMENTS_BUCKET_NAME)
+    public List<String> getSubmissionAttachmentFileNames(final String applicationId,
+                                                          final String submissionId) {
+        final ListObjectsV2Request req = new ListObjectsV2Request().withBucketName(s3Bucket)
                 .withPrefix(applicationId + "/" + submissionId);
-        final ListObjectsV2Result listing = s3Client.listObjectsV2(req);
+        final ListObjectsV2Result listing = client.listObjectsV2(req);
         final List<S3ObjectSummary> objectSummaries = listing.getObjectSummaries();
         return objectSummaries.stream()
                 .filter(objectSummary -> {
@@ -74,30 +67,31 @@ public class ZipService {
                     final String prefix = keyParts.stream().limit(3).collect(Collectors.joining("/"));
                     final List<S3ObjectSummary> matchingObjectSummaries = getAllFromPrefix(objectSummaries, prefix);
                     return matchingObjectSummaries.stream()
-                            .allMatch(os -> os.getLastModified().before(objectSummary.getLastModified()) || os.getLastModified().equals(objectSummary.getLastModified()));
+                            .allMatch(os -> os.getLastModified().before(objectSummary.getLastModified()) ||
+                                    os.getLastModified().equals(objectSummary.getLastModified()));
                 })
                 .map(S3ObjectSummary::getKey)
                 .filter(filename -> filename.contains("."))
                 .collect(Collectors.toList());
     }
 
-    private static List<S3ObjectSummary> getAllFromPrefix(final List<S3ObjectSummary> objectSummaries, final String prefix) {
+    private List<S3ObjectSummary> getAllFromPrefix(final List<S3ObjectSummary> objectSummaries, final String prefix) {
         return objectSummaries.stream()
                 .filter(objectSummary -> objectSummary.getKey().startsWith(prefix))
                 .collect(Collectors.toList());
     }
 
-    private static void downloadFile(final String fileName, List<S3Object> list) {
+    private void downloadFile(final String fileName, List<S3Object> list) {
         try {
-            list.add(client.getObject(new GetObjectRequest(SUBMISSION_ATTACHMENTS_BUCKET_NAME, fileName)));
+            list.add(client.getObject(new GetObjectRequest(s3Bucket, fileName)));
         } catch (AmazonServiceException e) {
-            logger.error("Could not download file: " + fileName + " from bucket: " + SUBMISSION_ATTACHMENTS_BUCKET_NAME,
+            logger.error("Could not download file: " + fileName + " from bucket: " + s3Bucket,
                     e);
             throw e;
         }
     }
 
-    public static String parseFileName(final String objectKey, int suffix, final String applicationId,
+    private String parseFileName(final String objectKey, int suffix, final String applicationId,
                                        final String submissionId) {
         final String filenameWithoutFolderName = getFileNameFromS3ObjectKey(objectKey, applicationId, submissionId);
         final String[] fileNameParts = filenameWithoutFolderName.split("\\.");
@@ -110,16 +104,7 @@ public class ZipService {
 
         return truncatedFileName.concat("_" + suffix + fileExtension);
     }
-
-    public static void deleteTmpDirContents() {
-        try {
-            FileUtils.cleanDirectory(new File(TMP_DIR));
-        } catch (IOException e) {
-            logger.error("Could not delete the contents of the tmp directory", e);
-        }
-    }
-
-    private static ByteArrayOutputStream zipFiles(final List<S3Object> files, final String applicationId,
+    private ByteArrayOutputStream zipFiles(final List<S3Object> files, final String applicationId,
                                  final String submissionId,final byte[] odtContent) throws IOException {
         try (final ByteArrayOutputStream fout = new ByteArrayOutputStream();
              final ZipOutputStream zout = new ZipOutputStream(fout)) {
@@ -143,7 +128,7 @@ public class ZipService {
         }
     }
 
-    private static void addFileToZip(final S3Object file, final ZipOutputStream zout,
+    private void addFileToZip(final S3Object file, final ZipOutputStream zout,
                                      final int index, final String applicationId,
                                      final String submissionId) throws IOException {
         try (final InputStream s3ObjectStream = file.getObjectContent()) {
@@ -165,11 +150,13 @@ public class ZipService {
         }
     }
 
-    private static String getFileNameFromS3ObjectKey(String objectKey, String applicationId, String submissionId) {
+    private String getFileNameFromS3ObjectKey(String objectKey, String applicationId, String submissionId) {
         //an object key is formed by applicationId/submissionId/s3bucketRandomFolderName/filename
         final String applicationIdAndSubmissionId = applicationId + "/" + submissionId + "/";
-        final String filenameWithoutApplicationIdAndSubmissionId = objectKey.replace(applicationIdAndSubmissionId, "");
+        final String filenameWithoutApplicationIdAndSubmissionId = objectKey.replace(applicationIdAndSubmissionId,
+                "");
         final String folderNameToRemove = filenameWithoutApplicationIdAndSubmissionId.split("/")[0];
-        return filenameWithoutApplicationIdAndSubmissionId.replace(folderNameToRemove + "/", "").replaceAll(SPECIAL_CHARACTER_REGEX, "_");
+        return filenameWithoutApplicationIdAndSubmissionId.replace(folderNameToRemove + "/", "")
+                .replaceAll(SPECIAL_CHARACTER_REGEX, "_");
     }
 }

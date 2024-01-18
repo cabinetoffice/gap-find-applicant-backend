@@ -53,6 +53,7 @@ public class SubmissionController {
     private final GrantApplicationService grantApplicationService;
     private final SpotlightService spotlightService;
     private final GrantMandatoryQuestionService mandatoryQuestionService;
+    private final ZipService zipService;
 
     private final SecretAuthService secretAuthService;
     private final AttachmentService attachmentService;
@@ -369,7 +370,7 @@ public class SubmissionController {
 
             byte[] odtBytes = outputStream.toByteArray();
 
-            try(ByteArrayOutputStream zipOutputStream = ZipService.createSubmissionZip(
+            try(ByteArrayOutputStream zipOutputStream = zipService.createSubmissionZip(
                     String.valueOf(submission.getApplication().getId()), String.valueOf(submissionId), odtBytes);
             ) {
                 byte[] zipBytes = zipOutputStream.toByteArray();
