@@ -6,7 +6,6 @@ import gov.cabinetoffice.gap.applybackend.dto.api.*;
 import gov.cabinetoffice.gap.applybackend.enums.GrantAttachmentStatus;
 import gov.cabinetoffice.gap.applybackend.enums.GrantMandatoryQuestionOrgType;
 import gov.cabinetoffice.gap.applybackend.enums.SubmissionSectionStatus;
-import gov.cabinetoffice.gap.applybackend.enums.SubmissionStatus;
 import gov.cabinetoffice.gap.applybackend.exception.AttachmentException;
 import gov.cabinetoffice.gap.applybackend.exception.GrantApplicationNotPublishedException;
 import gov.cabinetoffice.gap.applybackend.exception.NotFoundException;
@@ -351,6 +350,18 @@ public class SubmissionController {
     public ResponseEntity<Boolean>  isApplicantEligible(@PathVariable final UUID submissionId) {
         final String applicantId = getUserIdFromSecurityContext();
         return ResponseEntity.ok(submissionService.isApplicantEligible(applicantId, submissionId, "ELIGIBILITY"));
+    }
+
+    @GetMapping("/{submissionId}/application/status")
+    public ResponseEntity<String> schemeStatus(@PathVariable final UUID submissionId) {
+        final String applicantId = getUserIdFromSecurityContext();
+        Optional<Submission> submission = submissionService.getSubmissionById(submissionId);
+        final String submissionApplicant = submission.get().getApplicant().getUserId();
+        if (submission.isPresent() && submissionApplicant.equals(applicantId )) {
+            return ResponseEntity.ok(submission.get().getApplication().getApplicationStatus().toString());
+        } else {
+            return ResponseEntity.notFound().build();
+        }
     }
 
     private GetSubmissionDto buildSubmissionDto(Submission submission) {
