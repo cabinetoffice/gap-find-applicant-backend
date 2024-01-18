@@ -23,15 +23,21 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.odftoolkit.odfdom.doc.OdfTextDocument;
+import org.springframework.core.io.ByteArrayResource;
+import org.springframework.core.io.InputStreamResource;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.LocalDateTime;
@@ -1051,6 +1057,34 @@ class SubmissionControllerTest {
             final ResponseEntity<String> response = controllerUnderTest.applicationStatus(SUBMISSION_ID);
 
             assertThat(response.getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
+        }
+
+        @Test
+        void exportSingleSubmissionReturnsOdtFile() throws Exception {
+            UUID submissionID = UUID.randomUUID();
+            OdfTextDocument odfTextDocument = OdfTextDocument.newTextDocument();
+            odfTextDocument.addText("Test Text");
+            when(submissionService.getSubmissionExport(submissionID,
+                    null, APPLICANT_USER_ID)).thenReturn(odfTextDocument);
+            final MockHttpServletRequest request = new MockHttpServletRequest();
+            ResponseEntity<ByteArrayResource> response = controllerUnderTest
+                    .exportSingleSubmission(submissionID, request);
+
+            assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+            assertThat(response.getHeaders().get("Content-Disposition").get(0))
+                    .isEqualTo("attachment; filename=\"export.odt\"");
+            assertThat(response.getHeaders().get("Content-Type").get(0))
+                    .isEqualTo(MediaType.APPLICATION_OCTET_STREAM_VALUE);
+            assertThat(response.getBody()).isNotNull();
+        }
+
+        @Test
+        void exportSingleSubmissionThrowsRuntimeError() throws Exception {
+            UUID submissionID = UUID.randomUUID();
+            final MockHttpServletRequest request = new MockHttpServletRequest();
+            when(submissionService.getSubmissionExport(Mockito.any(), Mockito.anyString(), Mockito.anyString()))
+                    .thenThrow(new RuntimeException("Test Exception"));
+            assertThrows(RuntimeException.class, () -> controllerUnderTest.exportSingleSubmission(submissionID, request));
         }
     }
 
