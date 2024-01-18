@@ -27,7 +27,6 @@ public class OdtService {
     private static final String ESSENTIAL_SECTION_ID = "ESSENTIAL";
     private static final String ORGANISATION_DETAILS_SECTION_ID = "ORGANISATION_DETAILS";
     private static final String FUNDING_DETAILS_SECTION_ID = "FUNDING_DETAILS";
-
     private static final String APPLICANT_TYPE = "APPLICANT_TYPE";
     private static final String APPLICANT_ORG_NAME = "APPLICANT_ORG_NAME";
     private static final String APPLICANT_ORG_ADDRESS = "APPLICANT_ORG_ADDRESS";
@@ -36,6 +35,10 @@ public class OdtService {
     private static final String APPLICANT_AMOUNT = "APPLICANT_AMOUNT";
     private static final String BENEFITIARY_LOCATION = "BENEFITIARY_LOCATION";
     private static final String APPLICANT_ORG_TYPE_INDIVIDUAL = "I am applying as an individual";
+    private static final String largeHeadingStyle = "Heading_20_2";
+    private static final String smallHeadingStyle = "Heading_20_10";
+    private static final DateTimeFormatter dateTimeFormatter = DateTimeFormatter.ofPattern("dd/MM/yyyy")
+            .withZone(ZoneId.of("GMT"));
 
     OdtService() {
         throw new InvalidRequestStateException("This class should not be instantiated");
@@ -47,151 +50,33 @@ public class OdtService {
             OdfTextDocument odt = OdfTextDocument.newTextDocument();
             OdfContentDom contentDom = odt.getContentDom();
             OfficeTextElement documentText = odt.getContentRoot();
-            String largeHeadingStyle = "Heading_20_2";
-            String smallHeadingStyle = "Heading_20_10";
-            DateTimeFormatter dateTimeFormatter = DateTimeFormatter.ofPattern("dd/MM/yyyy").withZone(ZoneId.of("GMT"));
-            final String fundingSectionName = schemeVersion == 1 ? ESSENTIAL_SECTION_ID : FUNDING_DETAILS_SECTION_ID;
-            final String requiredCheckSectionName = schemeVersion == 1 ? ESSENTIAL_SECTION_ID : ORGANISATION_DETAILS_SECTION_ID;
-            final SubmissionSection eligibilitySection = submission.getSection(ELIGIBILITY_SECTION_ID);
+            final String fundingSectionName = schemeVersion == 1 ?
+                    ESSENTIAL_SECTION_ID : FUNDING_DETAILS_SECTION_ID;
+            final String requiredCheckSectionName = schemeVersion == 1 ?
+                    ESSENTIAL_SECTION_ID : ORGANISATION_DETAILS_SECTION_ID;
             final SubmissionSection requiredCheckSection = submission.getSection(requiredCheckSectionName);
             final String orgType = requiredCheckSection.getQuestionById(APPLICANT_TYPE).getResponse();
             final boolean isIndividual = Objects.equals(orgType, APPLICANT_ORG_TYPE_INDIVIDUAL);
 
             OdfTextParagraph sectionBreak = new OdfTextParagraph(contentDom);
-            sectionBreak.addContentWhitespace("\n\n");
 
-            OdfTextHeading mainHeading = new OdfTextHeading(contentDom);
-            final String nameHeadingPrefix = isIndividual ? "Applicant" : "Organisation";
+            populateHeadingSection(submission, documentText, contentDom, sectionBreak,
+                    isIndividual, fundingSectionName);
 
-            String legalName = submission.getVersion() == 1 ?
-                    submission.getSection("ESSENTIAL").getQuestionById("APPLICANT_ORG_NAME").getResponse()
-                    :
-                    submission.getSection("ORGANISATION_DETAILS").getQuestionById("APPLICANT_ORG_NAME").getResponse();
+            populateEligibilitySection(submission, documentText, contentDom, sectionBreak);
 
-            mainHeading.addStyledContentWhitespace(smallHeadingStyle, "Scheme applied for: " +
-                    submission.getScheme().getName() + "\n\n");
+            populateRequiredChecksSection(submission, documentText, contentDom, sectionBreak,
+                    requiredCheckSection, email, fundingSectionName);
 
-            mainHeading.addStyledContentWhitespace(smallHeadingStyle, nameHeadingPrefix + " name: " +
-                    legalName + "\n\n");
-
-            ZonedDateTime submittedDate = submission.getSubmittedDate();
-            if (submittedDate != null) {
-                mainHeading.addStyledContentWhitespace(smallHeadingStyle, "Submitted date: " +
-                        dateTimeFormatter.format(submittedDate) + "\n\n");
-            } else {
-                mainHeading.addStyledContentWhitespace(smallHeadingStyle, """
-                        Submitted date: Not submitted
-
-                        """);
-            }
-            mainHeading.addStyledContentWhitespace(smallHeadingStyle, "Amount applied for: £" +
-                    submission.getQuestion(fundingSectionName, APPLICANT_AMOUNT).getResponse());
-            documentText.appendChild(mainHeading);
-
-            OdfTextHeading eligibilityHeading = new OdfTextHeading(contentDom);
-            OdfTextParagraph eligibilityStatement = new OdfTextParagraph(contentDom);
-            OdfTextParagraph eligibilityResponse = new OdfTextParagraph(contentDom);
-
-            documentText.appendChild(sectionBreak.cloneElement());
-            eligibilityHeading.addStyledContent(largeHeadingStyle, "Section 1 - " +
-                    eligibilitySection.getSectionTitle());
-            documentText.appendChild(eligibilityHeading);
-            eligibilityStatement.addStyledContentWhitespace(smallHeadingStyle, "Eligibility statement: \n" +
-                    eligibilitySection.getQuestionById(ELIGIBILITY_SECTION_ID).getDisplayText());
-            eligibilityResponse.addContentWhitespace("Applicant selected: \n" +
-                    eligibilitySection.getQuestionById(ELIGIBILITY_SECTION_ID).getResponse());
-            documentText.appendChild(eligibilityStatement);
-            documentText.appendChild(eligibilityResponse);
-
-            // ESSENTIAL SECTION or ORGANISATION_DETAILS/FUNDING_DETAILS SECTION based on scheme version
-
-            OdfTextHeading requiredCheckHeading = new OdfTextHeading(contentDom);
-            OdfTextParagraph locationQuestion = new OdfTextParagraph(contentDom);
-            OdfTextParagraph locationResponse = new OdfTextParagraph(contentDom);
-
-            documentText.appendChild(sectionBreak.cloneElement());
-            requiredCheckHeading.addStyledContent(largeHeadingStyle, "Section 2 - " +
-                    "Required checks");
-            documentText.appendChild(requiredCheckHeading);
-            documentText.appendChild(new OdfTextParagraph(contentDom).addContentWhitespace(""));
-            documentText.appendChild(generateEssentialTable(documentText, requiredCheckSection, email));
-            locationQuestion.addStyledContent(smallHeadingStyle, "Where this funding will be spent");
-
-            locationResponse.addContentWhitespace(String.join(",\n",
-                    submission.getQuestion(fundingSectionName, BENEFITIARY_LOCATION).getMultiResponse()));
-
-            documentText.appendChild(locationQuestion);
-            documentText.appendChild(locationResponse);
-
-
-            // CUSTOM SECTIONS
-            AtomicInteger count = new AtomicInteger(3); // custom section starts from 3
+            AtomicInteger count = new AtomicInteger(3); //2 sections already added
             submission.getSections().forEach(section -> {
-                // ignore eligibility and essential section
                 if (!Objects.equals(section.getSectionId(), ELIGIBILITY_SECTION_ID) &&
                         !Objects.equals(section.getSectionId(), ESSENTIAL_SECTION_ID) &&
                         !Objects.equals(section.getSectionId(), ORGANISATION_DETAILS_SECTION_ID) &&
                         !Objects.equals(section.getSectionId(), FUNDING_DETAILS_SECTION_ID)) {
-
-                    documentText.appendChild(sectionBreak.cloneElement());
-
-                    // Add section title
-                    OdfTextHeading sectionHeading = new OdfTextHeading(contentDom);
-                    sectionHeading.addStyledContent(largeHeadingStyle, "Section " + count + " - " +
-                            section.getSectionTitle());
-                    documentText.appendChild(sectionHeading);
-
-                    // Add the questions
-                    section.getQuestions().forEach(question -> {
-                        OdfTextParagraph questionParagraph = new OdfTextParagraph(contentDom);
-                        OdfTextParagraph responseParagraph = new OdfTextParagraph(contentDom);
-                        questionParagraph.addStyledContent(smallHeadingStyle, question.getFieldTitle());
-
-                        switch (question.getResponseType()) {
-                            case AddressInput, MultipleSelection -> {
-                                if (question.getMultiResponse() != null) {
-                                    responseParagraph.addContentWhitespace(String.join(",\n",
-                                            question.getMultiResponse()) + "\n");
-                                } else {
-                                    responseParagraph.addContentWhitespace("\n");
-                                }
-                            }
-                            case SingleFileUpload -> {
-                                if (question.getResponse() != null) {
-                                    int index = question.getResponse().lastIndexOf(".");
-
-                                    responseParagraph.addContentWhitespace("File name: " + question.getResponse().substring(0, index) + "\n");
-                                    responseParagraph.addContentWhitespace("File extension: " + question.getResponse().substring(index + 1) + "\n");
-                                } else {
-                                    responseParagraph.addContentWhitespace("\n");
-                                }
-                            }
-                            case Date -> {
-                                if (question.getMultiResponse() != null) {
-                                    final String date = String.join("-", question.getMultiResponse());
-                                    responseParagraph.addContentWhitespace((date.equals("--") ? "Not provided" : date) + "\n");
-                                } else {
-                                    responseParagraph.addContentWhitespace("Not provided");
-                                }
-                            }
-                            case YesNo, Dropdown, ShortAnswer, LongAnswer, Numeric -> {
-                                if (question.getResponse() == null || question.getResponse().isEmpty()) {
-                                    responseParagraph.addContentWhitespace("Not provided");
-                                } else {
-                                    responseParagraph.addContentWhitespace(question.getResponse() + "\n");
-                                }
-                            }
-                            default -> responseParagraph.addContentWhitespace(question.getResponse() + "\n");
-                        }
-
-                        documentText.appendChild(questionParagraph);
-                        documentText.appendChild(responseParagraph);
-                    });
-
-                    count.getAndIncrement();
+                    populateQuestionResponseTable(count, section, documentText, contentDom, sectionBreak);
                 }
             });
-
             logger.info("ODT file generated successfully");
             return odt;
         } catch (Exception e) {
@@ -200,45 +85,184 @@ public class OdtService {
         }
     }
 
+    private static void populateHeadingSection(final Submission submission,
+                                               final OfficeTextElement documentText,
+                                               final OdfContentDom contentDom,
+                                               final OdfTextParagraph sectionBreak,
+                                               final boolean isIndividual,
+                                               final String fundingSectionName){
+        sectionBreak.addContentWhitespace("\n\n");
+
+        OdfTextHeading mainHeading = new OdfTextHeading(contentDom);
+        final String nameHeadingPrefix = isIndividual ? "Applicant" : "Organisation";
+
+        String legalName = submission.getVersion() == 1 ?
+                submission.getSection("ESSENTIAL").getQuestionById("APPLICANT_ORG_NAME").getResponse()
+                :
+                submission.getSection("ORGANISATION_DETAILS").getQuestionById("APPLICANT_ORG_NAME").getResponse();
+
+        mainHeading.addStyledContentWhitespace(smallHeadingStyle, "Scheme applied for: " +
+                submission.getScheme().getName() + "\n\n");
+
+        mainHeading.addStyledContentWhitespace(smallHeadingStyle, nameHeadingPrefix + " name: " +
+                legalName + "\n\n");
+
+        ZonedDateTime submittedDate = submission.getSubmittedDate();
+        if (submittedDate != null) {
+            mainHeading.addStyledContentWhitespace(smallHeadingStyle, "Submitted date: " +
+                    dateTimeFormatter.format(submittedDate) + "\n\n");
+        } else {
+            mainHeading.addStyledContentWhitespace(smallHeadingStyle, """
+                        Submitted date: Not submitted
+
+                        """);
+        }
+        mainHeading.addStyledContentWhitespace(smallHeadingStyle, "Amount applied for: £" +
+                submission.getQuestion(fundingSectionName, APPLICANT_AMOUNT).getResponse());
+        documentText.appendChild(mainHeading);
+
+    }
+
+    private static void populateRequiredChecksSection(final Submission submission,
+                                                   final OfficeTextElement documentText,
+                                                   final OdfContentDom contentDom,
+                                                   final OdfTextParagraph sectionBreak,
+                                                   final SubmissionSection requiredCheckSection,
+                                                   final String email,
+                                                   final String fundingSectionName){
+        OdfTextHeading requiredCheckHeading = new OdfTextHeading(contentDom);
+        OdfTextParagraph locationQuestion = new OdfTextParagraph(contentDom);
+        OdfTextParagraph locationResponse = new OdfTextParagraph(contentDom);
+        documentText.appendChild(sectionBreak.cloneElement());
+        requiredCheckHeading.addStyledContent(largeHeadingStyle, "Section 2 - " +
+                "Required checks");
+        documentText.appendChild(requiredCheckHeading);
+        documentText.appendChild(new OdfTextParagraph(contentDom).addContentWhitespace(""));
+        documentText.appendChild(generateEssentialTable(documentText, requiredCheckSection, email));
+        locationQuestion.addStyledContent(smallHeadingStyle, "Where this funding will be spent");
+        locationResponse.addContentWhitespace(String.join(",\n",
+                submission.getQuestion(fundingSectionName, BENEFITIARY_LOCATION).getMultiResponse()));
+        documentText.appendChild(locationQuestion);
+        documentText.appendChild(locationResponse);
+    }
+
+    private static void populateEligibilitySection(final Submission submission,
+                                                          final OfficeTextElement documentText,
+                                                          final OdfContentDom contentDom,
+                                                          final OdfTextParagraph sectionBreak
+    ) {
+        final SubmissionSection eligibilitySection = submission.getSection(ELIGIBILITY_SECTION_ID);
+        OdfTextHeading eligibilityHeading = new OdfTextHeading(contentDom);
+        OdfTextParagraph eligibilityStatement = new OdfTextParagraph(contentDom);
+        OdfTextParagraph eligibilityResponse = new OdfTextParagraph(contentDom);
+
+        documentText.appendChild(sectionBreak.cloneElement());
+        eligibilityHeading.addStyledContent(largeHeadingStyle, "Section 1 - " +
+                eligibilitySection.getSectionTitle());
+        documentText.appendChild(eligibilityHeading);
+        eligibilityStatement.addStyledContentWhitespace(smallHeadingStyle, "Eligibility statement: \n" +
+                eligibilitySection.getQuestionById(ELIGIBILITY_SECTION_ID).getDisplayText());
+        eligibilityResponse.addContentWhitespace("Applicant selected: \n" +
+                eligibilitySection.getQuestionById(ELIGIBILITY_SECTION_ID).getResponse());
+        documentText.appendChild(eligibilityStatement);
+        documentText.appendChild(eligibilityResponse);
+    }
+
+    private static void populateQuestionResponseTable(AtomicInteger count,
+                                              SubmissionSection section,
+                                              OfficeTextElement documentText,
+                                              OdfContentDom contentDom,
+                                              OdfTextParagraph sectionBreak) {
+                documentText.appendChild(sectionBreak.cloneElement());
+                OdfTextHeading sectionHeading = new OdfTextHeading(contentDom);
+                sectionHeading.addStyledContent(largeHeadingStyle, "Section " + count + " - " +
+                        section.getSectionTitle());
+                documentText.appendChild(sectionHeading);
+
+                section.getQuestions().forEach(question -> {
+                    populateDocumentFromQuestionResponse(question, documentText, contentDom);
+                });
+
+                count.getAndIncrement();
+        };
+
+    private static void populateDocumentFromQuestionResponse(SubmissionQuestion question,
+                                                             OfficeTextElement documentText,
+                                                             OdfContentDom contentDom) {
+            OdfTextParagraph questionParagraph = new OdfTextParagraph(contentDom);
+            OdfTextParagraph responseParagraph = new OdfTextParagraph(contentDom);
+            questionParagraph.addStyledContent(smallHeadingStyle, question.getFieldTitle());
+
+            switch (question.getResponseType()) {
+                case AddressInput, MultipleSelection -> {
+                    if (question.getMultiResponse() != null) {
+                        responseParagraph.addContentWhitespace(String.join(",\n",
+                                question.getMultiResponse()) + "\n");
+                    } else {
+                        responseParagraph.addContentWhitespace("\n");
+                    }
+                }
+                case SingleFileUpload -> {
+                    if (question.getResponse() != null) {
+                        int index = question.getResponse().lastIndexOf(".");
+
+                        responseParagraph.addContentWhitespace("File name: " + question.getResponse().substring(0, index) + "\n");
+                        responseParagraph.addContentWhitespace("File extension: " + question.getResponse().substring(index + 1) + "\n");
+                    } else {
+                        responseParagraph.addContentWhitespace("\n");
+                    }
+                }
+                case Date -> {
+                    if (question.getMultiResponse() != null) {
+                        final String date = String.join("-", question.getMultiResponse());
+                        responseParagraph.addContentWhitespace((date.equals("--") ? "Not provided" : date) + "\n");
+                    } else {
+                        responseParagraph.addContentWhitespace("Not provided");
+                    }
+                }
+                case YesNo, Dropdown, ShortAnswer, LongAnswer, Numeric -> {
+                    if (question.getResponse() == null || question.getResponse().isEmpty()) {
+                        responseParagraph.addContentWhitespace("Not provided");
+                    } else {
+                        responseParagraph.addContentWhitespace(question.getResponse() + "\n");
+                    }
+                }
+                default -> responseParagraph.addContentWhitespace(question.getResponse() + "\n");
+            }
+
+            documentText.appendChild(questionParagraph);
+            documentText.appendChild(responseParagraph);
+    }
+
     private static TableTableElement generateEssentialTable(final OfficeTextElement documentText,
                                                             final SubmissionSection section,
                                                             final String email) {
         OdfTable odfTable = OdfTable.newTable(documentText, 7, 2);
-
         final String orgType = section.getQuestionById(APPLICANT_TYPE).getResponse();
-        final Boolean isIndividual = Objects.equals(orgType, APPLICANT_ORG_TYPE_INDIVIDUAL);
-
+        final boolean isIndividual = Objects.equals(orgType, APPLICANT_ORG_TYPE_INDIVIDUAL);
         final String orgNameHeading = isIndividual ? "Applicant name" : "Legal name of organisation";
         odfTable.getRowByIndex(0).getCellByIndex(0).setStringValue(orgNameHeading);
         odfTable.getRowByIndex(0).getCellByIndex(1).setStringValue(section.getQuestionById(APPLICANT_ORG_NAME).getResponse());
-
         odfTable.getRowByIndex(1).getCellByIndex(0).setStringValue("Type of organisation");
         odfTable.getRowByIndex(1).getCellByIndex(1).setStringValue(orgType);
 
         String[] applicantOrgAddress = section.getQuestionById(APPLICANT_ORG_ADDRESS).getMultiResponse();
-
         odfTable.getRowByIndex(2).getCellByIndex(0).setStringValue("The first line of address for the organisation");
         odfTable.getRowByIndex(2).getCellByIndex(1).setStringValue(applicantOrgAddress[0]);
-
         odfTable.getRowByIndex(3).getCellByIndex(0).setStringValue("The second line of address for the organisation");
         odfTable.getRowByIndex(3).getCellByIndex(1).setStringValue(applicantOrgAddress[1]);
-
         odfTable.getRowByIndex(4).getCellByIndex(0).setStringValue("The town of the address for the organisation");
         odfTable.getRowByIndex(4).getCellByIndex(1).setStringValue(applicantOrgAddress[2]);
-
         odfTable.getRowByIndex(5).getCellByIndex(0).setStringValue("The county of the address for the organisation");
         odfTable.getRowByIndex(5).getCellByIndex(1).setStringValue(applicantOrgAddress[3]);
-
         odfTable.getRowByIndex(6).getCellByIndex(0)
                 .setStringValue("The postcode of the address for the organisation");
         odfTable.getRowByIndex(6).getCellByIndex(1)
                 .setStringValue(applicantOrgAddress[4]);
-
         odfTable.getRowByIndex(7).getCellByIndex(0)
                 .setStringValue("The email address for the lead applicant");
         odfTable.getRowByIndex(7).getCellByIndex(1)
                 .setStringValue(email);
-
         int index = 8;
         final boolean hasCharityCommissionNumber = section
                 .optionalGetQuestionById(APPLICANT_ORG_CHARITY_NUMBER)
@@ -256,7 +280,6 @@ public class OdtService {
                     );
             index++;
         }
-
         final boolean hasCompaniesHouseNumber = section
                 .optionalGetQuestionById(APPLICANT_ORG_COMPANIES_HOUSE)
                 .isPresent();
@@ -272,7 +295,6 @@ public class OdtService {
                             .orElse("")
                     );
         }
-
         return odfTable.getOdfElement();
     }
 }
