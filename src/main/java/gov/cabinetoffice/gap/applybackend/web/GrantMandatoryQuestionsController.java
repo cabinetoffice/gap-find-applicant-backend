@@ -5,10 +5,7 @@ import gov.cabinetoffice.gap.applybackend.dto.api.JwtPayload;
 import gov.cabinetoffice.gap.applybackend.dto.api.UpdateGrantMandatoryQuestionDto;
 import gov.cabinetoffice.gap.applybackend.enums.GrantMandatoryQuestionStatus;
 import gov.cabinetoffice.gap.applybackend.mapper.GrantMandatoryQuestionMapper;
-import gov.cabinetoffice.gap.applybackend.model.GrantApplicant;
-import gov.cabinetoffice.gap.applybackend.model.GrantMandatoryQuestions;
-import gov.cabinetoffice.gap.applybackend.model.GrantScheme;
-import gov.cabinetoffice.gap.applybackend.model.Submission;
+import gov.cabinetoffice.gap.applybackend.model.*;
 import gov.cabinetoffice.gap.applybackend.service.GrantApplicantService;
 import gov.cabinetoffice.gap.applybackend.service.GrantMandatoryQuestionService;
 import gov.cabinetoffice.gap.applybackend.service.GrantSchemeService;
@@ -25,7 +22,10 @@ import org.springframework.web.bind.annotation.*;
 
 import javax.validation.Valid;
 import java.time.Instant;
+import java.util.Objects;
 import java.util.UUID;
+
+import static gov.cabinetoffice.gap.applybackend.utils.SecurityContextHelper.getUserIdFromSecurityContext;
 
 @RequiredArgsConstructor
 @RestController
@@ -155,5 +155,15 @@ public class GrantMandatoryQuestionsController {
         log.info("Mandatory question with ID {} has been updated.", grantMandatoryQuestions.getId());
 
         return ResponseEntity.ok(grantMandatoryQuestionService.generateNextPageUrl(url, mandatoryQuestionId, jwtPayload.getSub()));
+    }
+
+    @GetMapping("/{mandatoryQuestionId}/application/status")
+    public ResponseEntity<String> getApplicationStatusByMandatoryQuestionId(@PathVariable final UUID mandatoryQuestionId) {
+        final JwtPayload jwtPayload = (JwtPayload) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+
+        final GrantMandatoryQuestions grantMandatoryQuestions = grantMandatoryQuestionService.getGrantMandatoryQuestionById(mandatoryQuestionId, jwtPayload.getSub());
+        final GrantApplication grantApplication = grantMandatoryQuestions.getGrantScheme().getGrantApplication();
+
+        return ResponseEntity.ok(grantApplication.getApplicationStatus().name());
     }
 }
