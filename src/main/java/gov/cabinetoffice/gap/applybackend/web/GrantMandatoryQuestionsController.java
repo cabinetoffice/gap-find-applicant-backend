@@ -22,10 +22,7 @@ import org.springframework.web.bind.annotation.*;
 
 import javax.validation.Valid;
 import java.time.Instant;
-import java.util.Objects;
 import java.util.UUID;
-
-import static gov.cabinetoffice.gap.applybackend.utils.SecurityContextHelper.getUserIdFromSecurityContext;
 
 @RequiredArgsConstructor
 @RestController
