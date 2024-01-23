@@ -360,7 +360,6 @@ public class SubmissionController {
             @PathVariable final UUID submissionId, HttpServletRequest request) {
         final String userSub = getUserIdFromSecurityContext();
         final String userEmail = grantApplicantService.getEmailById(userSub, request);
-
         final Submission submission = submissionService.getSubmissionById(submissionId);
         
         try (OdfTextDocument odt = submissionService.getSubmissionExport(submission, userEmail, userSub);
@@ -370,9 +369,7 @@ public class SubmissionController {
 
             byte[] odtBytes = outputStream.toByteArray();
 
-            try(ByteArrayOutputStream zipOutputStream = zipService.createSubmissionZip(
-                    String.valueOf(submission.getApplication().getId()), String.valueOf(submissionId), odtBytes);
-            ) {
+            try(ByteArrayOutputStream zipOutputStream = zipService.createSubmissionZip(submission, odtBytes)) {
                 byte[] zipBytes = zipOutputStream.toByteArray();
                 ByteArrayResource zipResource = new ByteArrayResource(zipBytes);
 
@@ -382,7 +379,7 @@ public class SubmissionController {
 
                 return ResponseEntity.ok().headers(headers).contentLength(zipResource.contentLength())
                         .contentType(MediaType.APPLICATION_OCTET_STREAM).body(zipResource);
-            }
+             }
         } catch (Exception e) {
             log.error("Could not generate ODT. Exception: ", e);
             throw new RuntimeException(e);
@@ -392,7 +389,7 @@ public class SubmissionController {
         @GetMapping("/{submissionId}/isApplicantEligible")
     public ResponseEntity<Boolean>  isApplicantEligible(@PathVariable final UUID submissionId) {
         final String applicantId = getUserIdFromSecurityContext();
-        return ResponseEntity.ok(submissionService.isApplicantEligible(applicantId, submissionId, "ELIGIBILITY"));
+        return ResponseEntity.ok(submissionService.isApplicantEligible(applicantId, submissionId));
     }
 
     private GetSubmissionDto buildSubmissionDto(Submission submission) {

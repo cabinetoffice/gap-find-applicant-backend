@@ -126,7 +126,7 @@ public class Submission extends BaseEntity {
     }
 
     public String getLegalName(){
-        return this.getVersion() == 1 ?
+        return this.getScheme().getVersion() == 1 ?
                 this.getSection("ESSENTIAL").getQuestionById("APPLICANT_ORG_NAME").getResponse()
                 :
                 this.getSection("ORGANISATION_DETAILS").getQuestionById("APPLICANT_ORG_NAME").getResponse();

@@ -58,6 +58,9 @@ public class SubmissionService {
     private final GrantMandatoryQuestionRepository grantMandatoryQuestionRepository;
     private final GovNotifyClient notifyClient;
 
+    private final OdtService odtService;
+
+
     private final Clock clock;
     private final EnvironmentProperties envProperties;
 
@@ -588,7 +591,7 @@ public class SubmissionService {
         }
     }
 
-    public OdfTextDocument getSubmissionExport(Submission submission, String email, String userSub) throws Exception {
+    public OdfTextDocument getSubmissionExport(Submission submission, String email, String userSub){
 
         String submissionOwner = submission.getApplicant().getUserId();
 
@@ -597,7 +600,9 @@ public class SubmissionService {
             throw new ForbiddenException("You can't access this submission");
         }
 
-       return OdtService.generateSingleOdt(submission, email);
+
+
+    //    return odtService.generateSingleOdt(submission, email);
     }
 
     private List<String> getSectionIdsToSkipAfterEligibilitySectionCompleted(final int schemeVersion) {
@@ -613,10 +618,11 @@ public class SubmissionService {
         return sectionIds;
     }
 
-    public boolean isApplicantEligible(final String userId, final UUID submissionId, final String questionId){
+    public boolean isApplicantEligible(final String userId, final UUID submissionId){
         final Submission submission = getSubmissionFromDatabaseBySubmissionId(userId, submissionId);
         final Optional<SubmissionQuestion> eligibilityResponse = getQuestionResponseByQuestionId(submission ,"ELIGIBILITY");
-        return eligibilityResponse.map(submissionQuestion -> submissionQuestion.getResponse().equals("Yes")).orElse(false);
+        return eligibilityResponse
+                .map(submissionQuestion -> submissionQuestion.getResponse().equals("Yes")).orElse(false);
     }
 }
 

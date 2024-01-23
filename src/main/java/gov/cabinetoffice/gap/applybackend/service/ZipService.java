@@ -3,10 +3,12 @@ package gov.cabinetoffice.gap.applybackend.service;
 import com.amazonaws.AmazonServiceException;
 import com.amazonaws.regions.Regions;
 import com.amazonaws.services.s3.AmazonS3;
+import com.amazonaws.services.s3.AmazonS3Client;
 import com.amazonaws.services.s3.AmazonS3ClientBuilder;
 import com.amazonaws.services.s3.model.*;
-import gov.cabinetoffice.gap.applybackend.config.properties.S3ConfigProperties;
-import lombok.Data;
+import gov.cabinetoffice.gap.applybackend.model.Submission;
+import gov.cabinetoffice.gap.applybackend.provider.AmazonProvider;
+import gov.cabinetoffice.gap.applybackend.utils.ZipHelper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.slf4j.Logger;
@@ -14,13 +16,14 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
+import javax.annotation.PostConstruct;
 import java.io.*;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
-@Slf4j
+
 @RequiredArgsConstructor
 @Service
 public class ZipService {
@@ -30,27 +33,28 @@ public class ZipService {
 
     private static final Logger logger = LoggerFactory.getLogger(ZipService.class);
 
-    private static final String LOCAL_ZIP_FILE_NAME = "submission.zip";
-
     //regex for any special character that are not allowed in window os : <, >, ", /, \, |, ?, or *
     private static final String SPECIAL_CHARACTER_REGEX = "[<>\"\\/|?*\\\\]";
 
     public static final Integer LONG_FILE_NAME_LENGTH = 50;
+    private final AmazonS3 client = AmazonProvider.initializeS3();
 
-    private final AmazonS3 client = AmazonS3ClientBuilder.standard()
-            .withRegion(Regions.EU_WEST_2)
-            .build();
+    public ByteArrayOutputStream createSubmissionZip(final Submission submission, final byte[] odt)
+            throws IOException {
 
-    public ByteArrayOutputStream createSubmissionZip(final String applicationId,
-                                 final String submissionId, final byte[] odtContent) throws IOException {
-        final List<String> submissionAttachmentFileNames = getSubmissionAttachmentFileNames(applicationId,
-                submissionId);
+        String submissionId = String.valueOf(submission.getId());
+        String applicationId = String.valueOf(submission.getApplication().getId());
+        String odtFilename = ZipHelper.generateFilename(submission.getLegalName());
+
+        final List<String> submissionAttachmentFileNames =
+                getSubmissionAttachmentFileNames(applicationId, submissionId);
+
         List<S3Object> s3ObjectList = new ArrayList<>();
         for (String fileName : submissionAttachmentFileNames) {
             downloadFile(fileName, s3ObjectList);
         }
 
-        ByteArrayOutputStream zip = zipFiles(s3ObjectList, applicationId, submissionId, odtContent);
+        ByteArrayOutputStream zip = zipFiles(s3ObjectList, applicationId, submissionId, odt, odtFilename);
         logger.info("Zip file created");
         return zip;
     }
@@ -91,7 +95,7 @@ public class ZipService {
         }
     }
 
-    private String parseFileName(final String objectKey, int suffix, final String applicationId,
+    public String parseFileName(final String objectKey, int suffix, final String applicationId,
                                        final String submissionId) {
         final String filenameWithoutFolderName = getFileNameFromS3ObjectKey(objectKey, applicationId, submissionId);
         final String[] fileNameParts = filenameWithoutFolderName.split("\\.");
@@ -105,7 +109,7 @@ public class ZipService {
         return truncatedFileName.concat("_" + suffix + fileExtension);
     }
     private ByteArrayOutputStream zipFiles(final List<S3Object> files, final String applicationId,
-                                 final String submissionId,final byte[] odtContent) throws IOException {
+                                 final String submissionId,final byte[] odtContent, final String odtFilename) throws IOException {
         try (final ByteArrayOutputStream fout = new ByteArrayOutputStream();
              final ZipOutputStream zout = new ZipOutputStream(fout)) {
             int index = 1;
@@ -113,15 +117,12 @@ public class ZipService {
                 addFileToZip(file, zout, index, applicationId, submissionId);
                 index++;
             }
-            ZipEntry submissionEntry = new ZipEntry("submission.odt");
+            ZipEntry submissionEntry = new ZipEntry(odtFilename + ".odt");
             zout.putNextEntry(submissionEntry);
             zout.write(odtContent);
             zout.closeEntry();
             return fout;
 
-        } catch (FileNotFoundException e) {
-            logger.error("Could not create the locally zipped file: " + LOCAL_ZIP_FILE_NAME, e);
-            throw e;
         } catch (IOException e) {
             logger.error("IO exception while creating the empty zipped file", e);
             throw e;

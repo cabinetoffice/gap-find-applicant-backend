@@ -101,6 +101,7 @@ class SubmissionServiceTest {
                         grantBeneficiaryRepository,
                         grantMandatoryQuestionRepository,
                         notifyClient,
+                        odtService,
                         clock,
                         envProperties
                 )
@@ -1593,7 +1594,7 @@ class SubmissionServiceTest {
             when(submissionRepository.findByIdAndApplicantUserId(SUBMISSION_ID, userId))
                     .thenReturn(Optional.ofNullable(submission));
 
-            final boolean result = serviceUnderTest.isApplicantEligible(userId, SUBMISSION_ID, "ELIGIBILITY");
+            final boolean result = serviceUnderTest.isApplicantEligible(userId, SUBMISSION_ID);
 
             verify(submissionRepository).findByIdAndApplicantUserId(SUBMISSION_ID, userId);
 
@@ -1618,7 +1619,7 @@ class SubmissionServiceTest {
             when(submissionRepository.findByIdAndApplicantUserId(SUBMISSION_ID, userId))
                     .thenReturn(Optional.ofNullable(submission));
 
-            final boolean result = serviceUnderTest.isApplicantEligible(userId, SUBMISSION_ID, "ELIGIBILITY");
+            final boolean result = serviceUnderTest.isApplicantEligible(userId, SUBMISSION_ID);
 
             verify(submissionRepository).findByIdAndApplicantUserId(SUBMISSION_ID, userId);
 
@@ -1631,49 +1632,49 @@ class SubmissionServiceTest {
     class getSubmissionExport {
         @Test
         void getSubmissionExport_success() throws Exception {
-            UUID submissionId = UUID.randomUUID();
             String email = "test@example.com";
             String userSub = "userId";
-            Submission submission = Submission.builder().applicant(GrantApplicant.builder().userId("userId").build())
+            Submission submission = Submission.builder().scheme(GrantScheme.builder().version(2).build())
+                    .applicant(GrantApplicant.builder().userId("userId").build())
                     .build();
-            Mockito.when(submissionRepository.findById(submissionId)).thenReturn(Optional.of(submission));
             OdfTextDocument odfTextDocument = OdfTextDocument.newTextDocument();
-            when(OdtService.generateSingleOdt(submission, email)).thenReturn(odfTextDocument);
-            OdfTextDocument result = serviceUnderTest.getSubmissionExport(submissionId, email, userSub);
+            when(odtService.generateSingleOdt(submission, email)).thenReturn(odfTextDocument);
+            OdfTextDocument result = serviceUnderTest.getSubmissionExport(submission, email, userSub);
 
-            Mockito.verify(submissionRepository).findById(submissionId);
             Assertions.assertEquals(result, odfTextDocument);
         }
 
         @Test
-        void getSubmissionExport_forbiddenUser() throws Exception {
-            UUID submissionId = UUID.randomUUID();
+        void getSubmissionExport_forbiddenUser() {
             String email = "test@example.com";
             String userSub = "differentUserId";
             Submission submission = Submission.builder().applicant(GrantApplicant.builder().userId("userId").build())
                     .build();
-            Mockito.when(submissionRepository.findById(submissionId)).thenReturn(Optional.of(submission));
             ForbiddenException thrownException = assertThrows(ForbiddenException.class, () -> {
-                serviceUnderTest.getSubmissionExport(submissionId, email, userSub);
+                serviceUnderTest.getSubmissionExport(submission, email, userSub);
             });
 
-            Mockito.verify(submissionRepository).findById(submissionId);
             Assertions.assertEquals("You can't access this submission", thrownException.getMessage());
         }
 
         @Test
-        void getSubmissionExport_submissionNotFound() throws Exception {
-            UUID submissionId = UUID.randomUUID();
-            String email = "test@example.com";
-            String userSub = "userId";
-            Mockito.when(submissionRepository.findById(submissionId)).thenReturn(Optional.empty());
-            NotFoundException thrownException = assertThrows(NotFoundException.class, () -> {
-                serviceUnderTest.getSubmissionExport(submissionId, email, userSub);
-            });
+        void getSubmissionById_success() {
+            Submission submission = Submission.builder().applicant(GrantApplicant.builder().userId("userId").build())
+                    .build();
+            when(submissionRepository.findById(SUBMISSION_ID)).thenReturn(Optional.ofNullable(submission));
+            Submission result = serviceUnderTest.getSubmissionById(SUBMISSION_ID);
 
-            Mockito.verify(submissionRepository).findById(submissionId);
-            Assertions.assertEquals("No submission with ID " + submissionId + " was found", thrownException.getMessage());
+            Assertions.assertEquals(result, submission);
         }
 
+        @Test
+        void getSubmissionById_Exception(){
+            when(submissionRepository.findById(SUBMISSION_ID)).thenReturn(Optional.empty());
+            NotFoundException thrownException = assertThrows(NotFoundException.class, () -> {
+                serviceUnderTest.getSubmissionById(SUBMISSION_ID);
+            });
+
+            Assertions.assertEquals("No Submission with ID 1c2eabf0-b33c-433a-b00f-e73d8efca929 was found", thrownException.getMessage());
+        }
     }
 }
