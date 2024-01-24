@@ -1,46 +1,27 @@
 package gov.cabinetoffice.gap.applybackend.service;
 
-import com.sun.jdi.request.InvalidRequestStateException;
 import gov.cabinetoffice.gap.applybackend.model.Submission;
 import gov.cabinetoffice.gap.applybackend.model.SubmissionQuestion;
 import gov.cabinetoffice.gap.applybackend.model.SubmissionSection;
-import org.odftoolkit.odfdom.doc.OdfDocument;
 import org.odftoolkit.odfdom.doc.OdfTextDocument;
 import org.odftoolkit.odfdom.doc.table.OdfTable;
-import org.odftoolkit.odfdom.doc.table.OdfTableCell;
 import org.odftoolkit.odfdom.dom.OdfContentDom;
 import org.odftoolkit.odfdom.dom.element.office.OfficeTextElement;
 import org.odftoolkit.odfdom.dom.element.style.*;
-import org.odftoolkit.odfdom.dom.element.table.TableBodyElement;
-import org.odftoolkit.odfdom.dom.element.table.TableTableCellElement;
 import org.odftoolkit.odfdom.dom.element.table.TableTableElement;
-import org.odftoolkit.odfdom.dom.element.table.TableTableRowElement;
 import org.odftoolkit.odfdom.dom.element.text.TextListLevelStyleNumberElement;
-import org.odftoolkit.odfdom.dom.element.text.TextPElement;
-import org.odftoolkit.odfdom.dom.element.text.TextSoftPageBreakElement;
 import org.odftoolkit.odfdom.dom.style.OdfStyleFamily;
 import org.odftoolkit.odfdom.dom.style.OdfStylePropertySet;
 import org.odftoolkit.odfdom.dom.style.props.OdfPageLayoutProperties;
 import org.odftoolkit.odfdom.dom.style.props.OdfStyleProperty;
 import org.odftoolkit.odfdom.incubator.doc.office.OdfOfficeStyles;
-import org.odftoolkit.odfdom.incubator.doc.style.OdfStyle;
 import org.odftoolkit.odfdom.incubator.doc.style.OdfStylePageLayout;
 import org.odftoolkit.odfdom.incubator.doc.text.OdfTextHeading;
 import org.odftoolkit.odfdom.incubator.doc.text.OdfTextListStyle;
 import org.odftoolkit.odfdom.incubator.doc.text.OdfTextParagraph;
-import org.odftoolkit.odfdom.incubator.search.Selection;
-import org.odftoolkit.odfdom.incubator.search.TextNavigation;
-import org.odftoolkit.odfdom.incubator.search.TextSelection;
-import org.odftoolkit.odfdom.pkg.OdfElement;
-import org.odftoolkit.odfdom.pkg.OdfFileDom;
-import org.odftoolkit.odfdom.pkg.OdfPackage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
-
-import java.time.ZoneId;
-import java.time.ZonedDateTime;
-import java.time.format.DateTimeFormatter;
 import java.util.Objects;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -68,14 +49,10 @@ public class OdtService {
     private static final String Text_20_2 = "Text_20_2";
     private static final String Text_20_3 = "Text_20_3";
 
-
-    private static final DateTimeFormatter dateTimeFormatter = DateTimeFormatter.ofPattern("dd/MM/yyyy").withZone(ZoneId.of("GMT"));
-
     public OdfTextDocument generateSingleOdt(final Submission submission, final String email) {
         try {
             OdfStyleProcessor styleProcessor = new OdfStyleProcessor();
             int schemeVersion = submission.getScheme().getVersion();
-//            OdfTextDocument odt = OdfTextDocument.loadDocument("src/main/resources/static/odt/odt_application_template.odt");
             OdfTextDocument odt = OdfTextDocument.newTextDocument();
             OdfOfficeStyles stylesOfficeStyles = odt.getOrCreateDocumentStyles();
             OdfContentDom contentDom = odt.getContentDom();
@@ -91,12 +68,12 @@ public class OdtService {
             setOfficeStyles(odt, styleProcessor, stylesOfficeStyles);
 
             populateHeadingSection(submission, documentText, contentDom,
-                    isIndividual, odt, styleProcessor);
+                    isIndividual, odt);
 
             OdfTextParagraph sectionBreak = new OdfTextParagraph(contentDom);
             populateEligibilitySection(submission, documentText, contentDom, sectionBreak);
-//
-            populateRequiredChecksSection(submission, documentText, contentDom, sectionBreak,
+
+            populateRequiredChecksSection(submission, documentText, contentDom,
                     requiredCheckSection, email, fundingSectionName, odt);
 
             AtomicInteger count = new AtomicInteger(3); //2 sections already added
@@ -122,15 +99,11 @@ public class OdtService {
                                                final OfficeTextElement documentText,
                                                final OdfContentDom contentDom,
                                                final boolean isIndividual,
-                                               final OdfTextDocument odt, OdfStyleProcessor styleProcessor){
-
+                                               final OdfTextDocument odt){
 
         OdfTextHeading h1 = new OdfTextHeading(contentDom);
         OdfTextHeading h2 = new OdfTextHeading(contentDom);
         OdfTextParagraph p = new OdfTextParagraph(contentDom);
-        final String nameHeadingPrefix = isIndividual ? "Applicant" : "Organisation";
-
-        String legalName = submission.getLegalName();
 
         h1.addStyledContentWhitespace(Heading_20_1, submission.getLegalName());
         p.addStyledContent(Text_20_1, "Application for " + submission.getScheme().getName());
@@ -171,11 +144,10 @@ public class OdtService {
     private static void populateRequiredChecksSection(final Submission submission,
                                                    final OfficeTextElement documentText,
                                                    final OdfContentDom contentDom,
-                                                   final OdfTextParagraph sectionBreak,
                                                    final SubmissionSection requiredCheckSection,
                                                    final String email,
                                                    final String fundingSectionName,
-                                                      final OdfTextDocument odt) throws Exception {
+                                                      final OdfTextDocument odt) {
         OdfTextHeading requiredCheckHeading = new OdfTextHeading(contentDom);
         OdfTextHeading requiredCheckSubHeading = new OdfTextHeading(contentDom);
         OdfTextParagraph locationQuestion = new OdfTextParagraph(contentDom);
@@ -190,7 +162,7 @@ public class OdtService {
         documentText.appendChild(requiredCheckHeading);
         documentText.appendChild(requiredCheckSubHeading);
         documentText.appendChild(new OdfTextParagraph(contentDom).addContentWhitespace(""));
-        documentText.appendChild(generateEssentialTable(documentText, requiredCheckSection, email, odt));
+        documentText.appendChild(generateEssentialTable(requiredCheckSection, odt));
         documentText.appendChild(new OdfTextParagraph(contentDom).addContentWhitespace(""));
         locationQuestion.addStyledContent(Heading_20_2, "Funding");
         OdfTable table = OdfTable.newTable(odt, 2, 2);
@@ -245,18 +217,14 @@ public class OdtService {
                                               OdfTextParagraph sectionBreak, OdfTextDocument odt) {
                 documentText.appendChild(sectionBreak);
                 OdfTextHeading sectionHeading = new OdfTextHeading(contentDom);
-
                 sectionHeading.addStyledContent(Heading_20_3, section.getSectionTitle());
-
                 documentText.appendChild(sectionHeading);
 
                 int questionIndex = 0;
-
                 section.getQuestions().forEach(question -> {
                     populateDocumentFromQuestionResponse(question, documentText, contentDom, questionIndex, odt,
                             section.getQuestions().size());
                 });
-
                 count.getAndIncrement();
         };
 
@@ -322,9 +290,9 @@ public class OdtService {
             documentText.appendChild(table.getOdfElement());
     }
 
-    private static TableTableElement generateEssentialTable(final OfficeTextElement documentText,
+    private static TableTableElement generateEssentialTable(
                                                             final SubmissionSection section,
-                                                            final String email, OdfTextDocument doc) throws Exception {
+                                                             OdfTextDocument doc) {
         final String orgType = section.getQuestionById(APPLICANT_TYPE).getResponse();
         final boolean isIndividual = Objects.equals(orgType, APPLICANT_ORG_TYPE_INDIVIDUAL);
         final String orgNameHeading = isIndividual ? "Applicant name" : "Organisation Name";
@@ -401,13 +369,6 @@ public class OdtService {
         String pageLayoutName = defaultPage.getStylePageLayoutNameAttribute();
         OdfStylePageLayout pageLayoutStyle = defaultPage.getAutomaticStyles().getPageLayout(pageLayoutName);
         pageLayoutStyle.setProperty(OdfPageLayoutProperties.PrintOrientation, "Portrait");
-//        pageLayoutStyle.setProperty(OdfPageLayoutProperties.PageHeight, "21cm");
-//        pageLayoutStyle.setProperty(OdfPageLayoutProperties.PageWidth, "29.7cm");
-
-
-//        styleProcessor.setStyle(stylesOfficeStyles.getStyle("TableCell_10_1", OdfStyleFamily.TableCell))
-//                .paddings("0", "0", "0", "0")
-//                .setProperty(StyleTableCellPropertiesElement.Border, "0");
 
         styleProcessor.setStyle(stylesOfficeStyles.getDefaultStyle(OdfStyleFamily.Paragraph))
                 .margins("0cm", "0cm", "0.1cm", "0cm")
@@ -416,21 +377,15 @@ public class OdtService {
                 .textAlign("justify");
 
 
-//        // Main title
-//        styleProcessor.setStyle(stylesOfficeStyles.getStyle("Heading", OdfStyleFamily.Paragraph))
-//                .fontWeight("bold")
-//                .fontSize("26pt")
-//                .color("#000000");
-
         // Title 1
-        styleProcessor.setStyle(stylesOfficeStyles.getStyle("Heading_20_1", OdfStyleFamily.Paragraph))
+        styleProcessor.setStyle(stylesOfficeStyles.getStyle(Heading_20_1, OdfStyleFamily.Paragraph))
                 .margins("0cm", "0cm", "0cm", "0cm").
                 color("#000000")
                 .fontWeight("normal")
                 .fontSize("26pt");
 
         // Title 2
-        styleProcessor.setStyle(stylesOfficeStyles.getStyle("Heading_20_2", OdfStyleFamily.Paragraph))
+        styleProcessor.setStyle(stylesOfficeStyles.getStyle(Heading_20_2, OdfStyleFamily.Paragraph))
                 .fontStyle("normal")
                 .margins("0cm", "0cm", "0.2cm", "0cm")
                 .fontWeight("normal")
@@ -438,17 +393,10 @@ public class OdtService {
                 .color("#000000");
 
         // Title 3
-        styleProcessor.setStyle(stylesOfficeStyles.getStyle("Heading_20_3", OdfStyleFamily.Paragraph))
+        styleProcessor.setStyle(stylesOfficeStyles.getStyle(Heading_20_3, OdfStyleFamily.Paragraph))
                 .margins("0cm", "0cm", "0cm", "0cm")
                 .fontWeight("normal")
                 .fontSize("16pt");
-
-        // Title 4
-        styleProcessor.setStyle(stylesOfficeStyles.getStyle("Heading_20_4", OdfStyleFamily.Paragraph))
-                .margins("0.2cm", "0cm", "0.2cm", "0cm")
-                .fontWeight("bold")
-                .fontSize("11pt")
-                .color("#b84000");
 
         //test
         styleProcessor.setStyle(stylesOfficeStyles.newStyle(Text_20_1, OdfStyleFamily.Text))
@@ -469,47 +417,6 @@ public class OdtService {
                 .fontSize("11pt")
                 .color("#000000")
                 .fontStyle("italic");
-
-
-        // Bold
-        styleProcessor.setStyle(stylesOfficeStyles.newStyle("Text_20_bold", OdfStyleFamily.Text))
-                .fontWeight("bold");
-
-        // Italic
-        styleProcessor.setStyle(stylesOfficeStyles.newStyle("Text_20_italic", OdfStyleFamily.Text))
-                .fontStyle("italic");
-
-        // Underline
-        styleProcessor.setStyle(stylesOfficeStyles.newStyle("Text_20_underline", OdfStyleFamily.Text))
-                .textUnderline("auto", "solid", "font-color");
-
-        // Orange
-        styleProcessor.setStyle(stylesOfficeStyles.newStyle("Text_20_orange", OdfStyleFamily.Text))
-                .fontSize("27pt")
-                .color("#b84000");
-
-        // Blue
-        styleProcessor.setStyle(stylesOfficeStyles.newStyle("Text_20_blue", OdfStyleFamily.Text))
-                .color("#4d9999");
-
-        // Grey
-        styleProcessor.setStyle(stylesOfficeStyles.newStyle("Text_20_grey", OdfStyleFamily.Text))
-                .color("#b2b2b2");
-
-        // Indice
-        styleProcessor.setStyle(stylesOfficeStyles.newStyle("Text_20_indice", OdfStyleFamily.Text))
-                .textPosition("sub 50%");
-
-        // Comment List
-        TextListLevelStyleNumberElement level;
-        OdfTextListStyle listStyle = stylesOfficeStyles.getListStyle("Numbering_20_1");
-        for (int i = 0; i < 10; i++) {
-            level = (TextListLevelStyleNumberElement) listStyle.getLevel(i + 1);
-            level.setStyleNumFormatAttribute("");
-            level.setStyleNumSuffixAttribute("");
-            level.setProperty(StyleListLevelPropertiesElement.SpaceBefore, (i * 0.5) + "cm");
-            level.setProperty(StyleListLevelPropertiesElement.MinLabelWidth, 0 + "cm");
-        }
     }
 
     private class OdfStyleProcessor {
@@ -552,13 +459,6 @@ public class OdtService {
             return this;
         }
 
-        public OdfStyleProcessor textUnderline(String width, String style, String color) {
-            this.style.setProperty(StyleTextPropertiesElement.TextUnderlineWidth, width);
-            this.style.setProperty(StyleTextPropertiesElement.TextUnderlineStyle, style);
-            this.style.setProperty(StyleTextPropertiesElement.TextUnderlineColor, color);
-            return this;
-        }
-
         public OdfStyleProcessor margins(String top, String right, String bottom, String left) {
             this.style.setProperty(StyleParagraphPropertiesElement.MarginTop, top);
             this.style.setProperty(StyleParagraphPropertiesElement.MarginRight, right);
@@ -567,21 +467,8 @@ public class OdtService {
             return this;
         }
 
-        public OdfStyleProcessor paddings(String top, String right, String bottom, String left) {
-            this.style.setProperty(StyleParagraphPropertiesElement.PaddingTop, top);
-            this.style.setProperty(StyleParagraphPropertiesElement.PaddingRight, right);
-            this.style.setProperty(StyleParagraphPropertiesElement.PaddingBottom, bottom);
-            this.style.setProperty(StyleParagraphPropertiesElement.PaddingLeft, left);
-            return this;
-        }
-
         public OdfStyleProcessor color(String value) {
             this.style.setProperty(StyleTextPropertiesElement.Color, value);
-            return this;
-        }
-
-        public OdfStyleProcessor backgroundColor(String value) {
-            this.style.setProperty(StyleParagraphPropertiesElement.BackgroundColor, value);
             return this;
         }
 
@@ -590,14 +477,5 @@ public class OdtService {
             return this;
         }
 
-        public OdfStyleProcessor textPosition(String value) {
-            this.style.setProperty(StyleTextPropertiesElement.TextPosition, value);
-            return this;
-        }
-
-        public OdfStyleProcessor setProperty(OdfStyleProperty prop, String value) {
-            this.style.setProperty(prop, value);
-            return this;
-        }
     }
 }
