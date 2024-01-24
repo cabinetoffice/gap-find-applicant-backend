@@ -8,6 +8,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.odftoolkit.odfdom.doc.OdfTextDocument;
 import org.springframework.test.util.ReflectionTestUtils;
 import java.io.*;
 import java.util.ArrayList;
@@ -58,11 +59,10 @@ public class ZipServiceTest {
                 .application(GrantApplication.builder().id(2).build()).build();
 
         ByteArrayOutputStream testOdtStream = new ByteArrayOutputStream();
-        testOdtStream.write(1);
-        byte[] odtStream = testOdtStream.toByteArray();
-        ByteArrayOutputStream res = serviceUnderTest.createSubmissionZip(testSubmission, odtStream);
+        OdfTextDocument odt = OdfTextDocument.newTextDocument();
+        ByteArrayOutputStream res = serviceUnderTest.createSubmissionZip(testSubmission, odt);
 
-        assertEquals(res.size(), 255);
+        assertEquals(res.size(), 9740);
     }
 
     @Test
