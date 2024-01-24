@@ -58,7 +58,6 @@ public class ZipServiceTest {
                         .build()).id(UUID.randomUUID()).scheme(GrantScheme.builder().version(1).build())
                 .application(GrantApplication.builder().id(2).build()).build();
 
-        ByteArrayOutputStream testOdtStream = new ByteArrayOutputStream();
         OdfTextDocument odt = OdfTextDocument.newTextDocument();
         ByteArrayOutputStream res = serviceUnderTest.createSubmissionZip(testSubmission, odt);
 

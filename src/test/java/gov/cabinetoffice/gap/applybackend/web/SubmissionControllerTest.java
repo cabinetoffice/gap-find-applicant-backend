@@ -1045,6 +1045,8 @@ class SubmissionControllerTest {
             ByteArrayOutputStream mockOutputSteam = new ByteArrayOutputStream();
             mockOutputSteam.write(1);
             when(zipService.createSubmissionZip(any(), any())).thenReturn(mockOutputSteam);
+
+            when(zipService.byteArrayOutputStreamToResource(any())).thenReturn(new ByteArrayResource(new byte[]{1}));
             ResponseEntity<ByteArrayResource> responseEntity =
                     controllerUnderTest.exportSingleSubmission(submissionId, mockRequest);
 
