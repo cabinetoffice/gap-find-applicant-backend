@@ -106,7 +106,7 @@ public class OdtService {
         OdfTextParagraph p = new OdfTextParagraph(contentDom);
 
         h1.addStyledContentWhitespace(Heading_20_1, submission.getLegalName());
-        p.addStyledContent(Text_20_1, "Application for " + submission.getScheme().getName());
+        p.addStyledContentWhitespace(Text_20_1, "Application for " + submission.getScheme().getName());
         h2.addStyledContentWhitespace(Heading_20_2, "Application details");
         OdfTable table;
 
