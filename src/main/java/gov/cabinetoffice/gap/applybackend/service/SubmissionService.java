@@ -58,8 +58,17 @@ public class SubmissionService {
     private final GrantMandatoryQuestionRepository grantMandatoryQuestionRepository;
     private final GovNotifyClient notifyClient;
 
+    private final OdtService odtService;
+
+
     private final Clock clock;
     private final EnvironmentProperties envProperties;
+
+    public Submission getSubmissionById(final UUID submissionId) {
+        return submissionRepository.findById(submissionId)
+                .orElseThrow(() -> new NotFoundException(
+                        String.format("No Submission with ID %s was found", submissionId)));
+    }
 
     public Submission getSubmissionFromDatabaseBySubmissionId(final String userId, final UUID submissionId) {
         Submission submission = submissionRepository
@@ -586,9 +595,8 @@ public class SubmissionService {
         }
     }
 
-    public OdfTextDocument getSubmissionExport(UUID submissionId, String email, String userSub) throws Exception {
-        final Submission submission = submissionRepository.findById(submissionId)
-                .orElseThrow(() -> new NotFoundException(String.format("No submission with ID %s was found", submissionId)));
+    public OdfTextDocument getSubmissionExport(Submission submission, String email, String userSub){
+
         String submissionOwner = submission.getApplicant().getUserId();
 
         if (!Objects.equals(submissionOwner, userSub)) {
@@ -596,7 +604,9 @@ public class SubmissionService {
             throw new ForbiddenException("You can't access this submission");
         }
 
-       return OdtService.generateSingleOdt(submission, email);
+
+
+       return odtService.generateSingleOdt(submission, email);
     }
 
     private List<String> getSectionIdsToSkipAfterEligibilitySectionCompleted(final int schemeVersion) {
@@ -612,13 +622,14 @@ public class SubmissionService {
         return sectionIds;
     }
 
-    public boolean isApplicantEligible(final String userId, final UUID submissionId, final String questionId){
+    public boolean isApplicantEligible(final String userId, final UUID submissionId){
         final Submission submission = getSubmissionFromDatabaseBySubmissionId(userId, submissionId);
         final Optional<SubmissionQuestion> eligibilityResponse = getQuestionResponseByQuestionId(submission ,"ELIGIBILITY");
-        return eligibilityResponse.map(submissionQuestion -> submissionQuestion.getResponse().equals("Yes")).orElse(false);
+        return eligibilityResponse
+                .map(submissionQuestion -> submissionQuestion.getResponse().equals("Yes")).orElse(false);
     }
 
-    public Optional<Submission> getSubmissionById(final UUID submissionId) {
+    public Optional<Submission> getOptionalSubmissionById(final UUID submissionId) {
         return submissionRepository.findById(submissionId);
     }
 }

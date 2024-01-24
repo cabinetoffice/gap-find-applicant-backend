@@ -124,4 +124,11 @@ public class Submission extends BaseEntity {
                 .getSections()
                 .removeIf(section -> section.getSectionId().equals(sectionId));
     }
+
+    public String getLegalName(){
+        return this.getScheme().getVersion() == 1 ?
+                this.getSection("ESSENTIAL").getQuestionById("APPLICANT_ORG_NAME").getResponse()
+                :
+                this.getSection("ORGANISATION_DETAILS").getQuestionById("APPLICANT_ORG_NAME").getResponse();
+    }
 }

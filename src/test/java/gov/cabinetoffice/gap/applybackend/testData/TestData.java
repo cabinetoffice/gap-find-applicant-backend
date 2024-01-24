@@ -455,7 +455,7 @@ public class TestData {
 
     public static final Submission V2_SUBMISSION_LIMITED_COMPANY_WITH_CC_AND_CH = Submission
             .builder()
-            .scheme(GrantScheme.builder().name("v2 limited Scheme Name").id(1).build())
+            .scheme(GrantScheme.builder().version(2).name("v2 limited Scheme Name").id(1).build())
             .gapId("GAP-1")
             .submittedDate(ZonedDateTime.parse("2022-02-15T18:35:24.00Z"))
             .definition(SubmissionDefinition.builder().sections((V2_SUBMISSION_SECTIONS_LIST_LIMITED_WITH_CC_AND_CH)).build())
@@ -470,11 +470,10 @@ public class TestData {
 
     public static final Submission V2_SUBMISSION_LIMITED_COMPANY_WITHOUT_CC_AND_CH = Submission
             .builder()
-            .scheme(GrantScheme.builder().name("Test Org Name v2").build())
+            .scheme(GrantScheme.builder().version(2).name("Test Org Name v2").build())
             .gapId("GAP-2")
             .submittedDate(ZonedDateTime.parse("2022-02-15T18:35:24.00Z"))
             .definition(SubmissionDefinition.builder().sections((V2_SUBMISSION_SECTIONS_LIST_LIMITED_WITHOUT_CC_AND_CH)).build())
-            .version(2)
             .build();
 
     public static final List<SubmissionSection> V2_SUBMISSION_SECTIONS_LIST_NON_LIMITED = Arrays.asList(
@@ -485,7 +484,7 @@ public class TestData {
 
     public static final Submission V2_SUBMISSION_NON_LIMITED_COMPANY = Submission
             .builder()
-            .scheme(GrantScheme.builder().name("Test Org Name v2").build())
+            .scheme(GrantScheme.builder().version(2).name("Test Org Name v2").build())
             .gapId("GAP-2")
             .submittedDate(ZonedDateTime.parse("2022-02-15T18:35:24.00Z"))
             .definition(SubmissionDefinition.builder().sections((V2_SUBMISSION_SECTIONS_LIST_NON_LIMITED)).build())
@@ -500,7 +499,7 @@ public class TestData {
 
     public static final Submission V2_SUBMISSION_INDIVIDUAL = Submission
             .builder()
-            .scheme(GrantScheme.builder().name("Test Org Name v2").build())
+            .scheme(GrantScheme.builder().version(2).name("Test Org Name v2").build())
             .gapId("GAP-2")
             .submittedDate(ZonedDateTime.parse("2022-02-15T18:35:24.00Z"))
             .definition(SubmissionDefinition.builder().sections((V2_SUBMISSION_SECTIONS_LIST_INDIVIDUAL)).build())

@@ -11,6 +11,7 @@ import gov.cabinetoffice.gap.applybackend.exception.GrantApplicationNotPublished
 import gov.cabinetoffice.gap.applybackend.exception.NotFoundException;
 import gov.cabinetoffice.gap.applybackend.model.*;
 import gov.cabinetoffice.gap.applybackend.service.*;
+import gov.cabinetoffice.gap.applybackend.utils.ZipHelper;
 import gov.cabinetoffice.gap.eventservice.enums.EventType;
 import gov.cabinetoffice.gap.eventservice.exception.InvalidEventException;
 import gov.cabinetoffice.gap.eventservice.service.EventLogService;
@@ -34,6 +35,7 @@ import java.io.ByteArrayOutputStream;
 import java.time.Clock;
 import java.time.Instant;
 import java.util.*;
+import java.util.zip.ZipOutputStream;
 
 import static gov.cabinetoffice.gap.applybackend.utils.SecurityContextHelper.getJwtIdFromSecurityContext;
 import static gov.cabinetoffice.gap.applybackend.utils.SecurityContextHelper.getUserIdFromSecurityContext;
@@ -51,6 +53,7 @@ public class SubmissionController {
     private final GrantApplicationService grantApplicationService;
     private final SpotlightService spotlightService;
     private final GrantMandatoryQuestionService mandatoryQuestionService;
+    private final ZipService zipService;
 
     private final SecretAuthService secretAuthService;
     private final AttachmentService attachmentService;
@@ -354,22 +357,22 @@ public class SubmissionController {
 
     @GetMapping("/{submissionId}/download-summary")
     public ResponseEntity<ByteArrayResource> exportSingleSubmission(
-            @PathVariable final UUID submissionId, HttpServletRequest request) throws Exception {
+            @PathVariable final UUID submissionId, HttpServletRequest request) {
         final String userSub = getUserIdFromSecurityContext();
         final String userEmail = grantApplicantService.getEmailById(userSub, request);
-        
-        try (OdfTextDocument odt = submissionService.getSubmissionExport(submissionId, userEmail, userSub);
-             ByteArrayOutputStream outputStream = new ByteArrayOutputStream()) {
-            odt.save(outputStream);
-            byte[] odtBytes = outputStream.toByteArray();
-            ByteArrayResource resource = new ByteArrayResource(odtBytes);
+        final Submission submission = submissionService.getSubmissionById(submissionId);
+
+        try (OdfTextDocument odt = submissionService.getSubmissionExport(submission, userEmail, userSub);
+             ByteArrayOutputStream zip = zipService.createSubmissionZip(submission, odt)){
+
+            ByteArrayResource zipResource = zipService.byteArrayOutputStreamToResource(zip);
 
             HttpHeaders headers = new HttpHeaders();
-            headers.add(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"export.odt\"");
+            headers.add(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"submission.zip\"");
             headers.add(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_OCTET_STREAM_VALUE);
 
-            return ResponseEntity.ok().headers(headers).contentLength(resource.contentLength())
-                    .contentType(MediaType.APPLICATION_OCTET_STREAM).body(resource);
+            return ResponseEntity.ok().headers(headers).contentLength(zipResource.contentLength())
+                        .contentType(MediaType.APPLICATION_OCTET_STREAM).body(zipResource);
         } catch (Exception e) {
             log.error("Could not generate ODT. Exception: ", e);
             throw new RuntimeException(e);
@@ -379,13 +382,13 @@ public class SubmissionController {
         @GetMapping("/{submissionId}/isApplicantEligible")
     public ResponseEntity<Boolean>  isApplicantEligible(@PathVariable final UUID submissionId) {
         final String applicantId = getUserIdFromSecurityContext();
-        return ResponseEntity.ok(submissionService.isApplicantEligible(applicantId, submissionId, "ELIGIBILITY"));
+        return ResponseEntity.ok(submissionService.isApplicantEligible(applicantId, submissionId));
     }
 
     @GetMapping("/{submissionId}/application/status")
     public ResponseEntity<String> applicationStatus(@PathVariable final UUID submissionId) {
         final String applicantId = getUserIdFromSecurityContext();
-        Optional<Submission> submission = submissionService.getSubmissionById(submissionId);
+        Optional<Submission> submission = submissionService.getOptionalSubmissionById(submissionId);
         if (submission.isEmpty()) {
             return ResponseEntity.notFound().build();
         }
@@ -437,7 +440,7 @@ public class SubmissionController {
             }
 
         } catch (Exception e) {
-            // If anything goes wrong logging to event service, log and continue
+            // If anything goes wrong logging to event-service, log and continue
             log.error("Could not send to event service. Exception: ", e);
         }
     }
