@@ -11,9 +11,11 @@ import gov.cabinetoffice.gap.applybackend.provider.AmazonProvider;
 import gov.cabinetoffice.gap.applybackend.utils.ZipHelper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.odftoolkit.odfdom.doc.OdfTextDocument;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.io.ByteArrayResource;
 import org.springframework.stereotype.Service;
 
 import javax.annotation.PostConstruct;
@@ -39,8 +41,17 @@ public class ZipService {
     public static final Integer LONG_FILE_NAME_LENGTH = 50;
     private final AmazonS3 client = AmazonProvider.initializeS3();
 
-    public ByteArrayOutputStream createSubmissionZip(final Submission submission, final byte[] odt)
-            throws IOException {
+
+    public ByteArrayResource byteArrayOutputStreamToResource(ByteArrayOutputStream byteArrayOutputStream) {
+        byte[] zipBytes = byteArrayOutputStream.toByteArray();
+        return new ByteArrayResource(zipBytes);
+    }
+
+    public ByteArrayOutputStream createSubmissionZip(final Submission submission, final OdfTextDocument odtDoc)
+            throws Exception {
+        ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+        odtDoc.save(outputStream);
+        byte[] odt = outputStream.toByteArray();
 
         String submissionId = String.valueOf(submission.getId());
         String applicationId = String.valueOf(submission.getApplication().getId());

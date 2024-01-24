@@ -84,7 +84,7 @@ public class OdtService {
                         !Objects.equals(section.getSectionId(), FUNDING_DETAILS_SECTION_ID)) {
                     documentText.appendChild(new OdfTextParagraph(contentDom)
                             .addStyledContentWhitespace(Heading_20_2, "Custom sections"));
-                    populateQuestionResponseTable(count, section, documentText, contentDom, sectionBreak, odt);
+                    populateQuestionResponseTable(count, section, documentText, contentDom, odt);
                 }
             });
             logger.info("ODT file generated successfully");
@@ -213,78 +213,80 @@ public class OdtService {
     private static void populateQuestionResponseTable(AtomicInteger count,
                                               SubmissionSection section,
                                               OfficeTextElement documentText,
-                                              OdfContentDom contentDom,
-                                              OdfTextParagraph sectionBreak, OdfTextDocument odt) {
-                documentText.appendChild(sectionBreak);
+                                              OdfContentDom contentDom, OdfTextDocument odt) {
                 OdfTextHeading sectionHeading = new OdfTextHeading(contentDom);
                 sectionHeading.addStyledContent(Heading_20_3, section.getSectionTitle());
                 documentText.appendChild(sectionHeading);
 
-                int questionIndex = 0;
+                AtomicInteger questionIndex = new AtomicInteger(0);
+                OdfTable table = OdfTable.newTable(odt, section.getQuestions().size(), 2);
                 section.getQuestions().forEach(question -> {
+
                     populateDocumentFromQuestionResponse(question, documentText, contentDom, questionIndex, odt,
-                            section.getQuestions().size());
+                             table);
+                    questionIndex.incrementAndGet();
                 });
+
                 count.getAndIncrement();
         };
 
     private static void populateDocumentFromQuestionResponse(SubmissionQuestion question,
                                                              OfficeTextElement documentText,
-                                                             OdfContentDom contentDom, int questionIndex,
-                                                             OdfTextDocument odt, int size) {
+                                                             OdfContentDom contentDom, AtomicInteger questionIndex,
+                                                             OdfTextDocument odt, OdfTable table) {
             OdfTextParagraph questionParagraph = new OdfTextParagraph(contentDom);
             OdfTextParagraph responseParagraph = new OdfTextParagraph(contentDom);
             questionParagraph.addStyledContent(smallHeadingStyle, question.getFieldTitle());
 
-        OdfTable table = OdfTable.newTable(odt, size, 2);
+
 
         table.getRowByIndex(0).getCellByIndex(0).setStringValue("Amount applied for");
 
             switch (question.getResponseType()) {
                 case AddressInput, MultipleSelection -> {
-                    table.getRowByIndex(questionIndex).getCellByIndex(0).setStringValue(question.getFieldTitle());
+                    table.getRowByIndex(questionIndex.get()).getCellByIndex(0).setStringValue(question.getFieldTitle());
                     if (question.getMultiResponse() != null) {
-                        table.getRowByIndex(questionIndex).getCellByIndex(1).setStringValue(String.join(",\n",
+                        table.getRowByIndex(questionIndex.get()).getCellByIndex(1).setStringValue(String.join(",\n",
                                 question.getMultiResponse()) + "\n");
                     } else {
-                        table.getRowByIndex(questionIndex).getCellByIndex(1).setStringValue("Not provided");
+                        table.getRowByIndex(questionIndex.get()).getCellByIndex(1).setStringValue("Not provided");
                     }
                 }
                 case SingleFileUpload -> {
-                    table.getRowByIndex(questionIndex).getCellByIndex(0).setStringValue(question.getFieldTitle());
+                    table.getRowByIndex(questionIndex.get()).getCellByIndex(0).setStringValue(question.getFieldTitle());
                     if (question.getResponse() != null) {
                         int index = question.getResponse().lastIndexOf(".");
                         String fileInfo = "File name: " + question.getResponse().substring(0, index) + "\n" +
                                 "File extension: " + question.getResponse().substring(index + 1);
 
-                        table.getRowByIndex(questionIndex).getCellByIndex(1).setStringValue(fileInfo);
+                        table.getRowByIndex(questionIndex.get()).getCellByIndex(1).setStringValue(fileInfo);
 
                     } else {
-                        table.getRowByIndex(questionIndex).getCellByIndex(1).setStringValue("Not provided");
+                        table.getRowByIndex(questionIndex.get()).getCellByIndex(1).setStringValue("Not provided");
                     }
                 }
                 case Date -> {
-                    table.getRowByIndex(questionIndex).getCellByIndex(0).setStringValue(question.getFieldTitle());
+                    table.getRowByIndex(questionIndex.get()).getCellByIndex(0).setStringValue(question.getFieldTitle());
                     if (question.getMultiResponse() != null) {
                         final String date = String.join("-", question.getMultiResponse());
-                        table.getRowByIndex(questionIndex).getCellByIndex(1).setStringValue(date);
+                        table.getRowByIndex(questionIndex.get()).getCellByIndex(1).setStringValue(date);
                     } else {
-                        table.getRowByIndex(questionIndex).getCellByIndex(1).setStringValue("Not provided");
+                        table.getRowByIndex(questionIndex.get()).getCellByIndex(1).setStringValue("Not provided");
                     }
                 }
                 case YesNo, Dropdown, ShortAnswer, LongAnswer, Numeric -> {
-                    table.getRowByIndex(questionIndex).getCellByIndex(0).setStringValue(question.getFieldTitle());
+                    table.getRowByIndex(questionIndex.get()).getCellByIndex(0).setStringValue(question.getFieldTitle());
                     if (question.getResponse() == null || question.getResponse().isEmpty()) {
                         responseParagraph.addContentWhitespace("Not provided");
-                        table.getRowByIndex(questionIndex).getCellByIndex(1).setStringValue("Not provided");
+                        table.getRowByIndex(questionIndex.get()).getCellByIndex(1).setStringValue("Not provided");
                     } else {
-                        table.getRowByIndex(questionIndex).getCellByIndex(1).setStringValue(question.getResponse());
+                        table.getRowByIndex(questionIndex.get()).getCellByIndex(1).setStringValue(question.getResponse());
                     }
                 }
                 default ->  {
                     responseParagraph.addContentWhitespace(question.getResponse() + "\n");
-                    table.getRowByIndex(questionIndex).getCellByIndex(0).setStringValue(question.getFieldTitle());
-                    table.getRowByIndex(questionIndex).getCellByIndex(1).setStringValue(question.getResponse());
+                    table.getRowByIndex(questionIndex.get()).getCellByIndex(0).setStringValue(question.getFieldTitle());
+                    table.getRowByIndex(questionIndex.get()).getCellByIndex(1).setStringValue(question.getResponse());
                 }
             }
             documentText.appendChild(table.getOdfElement());
@@ -371,10 +373,10 @@ public class OdtService {
         pageLayoutStyle.setProperty(OdfPageLayoutProperties.PrintOrientation, "Portrait");
 
         styleProcessor.setStyle(stylesOfficeStyles.getDefaultStyle(OdfStyleFamily.Paragraph))
-                .margins("0cm", "0cm", "0.1cm", "0cm")
+                .margins("0cm", "0cm", "0cm", "0cm")
                 .fontFamilly("Arial")
                 .fontSize("11pt")
-                .textAlign("justify");
+                .textAlign("normal");
 
 
         // Title 1

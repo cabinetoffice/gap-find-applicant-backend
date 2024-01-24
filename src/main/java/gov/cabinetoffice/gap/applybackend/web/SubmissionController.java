@@ -361,25 +361,18 @@ public class SubmissionController {
         final String userSub = getUserIdFromSecurityContext();
         final String userEmail = grantApplicantService.getEmailById(userSub, request);
         final Submission submission = submissionService.getSubmissionById(submissionId);
-        
+
         try (OdfTextDocument odt = submissionService.getSubmissionExport(submission, userEmail, userSub);
-             ByteArrayOutputStream outputStream = new ByteArrayOutputStream()) {
+             ByteArrayOutputStream zip = zipService.createSubmissionZip(submission, odt)){
 
-            odt.save(outputStream);
+            ByteArrayResource zipResource = zipService.byteArrayOutputStreamToResource(zip);
 
-            byte[] odtBytes = outputStream.toByteArray();
+            HttpHeaders headers = new HttpHeaders();
+            headers.add(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"submission.zip\"");
+            headers.add(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_OCTET_STREAM_VALUE);
 
-            try(ByteArrayOutputStream zipOutputStream = zipService.createSubmissionZip(submission, odtBytes)) {
-                byte[] zipBytes = zipOutputStream.toByteArray();
-                ByteArrayResource zipResource = new ByteArrayResource(zipBytes);
-
-                HttpHeaders headers = new HttpHeaders();
-                headers.add(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"submission.zip\"");
-                headers.add(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_OCTET_STREAM_VALUE);
-
-                return ResponseEntity.ok().headers(headers).contentLength(zipResource.contentLength())
+            return ResponseEntity.ok().headers(headers).contentLength(zipResource.contentLength())
                         .contentType(MediaType.APPLICATION_OCTET_STREAM).body(zipResource);
-             }
         } catch (Exception e) {
             log.error("Could not generate ODT. Exception: ", e);
             throw new RuntimeException(e);
