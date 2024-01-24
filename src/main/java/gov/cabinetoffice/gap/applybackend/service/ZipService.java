@@ -1,16 +1,12 @@
 package gov.cabinetoffice.gap.applybackend.service;
 
 import com.amazonaws.AmazonServiceException;
-import com.amazonaws.regions.Regions;
 import com.amazonaws.services.s3.AmazonS3;
-import com.amazonaws.services.s3.AmazonS3Client;
-import com.amazonaws.services.s3.AmazonS3ClientBuilder;
 import com.amazonaws.services.s3.model.*;
 import gov.cabinetoffice.gap.applybackend.model.Submission;
-import gov.cabinetoffice.gap.applybackend.provider.AmazonProvider;
+import gov.cabinetoffice.gap.applybackend.config.S3Config;
 import gov.cabinetoffice.gap.applybackend.utils.ZipHelper;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import org.odftoolkit.odfdom.doc.OdfTextDocument;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -18,7 +14,6 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.ByteArrayResource;
 import org.springframework.stereotype.Service;
 
-import javax.annotation.PostConstruct;
 import java.io.*;
 import java.util.ArrayList;
 import java.util.List;
@@ -39,7 +34,7 @@ public class ZipService {
     private static final String SPECIAL_CHARACTER_REGEX = "[<>\"\\/|?*\\\\]";
 
     public static final Integer LONG_FILE_NAME_LENGTH = 50;
-    private final AmazonS3 client = AmazonProvider.initializeS3();
+    private final AmazonS3 client = S3Config.initializeS3();
 
 
     public ByteArrayResource byteArrayOutputStreamToResource(ByteArrayOutputStream byteArrayOutputStream) {
