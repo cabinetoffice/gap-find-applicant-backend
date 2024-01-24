@@ -1,6 +1,9 @@
 package gov.cabinetoffice.gap.applybackend.service;
 
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.odftoolkit.odfdom.doc.OdfDocument;
 import org.w3c.dom.Document;
 
@@ -13,14 +16,20 @@ import java.io.StringWriter;
 import static org.assertj.core.api.Assertions.assertThat;
 import static gov.cabinetoffice.gap.applybackend.testData.TestData.*;
 
+@ExtendWith(MockitoExtension.class)
+
 class OdtServiceTest {
+    @InjectMocks
+    OdtService odtService;
+
+
    @Test
    void compareTestGenerateSingleOdtForSchemeVersion1() throws Exception {
-       OdfDocument generatedDoc = OdtService.generateSingleOdt(V1_SUBMISSION, "testEmail");
+       OdfDocument generatedDoc = odtService.generateSingleOdt(V1_SUBMISSION, "testEmail");
        final String generatedContent = docToString(generatedDoc.getContentDom());
 
        assertThat(generatedContent).contains("Eligibility");
-       assertThat(generatedContent).contains("Required checks");
+       assertThat(generatedContent).contains("Due diligence information");
        assertThat(generatedContent).contains("V1_Company name");
        assertThat(generatedContent).contains("V1_test address");
        assertThat(generatedContent).contains("V1_Edinburgh");
@@ -42,13 +51,14 @@ class OdtServiceTest {
 
    @Test
    void compareTestGenerateSingleOdtForLimitedCompanyWithCCAndCHForSchemeVersion2() throws Exception {
-       final OdfDocument generatedDoc = OdtService.generateSingleOdt(V2_SUBMISSION_LIMITED_COMPANY_WITH_CC_AND_CH, "testEmail");
+       final OdfDocument generatedDoc = odtService.generateSingleOdt(V2_SUBMISSION_LIMITED_COMPANY_WITH_CC_AND_CH, "testEmail");
        final String generatedContent = docToString(generatedDoc.getContentDom());
 
-       assertThat(generatedContent).contains("Organisation name: V2_Company name");
+       assertThat(generatedContent).contains("Organisation Name");
+       assertThat(generatedContent).contains("V2_Company name");
        assertThat(generatedContent).contains("Eligibility");
-       assertThat(generatedContent).contains("Required checks");
-       assertThat(generatedContent).contains("Legal name of organisation");
+       assertThat(generatedContent).contains("Due diligence information");
+       assertThat(generatedContent).contains("Organisation type");
        assertThat(generatedContent).contains("v2 limited Scheme Name");
        assertThat(generatedContent).contains("V2_test address");
        assertThat(generatedContent).contains("V2_Edinburgh");
@@ -71,14 +81,14 @@ class OdtServiceTest {
 
    @Test
    void compareTestGenerateSingleOdtForLimitedCompanyWithoutCCAndCHForSchemeVersion2() throws Exception {
-       final OdfDocument generatedDoc = OdtService.generateSingleOdt(
+       final OdfDocument generatedDoc = odtService.generateSingleOdt(
                V2_SUBMISSION_LIMITED_COMPANY_WITHOUT_CC_AND_CH, "testEmail");
        final String generatedContent = docToString(generatedDoc.getContentDom());
 
-       assertThat(generatedContent).contains("Organisation name: V2_Company name");
+       assertThat(generatedContent).contains("V2_Company name");
        assertThat(generatedContent).contains("Eligibility");
-       assertThat(generatedContent).contains("Required checks");
-       assertThat(generatedContent).contains("Legal name of organisation");
+       assertThat(generatedContent).contains("Due diligence information");
+       assertThat(generatedContent).contains("Organisation type");
        assertThat(generatedContent).contains("Test Org Name v2");
        assertThat(generatedContent).contains("V2_test address");
        assertThat(generatedContent).contains("V2_Edinburgh");
@@ -103,13 +113,13 @@ class OdtServiceTest {
 
    @Test
    void compareTestGenerateSingleOdtForNonLimitedCompanyForSchemeVersion2() throws Exception {
-       final OdfDocument generatedDoc = OdtService.generateSingleOdt(V2_SUBMISSION_NON_LIMITED_COMPANY, "testEmail");
+       final OdfDocument generatedDoc = odtService.generateSingleOdt(V2_SUBMISSION_NON_LIMITED_COMPANY, "testEmail");
        final String generatedContent = docToString(generatedDoc.getContentDom());
-
-       assertThat(generatedContent).contains("Organisation name: V2_Company name");
+       assertThat(generatedContent).contains("Organisation Name");
+       assertThat(generatedContent).contains("V2_Company name");
        assertThat(generatedContent).contains("Eligibility");
-       assertThat(generatedContent).contains("Required checks");
-       assertThat(generatedContent).contains("Legal name of organisation");
+       assertThat(generatedContent).contains("Due diligence information");
+       assertThat(generatedContent).contains("Organisation details");
        assertThat(generatedContent).contains("Test Org Name v2");
        assertThat(generatedContent).contains("V2_test address");
        assertThat(generatedContent).contains("V2_Edinburgh");
@@ -134,12 +144,14 @@ class OdtServiceTest {
 
    @Test
    void compareTestGenerateSingleOdtForIndividualForSchemeVersion2() throws Exception {
-       final OdfDocument generatedDoc = OdtService.generateSingleOdt(V2_SUBMISSION_INDIVIDUAL, "testFileName5");
+       final OdfDocument generatedDoc = odtService.generateSingleOdt(V2_SUBMISSION_INDIVIDUAL, "testFileName5");
        final String generatedContent = docToString(generatedDoc.getContentDom());
 
-       assertThat(generatedContent).contains("Applicant name: V2_Company name");
+
+       assertThat(generatedContent).contains("Applicant name");
+       assertThat(generatedContent).contains("V2_Company name");
        assertThat(generatedContent).contains("Eligibility");
-       assertThat(generatedContent).contains("Required checks");
+       assertThat(generatedContent).contains("Due diligence information");
        assertThat(generatedContent).contains("Applicant name");
        assertThat(generatedContent).contains("Test Org Name v2");
        assertThat(generatedContent).contains("V2_test address");

@@ -629,7 +629,7 @@ public class SubmissionService {
                 .map(submissionQuestion -> submissionQuestion.getResponse().equals("Yes")).orElse(false);
     }
 
-    public Optional<Submission> getSubmissionById(final UUID submissionId) {
+    public Optional<Submission> getOptionalSubmissionById(final UUID submissionId) {
         return submissionRepository.findById(submissionId);
     }
 }

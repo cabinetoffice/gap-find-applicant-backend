@@ -395,7 +395,7 @@ public class SubmissionController {
     @GetMapping("/{submissionId}/application/status")
     public ResponseEntity<String> applicationStatus(@PathVariable final UUID submissionId) {
         final String applicantId = getUserIdFromSecurityContext();
-        Optional<Submission> submission = submissionService.getSubmissionById(submissionId);
+        Optional<Submission> submission = submissionService.getOptionalSubmissionById(submissionId);
         if (submission.isEmpty()) {
             return ResponseEntity.notFound().build();
         }
