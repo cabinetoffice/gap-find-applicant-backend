@@ -3,6 +3,7 @@ package gov.cabinetoffice.gap.applybackend.service;
 import com.amazonaws.AmazonServiceException;
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.model.*;
+import gov.cabinetoffice.gap.applybackend.config.properties.S3ConfigProperties;
 import gov.cabinetoffice.gap.applybackend.model.Submission;
 import gov.cabinetoffice.gap.applybackend.config.S3Config;
 import gov.cabinetoffice.gap.applybackend.utils.ZipHelper;
@@ -25,8 +26,7 @@ import java.util.zip.ZipOutputStream;
 @Service
 public class ZipService {
 
-    @Value("${aws.bucket}")
-    private String s3Bucket;
+    private final S3ConfigProperties s3Properties;
 
     private static final Logger logger = LoggerFactory.getLogger(ZipService.class);
 
@@ -67,7 +67,7 @@ public class ZipService {
 
     public List<String> getSubmissionAttachmentFileNames(final String applicationId,
                                                           final String submissionId) {
-        final ListObjectsV2Request req = new ListObjectsV2Request().withBucketName(s3Bucket)
+        final ListObjectsV2Request req = new ListObjectsV2Request().withBucketName(s3Properties.getBucket())
                 .withPrefix(applicationId + "/" + submissionId);
         final ListObjectsV2Result listing = client.listObjectsV2(req);
         final List<S3ObjectSummary> objectSummaries = listing.getObjectSummaries();
@@ -93,9 +93,9 @@ public class ZipService {
 
     private void downloadFile(final String fileName, List<S3Object> list) {
         try {
-            list.add(client.getObject(new GetObjectRequest(s3Bucket, fileName)));
+            list.add(client.getObject(new GetObjectRequest(s3Properties.getBucket(), fileName)));
         } catch (AmazonServiceException e) {
-            logger.error("Could not download file: " + fileName + " from bucket: " + s3Bucket,
+            logger.error("Could not download file: " + fileName + " from bucket: " + s3Properties.getBucket(),
                     e);
             throw e;
         }

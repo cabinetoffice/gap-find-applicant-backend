@@ -2,10 +2,12 @@ package gov.cabinetoffice.gap.applybackend.service;
 
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.model.*;
+import gov.cabinetoffice.gap.applybackend.config.properties.S3ConfigProperties;
 import gov.cabinetoffice.gap.applybackend.model.*;
 import org.junit.jupiter.api.*;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
+import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.odftoolkit.odfdom.doc.OdfTextDocument;
@@ -26,9 +28,12 @@ public class ZipServiceTest {
     @InjectMocks
     private ZipService serviceUnderTest;
 
+    @Mock
+    private S3ConfigProperties mockS3ConfigProperties;
+
     @BeforeEach
     void beforeEach() {
-        ReflectionTestUtils.setField(serviceUnderTest, "s3Bucket", "mockedValue");
+        Mockito.lenient().when(mockS3ConfigProperties.getBucket()).thenReturn("mockedValue");
         AmazonS3 s3Client = mock(AmazonS3.class);
         S3Object s3Obj = mock(S3Object.class);
         Mockito.lenient().when(s3Obj.getKey()).thenReturn("mockKey");
