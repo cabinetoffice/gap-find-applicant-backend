@@ -602,7 +602,7 @@ public class SubmissionService {
 
 
 
-       return OdtService.generateSingleOdt(submission, email);
+       return odtService.generateSingleOdt(submission, email);
     }
 
     private List<String> getSectionIdsToSkipAfterEligibilitySectionCompleted(final int schemeVersion) {
