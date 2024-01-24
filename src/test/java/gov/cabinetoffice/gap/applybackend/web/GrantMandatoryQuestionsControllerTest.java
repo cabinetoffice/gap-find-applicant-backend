@@ -3,6 +3,7 @@ package gov.cabinetoffice.gap.applybackend.web;
 import gov.cabinetoffice.gap.applybackend.dto.api.GetGrantMandatoryQuestionDto;
 import gov.cabinetoffice.gap.applybackend.dto.api.JwtPayload;
 import gov.cabinetoffice.gap.applybackend.dto.api.UpdateGrantMandatoryQuestionDto;
+import gov.cabinetoffice.gap.applybackend.enums.GrantApplicationStatus;
 import gov.cabinetoffice.gap.applybackend.enums.GrantMandatoryQuestionFundingLocation;
 import gov.cabinetoffice.gap.applybackend.enums.GrantMandatoryQuestionOrgType;
 import gov.cabinetoffice.gap.applybackend.enums.GrantMandatoryQuestionStatus;
@@ -347,4 +348,29 @@ class GrantMandatoryQuestionsControllerTest {
 
     }
 
+    @Test
+    void shouldReturnApplicationStatusFromQuestionUUID() {
+
+        final GrantApplication application = GrantApplication.builder()
+                .id(1)
+                .applicationStatus(GrantApplicationStatus.REMOVED)
+                .build();
+        final GrantScheme scheme = GrantScheme.builder()
+                .id(schemeId)
+                .grantApplication(application)
+                .build();
+
+        final GrantMandatoryQuestions mandatoryQuestions = GrantMandatoryQuestions.builder()
+                .id(MANDATORY_QUESTION_ID)
+                .grantScheme(scheme)
+                .createdBy(applicant)
+                .build();
+
+        when(grantMandatoryQuestionService.getGrantMandatoryQuestionById(MANDATORY_QUESTION_ID, jwtPayload.getSub()))
+                .thenReturn(mandatoryQuestions);
+
+        final ResponseEntity<String> methodResponse = controllerUnderTest.getApplicationStatusByMandatoryQuestionId(MANDATORY_QUESTION_ID);
+        assertThat(methodResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(methodResponse.getBody()).isEqualTo("REMOVED");
+    }
 }

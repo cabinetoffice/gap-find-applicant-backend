@@ -1021,6 +1021,7 @@ class SubmissionControllerTest {
             assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
             assertThat(response.getBody()).isTrue();
         }
+        
 
         @Test
         void isApplicantEligible_ReturnsExpectedResponse_ReturnFalse() {

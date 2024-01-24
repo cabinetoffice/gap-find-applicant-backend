@@ -131,12 +131,16 @@ public class SubmissionService {
 
         if (questionResponse.getResponse() != null) {
             submissionQuestion.setResponse(questionResponse.getResponse());
-            submissionSection.setSectionStatus(SubmissionSectionStatus.IN_PROGRESS);
+            if (questionResponse.getShouldUpdateSectionStatus()) {
+                submissionSection.setSectionStatus(SubmissionSectionStatus.IN_PROGRESS);
+            }
         }
 
         if (questionResponse.getMultiResponse() != null) {
             submissionQuestion.setMultiResponse(questionResponse.getMultiResponse());
-            submissionSection.setSectionStatus(SubmissionSectionStatus.IN_PROGRESS);
+            if (questionResponse.getShouldUpdateSectionStatus()) {
+                submissionSection.setSectionStatus(SubmissionSectionStatus.IN_PROGRESS);
+            }
         }
 
         if (sectionId.equals(ELIGIBILITY)) {
@@ -623,6 +627,10 @@ public class SubmissionService {
         final Optional<SubmissionQuestion> eligibilityResponse = getQuestionResponseByQuestionId(submission ,"ELIGIBILITY");
         return eligibilityResponse
                 .map(submissionQuestion -> submissionQuestion.getResponse().equals("Yes")).orElse(false);
+    }
+
+    public Optional<Submission> getSubmissionById(final UUID submissionId) {
+        return submissionRepository.findById(submissionId);
     }
 }
 
