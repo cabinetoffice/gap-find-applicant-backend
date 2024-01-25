@@ -106,7 +106,7 @@ public class OdtService {
         OdfTextParagraph p = new OdfTextParagraph(contentDom);
 
         h1.addStyledContentWhitespace(Heading_20_1, submission.getLegalName());
-        p.addStyledContentWhitespace(Text_20_1, "Application for " + submission.getScheme().getName());
+        p.addStyledContentWhitespace(Text_20_1, "Application for " + submission.getScheme().getName() + "\n");
         h2.addStyledContentWhitespace(Heading_20_2, "Application details");
         OdfTable table;
 
@@ -173,8 +173,7 @@ public class OdtService {
 
         documentText.appendChild(locationQuestion);
         documentText.appendChild(table.getOdfElement());
-        documentText.appendChild(new OdfTextParagraph(contentDom).addContentWhitespace(""));
-        documentText.appendChild(new OdfTextParagraph(contentDom).addContentWhitespace(""));
+        documentText.appendChild(new OdfTextHeading(contentDom).addContentWhitespace("\n\n"));
     }
 
     private static void populateEligibilitySection(final Submission submission,
