@@ -67,7 +67,7 @@ public class ZipService {
 
     public List<String> getSubmissionAttachmentFileNames(final String applicationId,
                                                           final String submissionId) {
-        final ListObjectsV2Request req = new ListObjectsV2Request().withBucketName(s3Properties.getBucket())
+        final ListObjectsV2Request req = new ListObjectsV2Request().withBucketName(s3Properties.getAttachmentsBucket())
                 .withPrefix(applicationId + "/" + submissionId);
         final ListObjectsV2Result listing = client.listObjectsV2(req);
         final List<S3ObjectSummary> objectSummaries = listing.getObjectSummaries();
@@ -93,10 +93,10 @@ public class ZipService {
 
     private void downloadFile(final String fileName, List<S3Object> list) {
         try {
-            list.add(client.getObject(new GetObjectRequest(s3Properties.getBucket(), fileName)));
+            list.add(client.getObject(new GetObjectRequest(s3Properties.getAttachmentsBucket(), fileName)));
         } catch (AmazonServiceException e) {
-            logger.error("Could not download file: " + fileName + " from bucket: " + s3Properties.getBucket(),
-                    e);
+            logger.error("Could not download file: "
+                    + fileName + " from bucket: " + s3Properties.getAttachmentsBucket(), e);
             throw e;
         }
     }

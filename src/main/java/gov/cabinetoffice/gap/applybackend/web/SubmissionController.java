@@ -374,7 +374,7 @@ public class SubmissionController {
             return ResponseEntity.ok().headers(headers).contentLength(zipResource.contentLength())
                         .contentType(MediaType.APPLICATION_OCTET_STREAM).body(zipResource);
         } catch (Exception e) {
-            log.error("Could not generate ODT. Exception: ", e);
+            log.error("Could not generate ZIP. Exception: ", e);
             throw new RuntimeException(e);
         }
     }
