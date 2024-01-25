@@ -77,13 +77,13 @@ public class OdtService {
                     requiredCheckSection, email, fundingSectionName, odt);
 
             AtomicInteger count = new AtomicInteger(3); //2 sections already added
+            documentText.appendChild(new OdfTextParagraph(contentDom)
+                    .addStyledContentWhitespace(Heading_20_2, "Custom sections"));
             submission.getSections().forEach(section -> {
                 if (!Objects.equals(section.getSectionId(), ELIGIBILITY_SECTION_ID) &&
                         !Objects.equals(section.getSectionId(), ESSENTIAL_SECTION_ID) &&
                         !Objects.equals(section.getSectionId(), ORGANISATION_DETAILS_SECTION_ID) &&
                         !Objects.equals(section.getSectionId(), FUNDING_DETAILS_SECTION_ID)) {
-                    documentText.appendChild(new OdfTextParagraph(contentDom)
-                            .addStyledContentWhitespace(Heading_20_2, "Custom sections"));
                     populateQuestionResponseTable(count, section, documentText, contentDom, odt);
                 }
             });
@@ -151,7 +151,6 @@ public class OdtService {
         OdfTextHeading requiredCheckHeading = new OdfTextHeading(contentDom);
         OdfTextHeading requiredCheckSubHeading = new OdfTextHeading(contentDom);
         OdfTextParagraph locationQuestion = new OdfTextParagraph(contentDom);
-        OdfTextParagraph locationResponse = new OdfTextParagraph(contentDom);
         final String orgType = requiredCheckSection.getQuestionById(APPLICANT_TYPE).getResponse();
         final boolean isIndividual = Objects.equals(orgType, APPLICANT_ORG_TYPE_INDIVIDUAL);
         final String orgNameHeading = isIndividual ? "Applicant details" : "Organisation details";
@@ -161,10 +160,9 @@ public class OdtService {
 
         documentText.appendChild(requiredCheckHeading);
         documentText.appendChild(requiredCheckSubHeading);
-        documentText.appendChild(new OdfTextParagraph(contentDom).addContentWhitespace(""));
         documentText.appendChild(generateEssentialTable(requiredCheckSection, odt));
         documentText.appendChild(new OdfTextParagraph(contentDom).addContentWhitespace(""));
-        locationQuestion.addStyledContent(Heading_20_2, "Funding");
+        locationQuestion.addStyledContent(Heading_20_3, "Funding");
         OdfTable table = OdfTable.newTable(odt, 2, 2);
 
         table.getRowByIndex(0).getCellByIndex(0).setStringValue("Amount applied for");
@@ -174,7 +172,6 @@ public class OdtService {
                 submission.getQuestion(fundingSectionName, BENEFITIARY_LOCATION).getMultiResponse()));
 
         documentText.appendChild(locationQuestion);
-        documentText.appendChild(locationResponse);
         documentText.appendChild(table.getOdfElement());
         documentText.appendChild(new OdfTextParagraph(contentDom).addContentWhitespace(""));
         documentText.appendChild(new OdfTextParagraph(contentDom).addContentWhitespace(""));
@@ -215,18 +212,17 @@ public class OdtService {
                                               OfficeTextElement documentText,
                                               OdfContentDom contentDom, OdfTextDocument odt) {
                 OdfTextHeading sectionHeading = new OdfTextHeading(contentDom);
-                sectionHeading.addStyledContent(Heading_20_3, section.getSectionTitle());
+                sectionHeading.addStyledContentWhitespace(Heading_20_3, section.getSectionTitle());
                 documentText.appendChild(sectionHeading);
 
                 AtomicInteger questionIndex = new AtomicInteger(0);
                 OdfTable table = OdfTable.newTable(odt, section.getQuestions().size(), 2);
                 section.getQuestions().forEach(question -> {
-
                     populateDocumentFromQuestionResponse(question, documentText, contentDom, questionIndex, odt,
                              table);
                     questionIndex.incrementAndGet();
                 });
-
+                documentText.appendChild(new OdfTextParagraph(contentDom).addContentWhitespace(""));
                 count.getAndIncrement();
         };
 
@@ -234,14 +230,6 @@ public class OdtService {
                                                              OfficeTextElement documentText,
                                                              OdfContentDom contentDom, AtomicInteger questionIndex,
                                                              OdfTextDocument odt, OdfTable table) {
-            OdfTextParagraph questionParagraph = new OdfTextParagraph(contentDom);
-            OdfTextParagraph responseParagraph = new OdfTextParagraph(contentDom);
-            questionParagraph.addStyledContent(smallHeadingStyle, question.getFieldTitle());
-
-
-
-        table.getRowByIndex(0).getCellByIndex(0).setStringValue("Amount applied for");
-
             switch (question.getResponseType()) {
                 case AddressInput, MultipleSelection -> {
                     table.getRowByIndex(questionIndex.get()).getCellByIndex(0).setStringValue(question.getFieldTitle());
@@ -277,14 +265,12 @@ public class OdtService {
                 case YesNo, Dropdown, ShortAnswer, LongAnswer, Numeric -> {
                     table.getRowByIndex(questionIndex.get()).getCellByIndex(0).setStringValue(question.getFieldTitle());
                     if (question.getResponse() == null || question.getResponse().isEmpty()) {
-                        responseParagraph.addContentWhitespace("Not provided");
                         table.getRowByIndex(questionIndex.get()).getCellByIndex(1).setStringValue("Not provided");
                     } else {
                         table.getRowByIndex(questionIndex.get()).getCellByIndex(1).setStringValue(question.getResponse());
                     }
                 }
                 default ->  {
-                    responseParagraph.addContentWhitespace(question.getResponse() + "\n");
                     table.getRowByIndex(questionIndex.get()).getCellByIndex(0).setStringValue(question.getFieldTitle());
                     table.getRowByIndex(questionIndex.get()).getCellByIndex(1).setStringValue(question.getResponse());
                 }
@@ -305,7 +291,6 @@ public class OdtService {
         } else {
             odfTable = OdfTable.newTable(doc, 9, 2);
         }
-
 
         odfTable.getRowByIndex(0).getCellByIndex(0).setStringValue(orgNameHeading);
         odfTable.getRowByIndex(0).getCellByIndex(1).setStringValue(section.getQuestionById(APPLICANT_ORG_NAME).getResponse());
@@ -396,7 +381,7 @@ public class OdtService {
 
         // Title 3
         styleProcessor.setStyle(stylesOfficeStyles.getStyle(Heading_20_3, OdfStyleFamily.Paragraph))
-                .margins("0cm", "0cm", "0cm", "0cm")
+                .margins("0cm", "0cm", "0.2cm", "0cm")
                 .fontWeight("normal")
                 .fontSize("16pt");
 
