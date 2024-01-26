@@ -9,15 +9,15 @@ import org.odftoolkit.odfdom.dom.OdfContentDom;
 import org.odftoolkit.odfdom.dom.element.office.OfficeTextElement;
 import org.odftoolkit.odfdom.dom.element.style.*;
 import org.odftoolkit.odfdom.dom.element.table.TableTableElement;
-import org.odftoolkit.odfdom.dom.element.text.TextListLevelStyleNumberElement;
+import org.odftoolkit.odfdom.dom.element.text.TextPElement;
 import org.odftoolkit.odfdom.dom.style.OdfStyleFamily;
 import org.odftoolkit.odfdom.dom.style.OdfStylePropertySet;
 import org.odftoolkit.odfdom.dom.style.props.OdfPageLayoutProperties;
-import org.odftoolkit.odfdom.dom.style.props.OdfStyleProperty;
+import org.odftoolkit.odfdom.incubator.doc.office.OdfOfficeAutomaticStyles;
 import org.odftoolkit.odfdom.incubator.doc.office.OdfOfficeStyles;
+import org.odftoolkit.odfdom.incubator.doc.style.OdfStyle;
 import org.odftoolkit.odfdom.incubator.doc.style.OdfStylePageLayout;
 import org.odftoolkit.odfdom.incubator.doc.text.OdfTextHeading;
-import org.odftoolkit.odfdom.incubator.doc.text.OdfTextListStyle;
 import org.odftoolkit.odfdom.incubator.doc.text.OdfTextParagraph;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -44,7 +44,6 @@ public class OdtService {
     private static final String Heading_20_1 = "Heading_20_1";
     private static final String Heading_20_2 = "Heading_20_2";
     private static final String Heading_20_3 = "Heading_20_3";
-    private static final String smallHeadingStyle = "Heading_20_10";
     private static final String Text_20_1 = "Text_20_1";
     private static final String Text_20_2 = "Text_20_2";
     private static final String Text_20_3 = "Text_20_3";
@@ -70,11 +69,20 @@ public class OdtService {
             populateHeadingSection(submission, documentText, contentDom,
                     isIndividual, odt);
 
+            odt.getContentRoot().setTextUseSoftPageBreaksAttribute(true);
+
+            addPageBreak(contentDom, odt);
+
             OdfTextParagraph sectionBreak = new OdfTextParagraph(contentDom);
+
             populateEligibilitySection(submission, documentText, contentDom, sectionBreak);
+
+            addPageBreak(contentDom, odt);
 
             populateRequiredChecksSection(submission, documentText, contentDom,
                     requiredCheckSection, email, fundingSectionName, odt);
+
+            addPageBreak(contentDom, odt);
 
             AtomicInteger count = new AtomicInteger(3); //2 sections already added
             documentText.appendChild(new OdfTextParagraph(contentDom)
@@ -93,6 +101,14 @@ public class OdtService {
             logger.error("Could not generate ODT for given submission", e);
             throw new RuntimeException(e);
         }
+    }
+
+    private void addPageBreak(OdfContentDom contentDocument, OdfTextDocument doc) throws Exception {
+        final OdfOfficeAutomaticStyles styles = contentDocument.getAutomaticStyles();
+        final OdfStyle style = styles.newStyle(OdfStyleFamily.Paragraph);
+        style.newStyleParagraphPropertiesElement().setFoBreakBeforeAttribute("page");
+        final TextPElement page = doc.getContentRoot().newTextPElement();
+        page.setStyleName(style.getStyleNameAttribute());
     }
 
     private static void populateHeadingSection(final Submission submission,
@@ -138,7 +154,6 @@ public class OdtService {
         documentText.appendChild(p);
         documentText.appendChild(h2);
         documentText.appendChild(table.getOdfElement());
-        documentText.appendChild(new OdfTextHeading(contentDom).addContentWhitespace("\n\n"));
     }
 
     private static void populateRequiredChecksSection(final Submission submission,
@@ -173,7 +188,6 @@ public class OdtService {
 
         documentText.appendChild(locationQuestion);
         documentText.appendChild(table.getOdfElement());
-        documentText.appendChild(new OdfTextHeading(contentDom).addContentWhitespace("\n\n"));
     }
 
     private static void populateEligibilitySection(final Submission submission,
