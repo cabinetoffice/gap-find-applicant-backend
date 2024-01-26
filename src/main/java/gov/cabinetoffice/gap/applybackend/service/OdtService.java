@@ -146,7 +146,7 @@ public class OdtService {
             table.getRowByIndex(2).getCellByIndex(1).setStringValue(submission.getScheme().getName());
             table.getRowByIndex(3).getCellByIndex(0).setStringValue("Submitted on");
             table.getRowByIndex(3).getCellByIndex(1).setStringValue(Objects.equals(null,
-                    String.valueOf(submission.getSubmittedDate()))
+                    submission.getSubmittedDate())
                     ? "Not yet submitted" : String.valueOf(submission.getSubmittedDate()));
 
         }
