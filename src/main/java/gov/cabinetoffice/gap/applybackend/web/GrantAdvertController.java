@@ -2,6 +2,7 @@ package gov.cabinetoffice.gap.applybackend.web;
 
 import gov.cabinetoffice.gap.applybackend.dto.GetContentfulAdvertExistsDto;
 import gov.cabinetoffice.gap.applybackend.dto.api.GetGrantAdvertDto;
+import gov.cabinetoffice.gap.applybackend.dto.api.GetGrantAdvertSummaryDto;
 import gov.cabinetoffice.gap.applybackend.dto.api.GetGrantMandatoryQuestionDto;
 import gov.cabinetoffice.gap.applybackend.dto.api.JwtPayload;
 import gov.cabinetoffice.gap.applybackend.exception.NotFoundException;
@@ -11,6 +12,7 @@ import gov.cabinetoffice.gap.applybackend.model.GrantApplicant;
 import gov.cabinetoffice.gap.applybackend.model.GrantMandatoryQuestions;
 import gov.cabinetoffice.gap.applybackend.service.GrantAdvertService;
 import gov.cabinetoffice.gap.applybackend.service.GrantApplicantService;
+import gov.cabinetoffice.gap.applybackend.service.GrantApplicationService;
 import gov.cabinetoffice.gap.applybackend.service.GrantMandatoryQuestionService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -20,11 +22,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import javax.validation.constraints.NotBlank;
 
@@ -37,6 +35,7 @@ public class GrantAdvertController {
     private final GrantAdvertService grantAdvertService;
     private final GrantMandatoryQuestionService grantMandatoryQuestionService;
     private final GrantApplicantService grantApplicantService;
+    private final GrantApplicationService grantApplicationService;
     private final GrantMandatoryQuestionMapper mapper;
 
     @GetMapping
@@ -128,10 +127,16 @@ public class GrantAdvertController {
     }
 
     @GetMapping("/{advertSlug}/scheme-version")
-    @Operation(summary = "Get advert scheme version")
-    public ResponseEntity<Integer> getAdvertSchemeVersion(@PathVariable final String advertSlug) {
+    @Operation(summary = "Get advert scheme version and whether it is an internal application")
+    public ResponseEntity<GetGrantAdvertSummaryDto> getAdvertSchemeVersion(@PathVariable final String advertSlug) {
         GrantAdvert advert = grantAdvertService.getAdvertByContentfulSlug(advertSlug);
-        return ResponseEntity.ok(advert.getScheme().getVersion());
+        boolean isInternalApplication = grantApplicationService.doesSchemeHaveApplication(advert.getScheme());
+
+        GetGrantAdvertSummaryDto advertSummary = GetGrantAdvertSummaryDto.builder()
+                .schemeVersion(advert.getScheme().getVersion())
+                .isInternalApplication(isInternalApplication)
+                .build();
+        return ResponseEntity.ok(advertSummary);
     }
 
 }
