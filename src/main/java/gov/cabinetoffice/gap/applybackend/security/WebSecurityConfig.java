@@ -51,6 +51,7 @@ public class WebSecurityConfig {
                 "/health",
                 "/grant-applicant/register",
                 "/submissions/{submissionId}/question/{questionId}/attachment/scanresult",
+                "/grant-adverts/{advertSlug}/scheme-version",
                 "/jwt/isValid");
     }
 

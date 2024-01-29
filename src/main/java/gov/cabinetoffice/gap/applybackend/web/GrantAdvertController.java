@@ -126,4 +126,12 @@ public class GrantAdvertController {
 
         return ResponseEntity.ok("Success");
     }
+
+    @GetMapping("/{advertSlug}/scheme-version")
+    @Operation(summary = "Get advert scheme version")
+    public ResponseEntity<Integer> getAdvertSchemeVersion(@PathVariable final String advertSlug) {
+        GrantAdvert advert = grantAdvertService.getAdvertByContentfulSlug(advertSlug);
+        return ResponseEntity.ok(advert.getScheme().getVersion());
+    }
+
 }
