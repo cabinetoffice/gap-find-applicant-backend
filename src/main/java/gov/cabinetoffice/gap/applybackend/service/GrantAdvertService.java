@@ -10,7 +10,10 @@ import gov.cabinetoffice.gap.applybackend.dto.api.GetGrantMandatoryQuestionDto;
 import gov.cabinetoffice.gap.applybackend.enums.GrantAdvertStatus;
 import gov.cabinetoffice.gap.applybackend.exception.NotFoundException;
 import gov.cabinetoffice.gap.applybackend.mapper.GrantMandatoryQuestionMapper;
-import gov.cabinetoffice.gap.applybackend.model.*;
+import gov.cabinetoffice.gap.applybackend.model.GrantAdvert;
+import gov.cabinetoffice.gap.applybackend.model.GrantAdvertQuestionResponse;
+import gov.cabinetoffice.gap.applybackend.model.GrantApplicant;
+import gov.cabinetoffice.gap.applybackend.model.GrantMandatoryQuestions;
 import gov.cabinetoffice.gap.applybackend.repository.GrantAdvertRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -120,12 +123,6 @@ public class GrantAdvertService {
                 .orElseThrow(() -> new NotFoundException("Advert with schemeId " + schemeId + " not found"));
         log.debug("Advert with schemeId {} found", schemeId);
         return grantAdvert;
-    }
-
-    public boolean isGrantExternal(Integer schemeId) {
-        GrantApplication application = grantApplicationService.getGrantApplicationByGrantScheme(schemeId);
-        //if theres a response (eg not NULL), this is true
-        return application == null;
     }
 
     public GetGrantAdvertDto grantAdvertToDto(
