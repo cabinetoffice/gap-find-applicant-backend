@@ -327,7 +327,7 @@ class GrantAdvertControllerTest {
 
         @Test
         void invalidSlug_Throws404NotFound(){
-            doThrow(NotFoundException.class).when(grantAdvertService).getAdvertByContentfulSlug("INVALID SLUG");
+            when(grantAdvertService.getAdvertByContentfulSlug("INVALID SLUG")).thenThrow(NotFoundException.class);
             assertThrows(NotFoundException.class, ()-> grantAdvertController.getAdvertSchemeVersion("INVALID SLUG"));
         }
     }
