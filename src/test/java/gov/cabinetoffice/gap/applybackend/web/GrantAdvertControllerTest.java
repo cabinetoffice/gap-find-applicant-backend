@@ -2,17 +2,15 @@ package gov.cabinetoffice.gap.applybackend.web;
 
 import gov.cabinetoffice.gap.applybackend.dto.GetContentfulAdvertExistsDto;
 import gov.cabinetoffice.gap.applybackend.dto.api.GetGrantAdvertDto;
+import gov.cabinetoffice.gap.applybackend.dto.api.GetGrantAdvertSummaryDto;
 import gov.cabinetoffice.gap.applybackend.dto.api.GetGrantMandatoryQuestionDto;
 import gov.cabinetoffice.gap.applybackend.dto.api.JwtPayload;
 import gov.cabinetoffice.gap.applybackend.exception.NotFoundException;
 import gov.cabinetoffice.gap.applybackend.mapper.GrantMandatoryQuestionMapper;
-import gov.cabinetoffice.gap.applybackend.model.GrantAdvert;
-import gov.cabinetoffice.gap.applybackend.model.GrantApplicant;
-import gov.cabinetoffice.gap.applybackend.model.GrantApplicantOrganisationProfile;
-import gov.cabinetoffice.gap.applybackend.model.GrantMandatoryQuestions;
-import gov.cabinetoffice.gap.applybackend.model.GrantScheme;
+import gov.cabinetoffice.gap.applybackend.model.*;
 import gov.cabinetoffice.gap.applybackend.service.GrantAdvertService;
 import gov.cabinetoffice.gap.applybackend.service.GrantApplicantService;
+import gov.cabinetoffice.gap.applybackend.service.GrantApplicationService;
 import gov.cabinetoffice.gap.applybackend.service.GrantMandatoryQuestionService;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -57,6 +55,8 @@ class GrantAdvertControllerTest {
     private GrantMandatoryQuestionService grantMandatoryQuestionService;
     @Mock
     private GrantApplicantService grantApplicantService;
+    @Mock
+    private GrantApplicationService grantApplicationService;
     @Mock
     private Authentication authentication;
     @Mock
@@ -231,6 +231,104 @@ class GrantAdvertControllerTest {
             final String contentfulSlug = "internal-contentful-slug";
             doThrow(NotFoundException.class).when(grantAdvertService).validateGrantWebpageUrl(grantWebpageUrl, contentfulSlug);
             assertThrows(NotFoundException.class, ()-> grantAdvertController.validateGrantWebpageUrl(grantWebpageUrl, contentfulSlug));
+        }
+    }
+
+    @Nested
+    class getVersionAndUrlDestinationFromSlug{
+
+        @Test
+        void internalV1_ReturnsAdvertSummaryDto(){
+            GrantAdvert mockInternalV1Advert = GrantAdvert.builder()
+                    .scheme(scheme)
+                    .version(1)
+                    .contentfulSlug("v1-internal-1")
+                    .build();
+
+            GetGrantAdvertSummaryDto expected = GetGrantAdvertSummaryDto.builder()
+                    .isInternalApplication(true)
+                    .schemeVersion(1)
+                    .build();
+
+            when(grantAdvertService.getAdvertByContentfulSlug(mockInternalV1Advert.getContentfulSlug()))
+                    .thenReturn(mockInternalV1Advert);
+            when(grantApplicationService.doesSchemeHaveApplication(mockInternalV1Advert.getScheme()))
+                    .thenReturn(true);
+
+            ResponseEntity<GetGrantAdvertSummaryDto> response = grantAdvertController.getAdvertSchemeVersion(mockInternalV1Advert.getContentfulSlug());
+            assertThat(response).isEqualTo(ResponseEntity.ok(expected));
+        }
+
+        @Test
+        void externalV1_ReturnsAdvertSummaryDto(){
+            GrantAdvert mockExternalV1Advert = GrantAdvert.builder()
+                    .scheme(scheme)
+                    .version(1)
+                    .contentfulSlug("v1-external-1")
+                    .build();
+
+            GetGrantAdvertSummaryDto expected = GetGrantAdvertSummaryDto.builder()
+                    .isInternalApplication(false)
+                    .schemeVersion(1)
+                    .build();
+
+            when(grantAdvertService.getAdvertByContentfulSlug(mockExternalV1Advert.getContentfulSlug()))
+                    .thenReturn(mockExternalV1Advert);
+            when(grantApplicationService.doesSchemeHaveApplication(mockExternalV1Advert.getScheme()))
+                    .thenReturn(false);
+
+            ResponseEntity<GetGrantAdvertSummaryDto> response = grantAdvertController.getAdvertSchemeVersion(mockExternalV1Advert.getContentfulSlug());
+            assertThat(response).isEqualTo(ResponseEntity.ok(expected));
+        }
+
+        @Test
+        void internalV2_ReturnsAdvertSummaryDto(){
+            GrantAdvert mockInternalV2Advert = GrantAdvert.builder()
+                    .scheme(scheme)
+                    .version(2)
+                    .contentfulSlug("v2-internal-1")
+                    .build();
+
+            GetGrantAdvertSummaryDto expected = GetGrantAdvertSummaryDto.builder()
+                    .isInternalApplication(true)
+                    .schemeVersion(1)
+                    .build();
+
+            when(grantAdvertService.getAdvertByContentfulSlug(mockInternalV2Advert.getContentfulSlug()))
+                    .thenReturn(mockInternalV2Advert);
+            when(grantApplicationService.doesSchemeHaveApplication(mockInternalV2Advert.getScheme()))
+                    .thenReturn(true);
+
+            ResponseEntity<GetGrantAdvertSummaryDto> response = grantAdvertController.getAdvertSchemeVersion(mockInternalV2Advert.getContentfulSlug());
+            assertThat(response).isEqualTo(ResponseEntity.ok(expected));
+        }
+
+        @Test
+        void externalV2_ReturnsAdvertSummaryDto(){
+            GrantAdvert mockExternalV2Advert = GrantAdvert.builder()
+                    .scheme(scheme)
+                    .version(2)
+                    .contentfulSlug("v2-external-1")
+                    .build();
+
+            GetGrantAdvertSummaryDto expected = GetGrantAdvertSummaryDto.builder()
+                    .isInternalApplication(false)
+                    .schemeVersion(1)
+                    .build();
+
+            when(grantAdvertService.getAdvertByContentfulSlug(mockExternalV2Advert.getContentfulSlug()))
+                    .thenReturn(mockExternalV2Advert);
+            when(grantApplicationService.doesSchemeHaveApplication(mockExternalV2Advert.getScheme()))
+                    .thenReturn(false);
+
+            ResponseEntity<GetGrantAdvertSummaryDto> response = grantAdvertController.getAdvertSchemeVersion(mockExternalV2Advert.getContentfulSlug());
+            assertThat(response).isEqualTo(ResponseEntity.ok(expected));
+        }
+
+        @Test
+        void invalidSlug_Throws404NotFound(){
+            when(grantAdvertService.getAdvertByContentfulSlug("INVALID SLUG")).thenThrow(NotFoundException.class);
+            assertThrows(NotFoundException.class, ()-> grantAdvertController.getAdvertSchemeVersion("INVALID SLUG"));
         }
     }
 }
