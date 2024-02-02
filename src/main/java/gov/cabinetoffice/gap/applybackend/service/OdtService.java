@@ -67,7 +67,7 @@ public class OdtService {
             setOfficeStyles(odt, styleProcessor, stylesOfficeStyles);
 
             populateHeadingSection(submission, documentText, contentDom,
-                    isIndividual, odt);
+                    isIndividual, odt, email);
 
             odt.getContentRoot().setTextUseSoftPageBreaksAttribute(true);
 
@@ -115,7 +115,8 @@ public class OdtService {
                                                final OfficeTextElement documentText,
                                                final OdfContentDom contentDom,
                                                final boolean isIndividual,
-                                               final OdfTextDocument odt){
+                                               final OdfTextDocument odt,
+                                               final String email){
 
         OdfTextHeading h1 = new OdfTextHeading(contentDom);
         OdfTextHeading h2 = new OdfTextHeading(contentDom);
@@ -129,7 +130,7 @@ public class OdtService {
         if(isIndividual){
            table = OdfTable.newTable(odt, 3, 2);
             table.getRowByIndex(0).getCellByIndex(0).setStringValue("Lead Applicant");
-            table.getRowByIndex(0).getCellByIndex(1).setStringValue("test.super-admin@gov.uk");
+            table.getRowByIndex(0).getCellByIndex(1).setStringValue(email);
             table.getRowByIndex(1).getCellByIndex(0).setStringValue("Applying for");
             table.getRowByIndex(1).getCellByIndex(1).setStringValue(submission.getScheme().getName());
             table.getRowByIndex(2).getCellByIndex(0).setStringValue("Submitted on");
