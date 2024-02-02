@@ -142,7 +142,7 @@ public class OdtService {
             table.getRowByIndex(0).getCellByIndex(0).setStringValue("Organisation");
             table.getRowByIndex(0).getCellByIndex(1).setStringValue(submission.getLegalName());
             table.getRowByIndex(1).getCellByIndex(0).setStringValue("Lead Applicant");
-            table.getRowByIndex(1).getCellByIndex(1).setStringValue("test.super-admin@gov.uk");
+            table.getRowByIndex(1).getCellByIndex(1).setStringValue(email);
             table.getRowByIndex(2).getCellByIndex(0).setStringValue("Applying for");
             table.getRowByIndex(2).getCellByIndex(1).setStringValue(submission.getScheme().getName());
             table.getRowByIndex(3).getCellByIndex(0).setStringValue("Submitted on");
