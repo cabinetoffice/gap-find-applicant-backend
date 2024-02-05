@@ -208,7 +208,8 @@ public class QuestionResponseValidator implements ConstraintValidator<ValidQuest
     }
 
     private int getNumberOfWords(String response) {
-        return Strings.isEmpty(response) ? 0 : response.split("\\s").length;
+        String cleanedResponse = StringUtils.normalizeSpace(response);
+        return Strings.isEmpty(cleanedResponse) ? 0 : cleanedResponse.split("\\s").length;
     }
 
     private boolean containsSpecialCharacters(String response) {
