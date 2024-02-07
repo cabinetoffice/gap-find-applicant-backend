@@ -4,13 +4,12 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import gov.cabinetoffice.gap.applybackend.constants.APIConstants;
 import gov.cabinetoffice.gap.applybackend.dto.api.*;
 import gov.cabinetoffice.gap.applybackend.enums.*;
-import gov.cabinetoffice.gap.applybackend.exception.AttachmentException;
-import gov.cabinetoffice.gap.applybackend.exception.GrantApplicationNotPublishedException;
-import gov.cabinetoffice.gap.applybackend.exception.NotFoundException;
-import gov.cabinetoffice.gap.applybackend.exception.UnauthorizedException;
+import gov.cabinetoffice.gap.applybackend.exception.*;
 import gov.cabinetoffice.gap.applybackend.model.*;
 import gov.cabinetoffice.gap.applybackend.service.*;
+import gov.cabinetoffice.gap.applybackend.utils.SecurityContextHelper;
 import gov.cabinetoffice.gap.eventservice.service.EventLogService;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -21,25 +20,33 @@ import org.junit.jupiter.params.provider.EnumSource;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
+import org.mockito.MockedStatic;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.odftoolkit.odfdom.doc.OdfTextDocument;
+import org.springframework.core.io.ByteArrayResource;
+import org.springframework.core.io.InputStreamResource;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.util.FileCopyUtils;
 import org.springframework.web.multipart.MultipartFile;
 
+import javax.servlet.http.HttpServletRequest;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.UUID;
+import java.util.*;
 import java.util.stream.Stream;
 
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
@@ -265,22 +272,26 @@ class SubmissionControllerTest {
     @Mock
     private EventLogService eventLogService;
 
+    @Mock
+    private ZipService zipService;
+
     final String CHRISTMAS_2022_MIDDAY = "2022-12-25T12:00:00.00z";
     final Clock clock = Clock.fixed(Instant.parse(CHRISTMAS_2022_MIDDAY), ZoneId.of("UTC"));
 
     private SubmissionController controllerUnderTest;
+
+    private static MockedStatic<SecurityContextHelper> mockSecurityContextHelper;
 
     @BeforeEach
     void setup() {
         // TODO holy argument list batman, this class needs broken down!§§§
         controllerUnderTest = new SubmissionController(submissionService, grantApplicantService,
                 grantAttachmentService, grantApplicationService, spotlightService, mandatoryQuestionService,
-                secretAuthService, attachmentService, eventLogService, clock);
+                zipService, secretAuthService, attachmentService, eventLogService, clock);
         when(securityContext.getAuthentication()).thenReturn(authentication);
         SecurityContextHolder.setContext(securityContext);
         JwtPayload jwtPayload = JwtPayload.builder().sub(APPLICANT_USER_ID).build();
         when(SecurityContextHolder.getContext().getAuthentication().getPrincipal()).thenReturn(jwtPayload);
-
     }
 
 
@@ -1002,7 +1013,7 @@ class SubmissionControllerTest {
     class isApplicantEligible {
         @Test
         void isApplicantEligible_ReturnsExpectedResponse_ReturnTrue() {
-            when(submissionService.isApplicantEligible(APPLICANT_USER_ID, SUBMISSION_ID, "ELIGIBILITY"))
+            when(submissionService.isApplicantEligible(APPLICANT_USER_ID, SUBMISSION_ID))
                     .thenReturn(true);
 
             final ResponseEntity<Boolean> response = controllerUnderTest.isApplicantEligible(SUBMISSION_ID);
@@ -1010,16 +1021,90 @@ class SubmissionControllerTest {
             assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
             assertThat(response.getBody()).isTrue();
         }
+        
 
         @Test
         void isApplicantEligible_ReturnsExpectedResponse_ReturnFalse() {
-            when(submissionService.isApplicantEligible(APPLICANT_USER_ID, SUBMISSION_ID, "ELIGIBILITY"))
+            when(submissionService.isApplicantEligible(APPLICANT_USER_ID, SUBMISSION_ID))
                     .thenReturn(false);
 
             final ResponseEntity<Boolean> response = controllerUnderTest.isApplicantEligible(SUBMISSION_ID);
 
             assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
             assertThat(response.getBody()).isFalse();
+        }
+
+        @Test
+        void testExportSingleSubmission() throws Exception {
+            UUID submissionId = UUID.randomUUID();
+            HttpServletRequest mockRequest = new MockHttpServletRequest();
+            Submission mockSubmission = mock(Submission.class);
+            when(grantApplicantService.getEmailById(any(), any())).thenReturn("mock@example.com");
+            when(submissionService.getSubmissionById(any())).thenReturn(mockSubmission);
+            when(submissionService.getSubmissionExport(any(), any(), any())).thenReturn(mock(OdfTextDocument.class));
+            ByteArrayOutputStream mockOutputSteam = new ByteArrayOutputStream();
+            mockOutputSteam.write(1);
+            when(zipService.createSubmissionZip(any(), any())).thenReturn(mockOutputSteam);
+
+            when(zipService.byteArrayOutputStreamToResource(any())).thenReturn(new ByteArrayResource(new byte[]{1}));
+            ResponseEntity<ByteArrayResource> responseEntity =
+                    controllerUnderTest.exportSingleSubmission(submissionId, mockRequest);
+
+            assertEquals("attachment; filename=\"submission.zip\"", Objects.requireNonNull(responseEntity
+                    .getHeaders().get(HttpHeaders.CONTENT_DISPOSITION)).get(0));
+            assertEquals(MediaType.APPLICATION_OCTET_STREAM, responseEntity.getHeaders().getContentType());
+            assertEquals(1, Objects.requireNonNull(responseEntity.getBody()).contentLength());
+            verify(submissionService, times(1)).getSubmissionExport(any(), any(), any());
+            verify(zipService, times(1)).createSubmissionZip(any(), any());
+        }
+
+        @Test
+        void testExportSingleSubmission_OdtService_throws_ForbiddenException() {
+            UUID submissionId = UUID.randomUUID();
+            HttpServletRequest mockRequest = new MockHttpServletRequest();
+            Submission mockSubmission = mock(Submission.class);
+            when(grantApplicantService.getEmailById(any(), any())).thenReturn("mock@example.com");
+            when(submissionService.getSubmissionById(any())).thenReturn(mockSubmission);
+            when(submissionService.getSubmissionExport(any(), any(), any()))
+                    .thenThrow(new ForbiddenException());
+
+            RuntimeException runtimeException = assertThrows(RuntimeException.class, () -> controllerUnderTest
+                    .exportSingleSubmission(submissionId, mockRequest));
+            assertTrue(runtimeException.getCause() instanceof ForbiddenException);
+            verify(submissionService, times(1)).getSubmissionExport(any(), any(), any());
+        }
+
+        @Test
+        void testExportSingleSubmission_zipService_throws_IOException() throws Exception {
+            UUID submissionId = UUID.randomUUID();
+            HttpServletRequest mockRequest = new MockHttpServletRequest();
+            Submission mockSubmission = mock(Submission.class);
+
+            when(grantApplicantService.getEmailById(any(), any())).thenReturn("mock@example.com");
+            when(submissionService.getSubmissionById(any())).thenReturn(mockSubmission);
+            when(submissionService.getSubmissionExport(any(), any(), any()))
+                    .thenReturn(mock(OdfTextDocument.class));
+            when(zipService.createSubmissionZip(any(), any()))
+                    .thenThrow(new IOException("Error creating zip file"));
+
+            RuntimeException runtimeException = assertThrows(RuntimeException.class, () -> {
+                controllerUnderTest.exportSingleSubmission(submissionId, mockRequest);
+            });
+
+            assertTrue(runtimeException.getCause() instanceof IOException);
+            verify(submissionService, times(1)).getSubmissionExport(any(), any(), any());
+            verify(zipService, times(1)).createSubmissionZip(any(), any());
+        }
+
+
+        @Test
+        void exportSingleSubmissionThrowsRuntimeError() {
+            UUID submissionID = UUID.randomUUID();
+            final MockHttpServletRequest request = new MockHttpServletRequest();
+            when(submissionService.getSubmissionExport(Mockito.any(), Mockito.anyString(), Mockito.anyString()))
+                    .thenThrow(new ForbiddenException());
+
+            assertThrows(RuntimeException.class, () -> controllerUnderTest.exportSingleSubmission(submissionID, request));
         }
     }
 

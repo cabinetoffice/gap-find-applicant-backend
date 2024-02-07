@@ -11,6 +11,7 @@ import gov.cabinetoffice.gap.applybackend.dto.api.GetNavigationParamsDto;
 import gov.cabinetoffice.gap.applybackend.enums.GrantApplicationStatus;
 import gov.cabinetoffice.gap.applybackend.enums.SubmissionSectionStatus;
 import gov.cabinetoffice.gap.applybackend.enums.SubmissionStatus;
+import gov.cabinetoffice.gap.applybackend.exception.ForbiddenException;
 import gov.cabinetoffice.gap.applybackend.exception.NotFoundException;
 import gov.cabinetoffice.gap.applybackend.exception.SubmissionAlreadySubmittedException;
 import gov.cabinetoffice.gap.applybackend.exception.SubmissionNotReadyException;
@@ -22,6 +23,7 @@ import gov.cabinetoffice.gap.applybackend.repository.SubmissionRepository;
 import gov.cabinetoffice.gap.applybackend.utils.GapIdGenerator;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.odftoolkit.odfdom.doc.OdfTextDocument;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -56,8 +58,17 @@ public class SubmissionService {
     private final GrantMandatoryQuestionRepository grantMandatoryQuestionRepository;
     private final GovNotifyClient notifyClient;
 
+    private final OdtService odtService;
+
+
     private final Clock clock;
     private final EnvironmentProperties envProperties;
+
+    public Submission getSubmissionById(final UUID submissionId) {
+        return submissionRepository.findById(submissionId)
+                .orElseThrow(() -> new NotFoundException(
+                        String.format("No Submission with ID %s was found", submissionId)));
+    }
 
     public Submission getSubmissionFromDatabaseBySubmissionId(final String userId, final UUID submissionId) {
         Submission submission = submissionRepository
@@ -120,12 +131,16 @@ public class SubmissionService {
 
         if (questionResponse.getResponse() != null) {
             submissionQuestion.setResponse(questionResponse.getResponse());
-            submissionSection.setSectionStatus(SubmissionSectionStatus.IN_PROGRESS);
+            if (questionResponse.getShouldUpdateSectionStatus()) {
+                submissionSection.setSectionStatus(SubmissionSectionStatus.IN_PROGRESS);
+            }
         }
 
         if (questionResponse.getMultiResponse() != null) {
             submissionQuestion.setMultiResponse(questionResponse.getMultiResponse());
-            submissionSection.setSectionStatus(SubmissionSectionStatus.IN_PROGRESS);
+            if (questionResponse.getShouldUpdateSectionStatus()) {
+                submissionSection.setSectionStatus(SubmissionSectionStatus.IN_PROGRESS);
+            }
         }
 
         if (sectionId.equals(ELIGIBILITY)) {
@@ -580,6 +595,20 @@ public class SubmissionService {
         }
     }
 
+    public OdfTextDocument getSubmissionExport(Submission submission, String email, String userSub){
+
+        String submissionOwner = submission.getApplicant().getUserId();
+
+        if (!Objects.equals(submissionOwner, userSub)) {
+            log.error("User " + userSub +  " attempted to access submission belonging to " + submissionOwner);
+            throw new ForbiddenException("You can't access this submission");
+        }
+
+
+
+       return odtService.generateSingleOdt(submission, email);
+    }
+
     private List<String> getSectionIdsToSkipAfterEligibilitySectionCompleted(final int schemeVersion) {
         final List<String> sectionIds = new ArrayList<>();
 
@@ -593,10 +622,15 @@ public class SubmissionService {
         return sectionIds;
     }
 
-    public boolean isApplicantEligible(final String userId, final UUID submissionId, final String questionId){
+    public boolean isApplicantEligible(final String userId, final UUID submissionId){
         final Submission submission = getSubmissionFromDatabaseBySubmissionId(userId, submissionId);
         final Optional<SubmissionQuestion> eligibilityResponse = getQuestionResponseByQuestionId(submission ,"ELIGIBILITY");
-        return eligibilityResponse.map(submissionQuestion -> submissionQuestion.getResponse().equals("Yes")).orElse(false);
+        return eligibilityResponse
+                .map(submissionQuestion -> submissionQuestion.getResponse().equals("Yes")).orElse(false);
+    }
+
+    public Optional<Submission> getOptionalSubmissionById(final UUID submissionId) {
+        return submissionRepository.findById(submissionId);
     }
 }
 

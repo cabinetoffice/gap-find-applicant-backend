@@ -27,6 +27,7 @@ import javax.persistence.Table;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZonedDateTime;
+import java.util.List;
 import java.util.UUID;
 
 @EntityListeners(AuditingEntityListener.class)
@@ -98,6 +99,10 @@ public class Submission extends BaseEntity {
     @Builder.Default
     private Boolean mandatorySectionsCompleted = false;
 
+    public List<SubmissionSection> getSections() {
+        return this.getDefinition().getSections();
+    }
+
     public SubmissionSection getSection(String sectionId) {
         return this.getDefinition()
                 .getSections()
@@ -118,5 +123,12 @@ public class Submission extends BaseEntity {
         this.getDefinition()
                 .getSections()
                 .removeIf(section -> section.getSectionId().equals(sectionId));
+    }
+
+    public String getLegalName(){
+        return this.getScheme().getVersion() == 1 ?
+                this.getSection("ESSENTIAL").getQuestionById("APPLICANT_ORG_NAME").getResponse()
+                :
+                this.getSection("ORGANISATION_DETAILS").getQuestionById("APPLICANT_ORG_NAME").getResponse();
     }
 }

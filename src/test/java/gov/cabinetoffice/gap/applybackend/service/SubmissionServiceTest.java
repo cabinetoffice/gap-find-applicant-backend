@@ -10,6 +10,7 @@ import gov.cabinetoffice.gap.applybackend.dto.api.GetNavigationParamsDto;
 import gov.cabinetoffice.gap.applybackend.enums.GrantApplicationStatus;
 import gov.cabinetoffice.gap.applybackend.enums.SubmissionSectionStatus;
 import gov.cabinetoffice.gap.applybackend.enums.SubmissionStatus;
+import gov.cabinetoffice.gap.applybackend.exception.ForbiddenException;
 import gov.cabinetoffice.gap.applybackend.exception.NotFoundException;
 import gov.cabinetoffice.gap.applybackend.exception.SubmissionAlreadySubmittedException;
 import gov.cabinetoffice.gap.applybackend.exception.SubmissionNotReadyException;
@@ -18,17 +19,18 @@ import gov.cabinetoffice.gap.applybackend.repository.DiligenceCheckRepository;
 import gov.cabinetoffice.gap.applybackend.repository.GrantBeneficiaryRepository;
 import gov.cabinetoffice.gap.applybackend.repository.GrantMandatoryQuestionRepository;
 import gov.cabinetoffice.gap.applybackend.repository.SubmissionRepository;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Nested;
-import org.junit.jupiter.api.Test;
+import org.apache.http.impl.client.HttpClients;
+import org.junit.jupiter.api.*;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
+import org.mockito.MockedStatic;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.odftoolkit.odfdom.doc.OdfTextDocument;
 
 import java.time.*;
 import java.time.format.DateTimeFormatter;
@@ -68,6 +70,8 @@ class SubmissionServiceTest {
     private GrantMandatoryQuestionRepository grantMandatoryQuestionRepository;
     @Mock
     private GovNotifyClient notifyClient;
+    @Mock
+    private OdtService odtService;
     private SubmissionService serviceUnderTest;
     private SubmissionQuestion question;
     private SubmissionSection section;
@@ -75,9 +79,16 @@ class SubmissionServiceTest {
 
     private GrantApplication grantApplication;
 
+    private static MockedStatic<OdtService> odtServiceMockedStatic;
+
+    @AfterEach
+    void tearDown() {
+        odtServiceMockedStatic.close();
+    }
 
     @BeforeEach
     void setup() {
+        odtServiceMockedStatic = mockStatic(OdtService.class);
 
         EnvironmentProperties envProperties = EnvironmentProperties.builder()
                 .environmentName("LOCAL")
@@ -90,6 +101,7 @@ class SubmissionServiceTest {
                         grantBeneficiaryRepository,
                         grantMandatoryQuestionRepository,
                         notifyClient,
+                        odtService,
                         clock,
                         envProperties
                 )
@@ -452,12 +464,13 @@ class SubmissionServiceTest {
     @Nested
     class saveQuestionResponse {
         @Test
-        void saveQuestionResponse_SavesResponse() {
+        void saveQuestionResponse_SavesResponse_WhenShouldSetSectionStatus_IsTrue() {
 
             final CreateQuestionResponseDto organisationNameResponse = CreateQuestionResponseDto.builder()
                     .questionId(QUESTION_ID)
                     .submissionId(SUBMISSION_ID)
                     .response("AND Digital")
+                    .shouldUpdateSectionStatus(true)
                     .build();
 
             doReturn(submission)
@@ -498,12 +511,141 @@ class SubmissionServiceTest {
         }
 
         @Test
+        void saveQuestionResponse_ResetsSectionStatusToInProgress_IfShouldUpdateSectionStatus_IsTrue() {
+
+            // set the scheme to version 2
+            submission.getApplication().getGrantScheme().setVersion(2);
+
+            // remove surplus sections
+            submission.getDefinition()
+                    .getSections()
+                    .removeIf(section -> section.getSectionStatus() != SubmissionSectionStatus.IN_PROGRESS);
+
+            submission.getDefinition()
+                    .getSections()
+                    .forEach(section -> section.setSectionStatus(SubmissionSectionStatus.COMPLETED));
+
+            final CreateQuestionResponseDto questionResponse = CreateQuestionResponseDto.builder()
+                    .questionId("APPLICANT_ORG_NAME")
+                    .submissionId(SUBMISSION_ID)
+                    .response("New name")
+                    .shouldUpdateSectionStatus(true)
+                    .build();
+
+            doReturn(submission)
+                    .when(serviceUnderTest).getSubmissionFromDatabaseBySubmissionId(userId, SUBMISSION_ID);
+
+            final ArgumentCaptor<Submission> submissionCaptor = ArgumentCaptor.forClass(Submission.class);
+
+            serviceUnderTest.saveQuestionResponse(questionResponse, userId, SUBMISSION_ID, "ESSENTIAL");
+
+
+            verify(submissionRepository).save(submissionCaptor.capture());
+
+            // organisation details and funding details should be set to in progress
+            submissionCaptor.getValue()
+                    .getDefinition()
+                    .getSections()
+                    .stream()
+                    .filter(section -> section.getSectionId().equals("ESSENTIAL"))
+                    .findFirst()
+                    .ifPresentOrElse(
+                            capturedSectionResponse -> {
+                                assertThat(capturedSectionResponse.getSectionStatus()).isEqualTo(SubmissionSectionStatus.IN_PROGRESS);
+
+                                // Check if the question with the specified questionId and response is present
+                                boolean isQuestionPresent = capturedSectionResponse.getQuestions().stream()
+                                        .anyMatch(question -> question.getQuestionId().equals("APPLICANT_ORG_NAME") && question.getResponse().equals("New name"));
+
+                                assertThat(isQuestionPresent).isTrue();
+                            },
+                            () -> fail("No section with ID 'ESSENTIAL' found")
+                    );
+
+            submissionCaptor.getValue()
+                    .getDefinition()
+                    .getSections()
+                    .stream()
+                    .filter(section -> section.getSectionId().equals("ELIGIBILITY"))
+                    .findFirst()
+                    .ifPresentOrElse(
+                            capturedSectionResponse -> assertThat(capturedSectionResponse.getSectionStatus()).isEqualTo(SubmissionSectionStatus.COMPLETED),
+                            () -> fail("No section with ID 'ELIGIBILITY' found")
+                    );
+        }
+
+        @Test
+        void saveQuestionResponse_DoesNotResetSectionStatusToInProgress_IfShouldUpdateSectionStatus_IsFalse() {
+
+            // set the scheme to version 2
+            submission.getApplication().getGrantScheme().setVersion(2);
+
+            // remove surplus sections
+            submission.getDefinition()
+                    .getSections()
+                    .removeIf(section -> section.getSectionStatus() != SubmissionSectionStatus.IN_PROGRESS);
+
+            submission.getDefinition()
+                    .getSections()
+                    .forEach(section -> section.setSectionStatus(SubmissionSectionStatus.COMPLETED));
+
+            final CreateQuestionResponseDto questionResponse = CreateQuestionResponseDto.builder()
+                    .questionId("APPLICANT_ORG_NAME")
+                    .submissionId(SUBMISSION_ID)
+                    .response("New name")
+                    .shouldUpdateSectionStatus(false)
+                    .build();
+
+            doReturn(submission)
+                    .when(serviceUnderTest).getSubmissionFromDatabaseBySubmissionId(userId, SUBMISSION_ID);
+
+            final ArgumentCaptor<Submission> submissionCaptor = ArgumentCaptor.forClass(Submission.class);
+
+            serviceUnderTest.saveQuestionResponse(questionResponse, userId, SUBMISSION_ID, "ESSENTIAL");
+
+
+            verify(submissionRepository).save(submissionCaptor.capture());
+
+            // organisation details and funding details should be set to in progress
+            submissionCaptor.getValue()
+                    .getDefinition()
+                    .getSections()
+                    .stream()
+                    .filter(section -> section.getSectionId().equals("ESSENTIAL"))
+                    .findFirst()
+                    .ifPresentOrElse(
+                            capturedSectionResponse -> {
+                                assertThat(capturedSectionResponse.getSectionStatus()).isEqualTo(SubmissionSectionStatus.COMPLETED);
+
+                                // Check if the question with the specified questionId and response is present
+                                boolean isQuestionPresent = capturedSectionResponse.getQuestions().stream()
+                                        .anyMatch(question -> question.getQuestionId().equals("APPLICANT_ORG_NAME") && question.getResponse().equals("New name"));
+
+                                assertThat(isQuestionPresent).isTrue();
+                            },
+                            () -> fail("No section with ID 'ESSENTIAL' found")
+                    );
+
+            submissionCaptor.getValue()
+                    .getDefinition()
+                    .getSections()
+                    .stream()
+                    .filter(section -> section.getSectionId().equals("ELIGIBILITY"))
+                    .findFirst()
+                    .ifPresentOrElse(
+                            capturedSectionResponse -> assertThat(capturedSectionResponse.getSectionStatus()).isEqualTo(SubmissionSectionStatus.COMPLETED),
+                            () -> fail("No section with ID 'ELIGIBILITY' found")
+                    );
+        }
+
+        @Test
         void saveEligibilityResponseToYesAltersStatus_SavesResponse() {
 
             final CreateQuestionResponseDto questionResponse = CreateQuestionResponseDto.builder()
                     .questionId("ELIGIBILITY")
                     .submissionId(SUBMISSION_ID)
                     .response("Yes")
+                    .shouldUpdateSectionStatus(true)
                     .build();
 
             doReturn(submission)
@@ -583,6 +725,7 @@ class SubmissionServiceTest {
                     .questionId("ELIGIBILITY")
                     .submissionId(SUBMISSION_ID)
                     .response("Yes")
+                    .shouldUpdateSectionStatus(true)
                     .build();
 
             doReturn(submission)
@@ -676,6 +819,7 @@ class SubmissionServiceTest {
                     .questionId("ELIGIBILITY")
                     .submissionId(SUBMISSION_ID)
                     .response("Yes")
+                    .shouldUpdateSectionStatus(true)
                     .build();
 
             doReturn(submission)
@@ -742,6 +886,7 @@ class SubmissionServiceTest {
                     .questionId("ELIGIBILITY")
                     .submissionId(SUBMISSION_ID)
                     .response("No")
+                    .shouldUpdateSectionStatus(true)
                     .build();
 
             doReturn(submission)
@@ -798,6 +943,7 @@ class SubmissionServiceTest {
                     .questionId("ELIGIBILITY")
                     .submissionId(SUBMISSION_ID)
                     .response("No")
+                    .shouldUpdateSectionStatus(true)
                     .build();
 
             doReturn(submission)
@@ -851,6 +997,7 @@ class SubmissionServiceTest {
                     .questionId("AN-INVALID-QUESTION-ID")
                     .submissionId(SUBMISSION_ID)
                     .response("AND Digital")
+                    .shouldUpdateSectionStatus(true)
                     .build();
 
             doReturn(submission)
@@ -866,6 +1013,7 @@ class SubmissionServiceTest {
                     .questionId("AN-INVALID-QUESTION-ID")
                     .submissionId(SUBMISSION_ID)
                     .response("AND Digital")
+                    .shouldUpdateSectionStatus(true)
                     .build();
 
             doReturn(submission)
@@ -996,7 +1144,6 @@ class SubmissionServiceTest {
             assertThat(isReadyToBeSubmitted).isFalse();
         }
     }
-
 
     @Nested
     class submit {
@@ -1583,7 +1730,7 @@ class SubmissionServiceTest {
             when(submissionRepository.findByIdAndApplicantUserId(SUBMISSION_ID, userId))
                     .thenReturn(Optional.ofNullable(submission));
 
-            final boolean result = serviceUnderTest.isApplicantEligible(userId, SUBMISSION_ID, "ELIGIBILITY");
+            final boolean result = serviceUnderTest.isApplicantEligible(userId, SUBMISSION_ID);
 
             verify(submissionRepository).findByIdAndApplicantUserId(SUBMISSION_ID, userId);
 
@@ -1603,18 +1750,76 @@ class SubmissionServiceTest {
                     .sectionStatus(SubmissionSectionStatus.COMPLETED)
                     .questions(List.of(eligibilityQuestion))
                     .build();
-            submission.getDefinition().getSections().set(0,eligibilitySection);
+            submission.getDefinition().getSections().set(0, eligibilitySection);
 
             when(submissionRepository.findByIdAndApplicantUserId(SUBMISSION_ID, userId))
                     .thenReturn(Optional.ofNullable(submission));
 
-            final boolean result = serviceUnderTest.isApplicantEligible(userId, SUBMISSION_ID, "ELIGIBILITY");
+            final boolean result = serviceUnderTest.isApplicantEligible(userId, SUBMISSION_ID);
 
             verify(submissionRepository).findByIdAndApplicantUserId(SUBMISSION_ID, userId);
 
             assertThat(result).isFalse();
         }
 
+        @Test
+        void getSubmissionById_ReturnsCorrectSubmission() {
+            Submission submission = Submission.builder().id(SUBMISSION_ID).build();
+            when(submissionRepository.findById(SUBMISSION_ID)).thenReturn(Optional.of(submission));
+            Optional<Submission> result = serviceUnderTest.getOptionalSubmissionById(SUBMISSION_ID);
+            assertThat(result).isPresent();
+            assertThat(result.get()).isEqualTo(submission);
+        }
+
     }
 
+    @Nested
+    class getSubmissionExport {
+        @Test
+        void getSubmissionExport_success() throws Exception {
+            String email = "test@example.com";
+            String userSub = "userId";
+            Submission submission = Submission.builder().scheme(GrantScheme.builder().version(2).build())
+                    .applicant(GrantApplicant.builder().userId("userId").build())
+                    .build();
+            OdfTextDocument odfTextDocument = OdfTextDocument.newTextDocument();
+            when(odtService.generateSingleOdt(submission, email)).thenReturn(odfTextDocument);
+            OdfTextDocument result = serviceUnderTest.getSubmissionExport(submission, email, userSub);
+
+            Assertions.assertEquals(result, odfTextDocument);
+        }
+
+        @Test
+        void getSubmissionExport_forbiddenUser() {
+            String email = "test@example.com";
+            String userSub = "differentUserId";
+            Submission submission = Submission.builder().applicant(GrantApplicant.builder().userId("userId").build())
+                    .build();
+            ForbiddenException thrownException = assertThrows(ForbiddenException.class, () -> {
+                serviceUnderTest.getSubmissionExport(submission, email, userSub);
+            });
+
+            Assertions.assertEquals("You can't access this submission", thrownException.getMessage());
+        }
+
+        @Test
+        void getSubmissionById_success() {
+            Submission submission = Submission.builder().applicant(GrantApplicant.builder().userId("userId").build())
+                    .build();
+            when(submissionRepository.findById(SUBMISSION_ID)).thenReturn(Optional.ofNullable(submission));
+            Submission result = serviceUnderTest.getSubmissionById(SUBMISSION_ID);
+
+            Assertions.assertEquals(result, submission);
+        }
+
+        @Test
+        void getSubmissionById_Exception(){
+            when(submissionRepository.findById(SUBMISSION_ID)).thenReturn(Optional.empty());
+            NotFoundException thrownException = assertThrows(NotFoundException.class, () -> {
+                serviceUnderTest.getSubmissionById(SUBMISSION_ID);
+            });
+
+            Assertions.assertEquals("No Submission with ID 1c2eabf0-b33c-433a-b00f-e73d8efca929 was found", thrownException.getMessage());
+        }
+    }
 }

@@ -7,13 +7,13 @@ import gov.cabinetoffice.gap.eventservice.enums.EventType;
 import gov.cabinetoffice.gap.applybackend.enums.GrantAttachmentStatus;
 import gov.cabinetoffice.gap.applybackend.enums.GrantMandatoryQuestionOrgType;
 import gov.cabinetoffice.gap.applybackend.enums.SubmissionSectionStatus;
-import gov.cabinetoffice.gap.applybackend.enums.SubmissionStatus;
 import gov.cabinetoffice.gap.applybackend.exception.AttachmentException;
 import gov.cabinetoffice.gap.applybackend.exception.GrantApplicationNotPublishedException;
 import gov.cabinetoffice.gap.eventservice.exception.InvalidEventException;
 import gov.cabinetoffice.gap.applybackend.exception.NotFoundException;
 import gov.cabinetoffice.gap.applybackend.model.*;
 import gov.cabinetoffice.gap.applybackend.service.*;
+import gov.cabinetoffice.gap.applybackend.utils.ZipHelper;
 import gov.cabinetoffice.gap.eventservice.enums.EventType;
 import gov.cabinetoffice.gap.eventservice.exception.InvalidEventException;
 import gov.cabinetoffice.gap.eventservice.service.EventLogService;
@@ -25,9 +25,12 @@ import gov.cabinetoffice.gap.eventservice.service.EventLogService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.io.FilenameUtils;
+import org.odftoolkit.odfdom.doc.OdfTextDocument;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.core.io.ByteArrayResource;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
@@ -35,9 +38,11 @@ import org.springframework.web.multipart.MultipartFile;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.validation.Valid;
+import java.io.ByteArrayOutputStream;
 import java.time.Clock;
 import java.time.Instant;
 import java.util.*;
+import java.util.zip.ZipOutputStream;
 
 import static gov.cabinetoffice.gap.applybackend.utils.SecurityContextHelper.getJwtIdFromSecurityContext;
 import static gov.cabinetoffice.gap.applybackend.utils.SecurityContextHelper.getUserIdFromSecurityContext;
@@ -55,6 +60,7 @@ public class SubmissionController {
     private final GrantApplicationService grantApplicationService;
     private final SpotlightService spotlightService;
     private final GrantMandatoryQuestionService mandatoryQuestionService;
+    private final ZipService zipService;
 
     private final SecretAuthService secretAuthService;
     private final AttachmentService attachmentService;
@@ -355,10 +361,51 @@ public class SubmissionController {
         return ResponseEntity.ok(submissionService.getNextNavigation(applicantId, submissionId, sectionId, questionId, saveAndExit));
     }
 
-    @GetMapping("/{submissionId}/isApplicantEligible")
+
+    @GetMapping("/{submissionId}/download-summary")
+    public ResponseEntity<ByteArrayResource> exportSingleSubmission(
+            @PathVariable final UUID submissionId, HttpServletRequest request) {
+        final String userSub = getUserIdFromSecurityContext();
+        final String userEmail = grantApplicantService.getEmailById(userSub, request);
+        final Submission submission = submissionService.getSubmissionById(submissionId);
+
+        try (OdfTextDocument odt = submissionService.getSubmissionExport(submission, userEmail, userSub);
+             ByteArrayOutputStream zip = zipService.createSubmissionZip(submission, odt)){
+
+            ByteArrayResource zipResource = zipService.byteArrayOutputStreamToResource(zip);
+
+            HttpHeaders headers = new HttpHeaders();
+            headers.add(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"submission.zip\"");
+            headers.add(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_OCTET_STREAM_VALUE);
+
+            return ResponseEntity.ok().headers(headers).contentLength(zipResource.contentLength())
+                        .contentType(MediaType.APPLICATION_OCTET_STREAM).body(zipResource);
+        } catch (Exception e) {
+            log.error("Could not generate ZIP. Exception: ", e);
+            throw new RuntimeException(e);
+        }
+    }
+
+        @GetMapping("/{submissionId}/isApplicantEligible")
     public ResponseEntity<Boolean>  isApplicantEligible(@PathVariable final UUID submissionId) {
         final String applicantId = getUserIdFromSecurityContext();
-        return ResponseEntity.ok(submissionService.isApplicantEligible(applicantId, submissionId, "ELIGIBILITY"));
+        return ResponseEntity.ok(submissionService.isApplicantEligible(applicantId, submissionId));
+    }
+
+    @GetMapping("/{submissionId}/application/status")
+    public ResponseEntity<String> applicationStatus(@PathVariable final UUID submissionId) {
+        final String applicantId = getUserIdFromSecurityContext();
+        Optional<Submission> submission = submissionService.getOptionalSubmissionById(submissionId);
+        if (submission.isEmpty()) {
+            return ResponseEntity.notFound().build();
+        }
+
+        String submissionApplicant = submission.get().getApplicant().getUserId();
+        if (submissionApplicant.equals(applicantId)) {
+            return ResponseEntity.ok(submission.get().getApplication().getApplicationStatus().name());
+        } else {
+            return ResponseEntity.status(401).build();
+        }
     }
 
     private GetSubmissionDto buildSubmissionDto(Submission submission) {
@@ -379,6 +426,7 @@ public class SubmissionController {
                 .grantSchemeId(submission.getScheme().getId())
                 .applicationName(submission.getApplicationName())
                 .submissionStatus(submission.getStatus())
+                .submittedDate(submission.getSubmittedDate())
                 .sections(sections)
                 .build();
     }
@@ -399,7 +447,7 @@ public class SubmissionController {
             }
 
         } catch (Exception e) {
-            // If anything goes wrong logging to event service, log and continue
+            // If anything goes wrong logging to event-service, log and continue
             log.error("Could not send to event service. Exception: ", e);
         }
     }
