@@ -2,14 +2,50 @@ package gov.cabinetoffice.gap.applybackend.web;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import gov.cabinetoffice.gap.applybackend.constants.APIConstants;
-import gov.cabinetoffice.gap.applybackend.dto.api.*;
-import gov.cabinetoffice.gap.applybackend.enums.*;
-import gov.cabinetoffice.gap.applybackend.exception.*;
-import gov.cabinetoffice.gap.applybackend.model.*;
-import gov.cabinetoffice.gap.applybackend.service.*;
+import gov.cabinetoffice.gap.applybackend.dto.api.CreateQuestionResponseDto;
+import gov.cabinetoffice.gap.applybackend.dto.api.CreateSubmissionResponseDto;
+import gov.cabinetoffice.gap.applybackend.dto.api.GetNavigationParamsDto;
+import gov.cabinetoffice.gap.applybackend.dto.api.GetQuestionDto;
+import gov.cabinetoffice.gap.applybackend.dto.api.GetQuestionNavigationDto;
+import gov.cabinetoffice.gap.applybackend.dto.api.GetSectionDto;
+import gov.cabinetoffice.gap.applybackend.dto.api.GetSubmissionDto;
+import gov.cabinetoffice.gap.applybackend.dto.api.JwtPayload;
+import gov.cabinetoffice.gap.applybackend.dto.api.SubmissionReviewBodyDto;
+import gov.cabinetoffice.gap.applybackend.dto.api.SubmitApplicationDto;
+import gov.cabinetoffice.gap.applybackend.dto.api.UpdateAttachmentDto;
+import gov.cabinetoffice.gap.applybackend.enums.GrantAttachmentStatus;
+import gov.cabinetoffice.gap.applybackend.enums.GrantMandatoryQuestionOrgType;
+import gov.cabinetoffice.gap.applybackend.enums.SubmissionQuestionResponseType;
+import gov.cabinetoffice.gap.applybackend.enums.SubmissionSectionStatus;
+import gov.cabinetoffice.gap.applybackend.enums.SubmissionStatus;
+import gov.cabinetoffice.gap.applybackend.exception.AttachmentException;
+import gov.cabinetoffice.gap.applybackend.exception.ForbiddenException;
+import gov.cabinetoffice.gap.applybackend.exception.GrantApplicationNotPublishedException;
+import gov.cabinetoffice.gap.applybackend.exception.NotFoundException;
+import gov.cabinetoffice.gap.applybackend.exception.UnauthorizedException;
+import gov.cabinetoffice.gap.applybackend.model.ApplicationDefinition;
+import gov.cabinetoffice.gap.applybackend.model.GrantApplicant;
+import gov.cabinetoffice.gap.applybackend.model.GrantApplicantOrganisationProfile;
+import gov.cabinetoffice.gap.applybackend.model.GrantApplication;
+import gov.cabinetoffice.gap.applybackend.model.GrantAttachment;
+import gov.cabinetoffice.gap.applybackend.model.GrantMandatoryQuestions;
+import gov.cabinetoffice.gap.applybackend.model.GrantScheme;
+import gov.cabinetoffice.gap.applybackend.model.Submission;
+import gov.cabinetoffice.gap.applybackend.model.SubmissionDefinition;
+import gov.cabinetoffice.gap.applybackend.model.SubmissionQuestion;
+import gov.cabinetoffice.gap.applybackend.model.SubmissionQuestionValidation;
+import gov.cabinetoffice.gap.applybackend.model.SubmissionSection;
+import gov.cabinetoffice.gap.applybackend.service.AttachmentService;
+import gov.cabinetoffice.gap.applybackend.service.GrantApplicantService;
+import gov.cabinetoffice.gap.applybackend.service.GrantApplicationService;
+import gov.cabinetoffice.gap.applybackend.service.GrantAttachmentService;
+import gov.cabinetoffice.gap.applybackend.service.GrantMandatoryQuestionService;
+import gov.cabinetoffice.gap.applybackend.service.SecretAuthService;
+import gov.cabinetoffice.gap.applybackend.service.SpotlightService;
+import gov.cabinetoffice.gap.applybackend.service.SubmissionService;
+import gov.cabinetoffice.gap.applybackend.service.ZipService;
 import gov.cabinetoffice.gap.applybackend.utils.SecurityContextHelper;
 import gov.cabinetoffice.gap.eventservice.service.EventLogService;
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -25,7 +61,6 @@ import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.odftoolkit.odfdom.doc.OdfTextDocument;
 import org.springframework.core.io.ByteArrayResource;
-import org.springframework.core.io.InputStreamResource;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -35,26 +70,41 @@ import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.util.FileCopyUtils;
 import org.springframework.web.multipart.MultipartFile;
 
 import javax.servlet.http.HttpServletRequest;
-import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
-import java.util.*;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.UUID;
 import java.util.stream.Stream;
 
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.any;
+import static org.mockito.Mockito.anyString;
+import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.eq;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class SubmissionControllerTest {
+    private static MockedStatic<SecurityContextHelper> mockSecurityContextHelper;
     final LocalDateTime timestamp = LocalDateTime.now();
     final Instant instant = Instant.now();
     final String QUESTION_ID_1 = "APPLICANT_ORG_NAME";
@@ -65,7 +115,6 @@ class SubmissionControllerTest {
     final String SECTION_ID_2 = "CUSTOM_SECTION_1";
     final String SECTION_TITLE_1 = "Eligibility";
     final String SECTION_TITLE_2 = "Project Status";
-
     final GrantScheme scheme = GrantScheme.builder()
             .id(1)
             .version(1)
@@ -161,6 +210,8 @@ class SubmissionControllerTest {
             .sectionStatus(SubmissionSectionStatus.IN_PROGRESS.toString())
             .questionIds(List.of(QUESTION_ID_4))
             .build();
+    final String CHRISTMAS_2022_MIDDAY = "2022-12-25T12:00:00.00z";
+    final Clock clock = Clock.fixed(Instant.parse(CHRISTMAS_2022_MIDDAY), ZoneId.of("UTC"));
     private final long APPLICANT_ID = 1;
     private final long PROFILE_ID = 1;
     final GrantApplicantOrganisationProfile grantApplicantOrganisationProfile = GrantApplicantOrganisationProfile.builder()
@@ -257,30 +308,19 @@ class SubmissionControllerTest {
     private GrantApplicationService grantApplicationService;
     @Mock
     private GrantAttachmentService grantAttachmentService;
-
     @Mock
     private SecretAuthService secretAuthService;
     @Mock
     private AttachmentService attachmentService;
-
     @Mock
     private SpotlightService spotlightService;
-
     @Mock
     private GrantMandatoryQuestionService mandatoryQuestionService;
-
     @Mock
     private EventLogService eventLogService;
-
     @Mock
     private ZipService zipService;
-
-    final String CHRISTMAS_2022_MIDDAY = "2022-12-25T12:00:00.00z";
-    final Clock clock = Clock.fixed(Instant.parse(CHRISTMAS_2022_MIDDAY), ZoneId.of("UTC"));
-
     private SubmissionController controllerUnderTest;
-
-    private static MockedStatic<SecurityContextHelper> mockSecurityContextHelper;
 
     @BeforeEach
     void setup() {
@@ -288,824 +328,831 @@ class SubmissionControllerTest {
         controllerUnderTest = new SubmissionController(submissionService, grantApplicantService,
                 grantAttachmentService, grantApplicationService, spotlightService, mandatoryQuestionService,
                 zipService, secretAuthService, attachmentService, eventLogService, clock);
-        when(securityContext.getAuthentication()).thenReturn(authentication);
-        SecurityContextHolder.setContext(securityContext);
-        JwtPayload jwtPayload = JwtPayload.builder().sub(APPLICANT_USER_ID).build();
-        when(SecurityContextHolder.getContext().getAuthentication().getPrincipal()).thenReturn(jwtPayload);
-    }
-
-
-    @Nested
-    class getSubmissions {
-        @Test
-        void getSubmissions_ReturnsExpectedResponse() {
-            grantApplicant.setSubmissions(List.of(submission));
-            when(grantApplicantService.getApplicantById(APPLICANT_USER_ID))
-                    .thenReturn(grantApplicant);
-
-            ResponseEntity<List<GetSubmissionDto>> response = controllerUnderTest.getSubmissions();
-
-            verify(grantApplicantService).getApplicantById(APPLICANT_USER_ID);
-            assertEquals(HttpStatus.OK, response.getStatusCode());
-            assertEquals(response.getBody(), getSubmissionDtos);
-        }
-
-        @Test
-        void getSubmission_ReturnsExpectedResponse() {
-            when(submissionService.getSubmissionFromDatabaseBySubmissionId(APPLICANT_USER_ID, SUBMISSION_ID))
-                    .thenReturn(submission);
-
-            ResponseEntity<GetSubmissionDto> response = controllerUnderTest.getSubmission(SUBMISSION_ID);
-
-            verify(submissionService).getSubmissionFromDatabaseBySubmissionId(APPLICANT_USER_ID, SUBMISSION_ID);
-            assertEquals(HttpStatus.OK, response.getStatusCode());
-            assertEquals(response.getBody(), getSubmissionDto1);
-        }
-    }
-
-
-    @Test
-    void getSection_ReturnsExpectedResponse() {
-        when(submissionService.getSectionBySectionId(APPLICANT_USER_ID, SUBMISSION_ID, SECTION_ID_1))
-                .thenReturn(section1);
-
-        ResponseEntity<SubmissionSection> response = controllerUnderTest.getSection(SUBMISSION_ID, SECTION_ID_1);
-
-        verify(submissionService).getSectionBySectionId(APPLICANT_USER_ID, SUBMISSION_ID, SECTION_ID_1);
-        assertEquals(HttpStatus.OK, response.getStatusCode());
-        assertEquals(response.getBody(), section1);
-    }
-
-    @Nested
-    class getQuestion {
-        @Test
-        void getQuestion_ReturnsExpectedResponseNoNextNavigation() {
-            when(submissionService.getSubmissionFromDatabaseBySubmissionId(APPLICANT_USER_ID, SUBMISSION_ID))
-                    .thenReturn(submission);
-
-            ResponseEntity<GetQuestionDto> response = controllerUnderTest.getQuestion(SUBMISSION_ID, SECTION_ID_1, QUESTION_ID_1);
-
-            verify(submissionService).getSubmissionFromDatabaseBySubmissionId(APPLICANT_USER_ID, SUBMISSION_ID);
-            assertEquals(HttpStatus.OK, response.getStatusCode());
-            assertEquals(getQuestionDto1, response.getBody());
-        }
-
-        @Test
-        void getQuestion_ReturnsExpectedResponseNextAndPreviousNavigation() {
-            when(submissionService.getSubmissionFromDatabaseBySubmissionId(APPLICANT_USER_ID, SUBMISSION_ID))
-                    .thenReturn(submission);
-
-            ResponseEntity<GetQuestionDto> response = controllerUnderTest.getQuestion(SUBMISSION_ID, SECTION_ID_1, QUESTION_ID_2);
-
-            verify(submissionService).getSubmissionFromDatabaseBySubmissionId(APPLICANT_USER_ID, SUBMISSION_ID);
-            assertEquals(HttpStatus.OK, response.getStatusCode());
-            assertEquals(getQuestionDto2, response.getBody());
-        }
-
-        @Test
-        void getQuestion_ReturnsExpectedResponseNoPreviousNavigation() {
-            when(submissionService.getSubmissionFromDatabaseBySubmissionId(APPLICANT_USER_ID, SUBMISSION_ID))
-                    .thenReturn(submission);
-
-            ResponseEntity<GetQuestionDto> response = controllerUnderTest.getQuestion(SUBMISSION_ID, SECTION_ID_1, QUESTION_ID_3);
-
-            verify(submissionService).getSubmissionFromDatabaseBySubmissionId(APPLICANT_USER_ID, SUBMISSION_ID);
-            assertEquals(HttpStatus.OK, response.getStatusCode());
-            assertEquals(getQuestionDto3, response.getBody());
-        }
-
-        @Test
-        void getQuestion_ThrowWhenSectionNotFound() {
-            String sectionId = "NONE";
-            when(submissionService.getSubmissionFromDatabaseBySubmissionId(APPLICANT_USER_ID, SUBMISSION_ID))
-                    .thenReturn(submission);
-
-            Exception result = assertThrows(NotFoundException.class, () -> controllerUnderTest.getQuestion(SUBMISSION_ID, sectionId, QUESTION_ID_1));
-            verify(submissionService).getSubmissionFromDatabaseBySubmissionId(APPLICANT_USER_ID, SUBMISSION_ID);
-            assertTrue(result.getMessage().contains(String.format("No Section with ID %s was found", sectionId)));
-        }
-
-        @Test
-        void getQuestion_ThrowWhenQuestionNotFound() {
-            String questionId = "NONE";
-            when(submissionService.getSubmissionFromDatabaseBySubmissionId(APPLICANT_USER_ID, SUBMISSION_ID))
-                    .thenReturn(submission);
-
-            Exception result = assertThrows(NotFoundException.class, () -> controllerUnderTest.getQuestion(SUBMISSION_ID, SECTION_ID_1, questionId));
-            verify(submissionService).getSubmissionFromDatabaseBySubmissionId(APPLICANT_USER_ID, SUBMISSION_ID);
-            assertTrue(result.getMessage().contains(String.format("No question with ID %s was found", questionId)));
-        }
-    }
-
-    @Nested
-    class save {
-        @Test
-        void save_savesQuestionResponseAndReturnsExpectedNextNav() {
-
-            final GetNavigationParamsDto nextNav = GetNavigationParamsDto.builder().build();
-            final CreateQuestionResponseDto questionResponse = CreateQuestionResponseDto.builder()
-                    .submissionId(SUBMISSION_ID)
-                    .questionId(QUESTION_ID_1)
-                    .build();
-
-            doReturn(nextNav)
-                    .when(submissionService).getNextNavigation(APPLICANT_USER_ID, SUBMISSION_ID, SECTION_ID_1, QUESTION_ID_1, false);
-
-            ResponseEntity<GetNavigationParamsDto> methodResponse = controllerUnderTest.save(SUBMISSION_ID, SECTION_ID_1, QUESTION_ID_1, questionResponse);
-
-            verify(submissionService).saveQuestionResponse(questionResponse, APPLICANT_USER_ID, SUBMISSION_ID, SECTION_ID_1);
-            assertThat(methodResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
-            assertThat(methodResponse.getBody()).isEqualTo(nextNav);
-        }
-
-        @Test
-        void save_savesQuestionResponseButCantSaveEvent_shouldReturnFine() {
-
-            final GetNavigationParamsDto nextNav = GetNavigationParamsDto.builder().build();
-            final CreateQuestionResponseDto questionResponse = CreateQuestionResponseDto.builder()
-                    .submissionId(SUBMISSION_ID)
-                    .questionId(QUESTION_ID_1)
-                    .build();
-
-            doReturn(nextNav)
-                    .when(submissionService).getNextNavigation(APPLICANT_USER_ID, SUBMISSION_ID, SECTION_ID_1, QUESTION_ID_1, false);
-            doThrow(new RuntimeException()).when(eventLogService).logSubmissionUpdatedEvent(any(), anyString(), eq(SUBMISSION_ID.toString()));
-
-            ResponseEntity<GetNavigationParamsDto> methodResponse = controllerUnderTest.save(SUBMISSION_ID, SECTION_ID_1, QUESTION_ID_1, questionResponse);
-
-            verify(submissionService).saveQuestionResponse(questionResponse, APPLICANT_USER_ID, SUBMISSION_ID, SECTION_ID_1);
-            assertThat(methodResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
-            assertThat(methodResponse.getBody()).isEqualTo(nextNav);
-        }
 
     }
 
     @Nested
-    class isSubmissionReadyToBeSubmitted {
+    class withSecurityContextSet {
+        @BeforeEach
+        void setup() {
+            when(securityContext.getAuthentication()).thenReturn(authentication);
+            SecurityContextHolder.setContext(securityContext);
+            JwtPayload jwtPayload = JwtPayload.builder().sub(APPLICANT_USER_ID).build();
+            when(SecurityContextHolder.getContext().getAuthentication().getPrincipal()).thenReturn(jwtPayload);
+        }
+
         @Test
-        void isSubmissionReadyToBeSubmitted_ReturnsExpectedResponse_ReturnTrue() {
-            when(submissionService.isSubmissionReadyToBeSubmitted(APPLICANT_USER_ID, SUBMISSION_ID))
+        void getSection_ReturnsExpectedResponse() {
+            when(submissionService.getSectionBySectionId(APPLICANT_USER_ID, SUBMISSION_ID, SECTION_ID_1))
+                    .thenReturn(section1);
+
+            ResponseEntity<SubmissionSection> response = controllerUnderTest.getSection(SUBMISSION_ID, SECTION_ID_1);
+
+            verify(submissionService).getSectionBySectionId(APPLICANT_USER_ID, SUBMISSION_ID, SECTION_ID_1);
+            assertEquals(HttpStatus.OK, response.getStatusCode());
+            assertEquals(response.getBody(), section1);
+        }
+
+        @Test
+        void isSubmissionSubmitted_returnsExpectedResult() {
+            when(submissionService.hasSubmissionBeenSubmitted(APPLICANT_USER_ID, SUBMISSION_ID))
                     .thenReturn(true);
 
-            ResponseEntity<Boolean> response = controllerUnderTest.isSubmissionReadyToBeSubmitted(SUBMISSION_ID);
+            final ResponseEntity<Boolean> methodResponse = controllerUnderTest.isSubmissionSubmitted(SUBMISSION_ID);
 
-
-            assertEquals(HttpStatus.OK, response.getStatusCode());
-            assertEquals(true, response.getBody());
+            assertThat(methodResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
+            assertThat(methodResponse.getBody()).isTrue();
         }
 
         @Test
-        void isSubmissionReadyToBeSubmitted_ReturnsExpectedResponse_ReturnFalse() {
-            when(submissionService.isSubmissionReadyToBeSubmitted(APPLICANT_USER_ID, SUBMISSION_ID))
-                    .thenReturn(false);
+        void removeAttachment_RemovesFileFromS3_AndDeletesDatabaseEntry() {
 
-            ResponseEntity<Boolean> response = controllerUnderTest.isSubmissionReadyToBeSubmitted(SUBMISSION_ID);
-
-
-            assertEquals(HttpStatus.OK, response.getStatusCode());
-            assertEquals(false, response.getBody());
-        }
-    }
-
-    @Nested
-    class submitApplication {
-        @Test
-        void submitApplication_isSuccessfulAndReturnsExpectedResponse() {
-
-            final String emailAddress = "test@email.com";
-            final GrantApplicant grantApplicant = GrantApplicant.builder().userId(APPLICANT_USER_ID).id(1).build();
-            final SubmitApplicationDto submitApplication = SubmitApplicationDto.builder()
-                    .submissionId(SUBMISSION_ID)
-                    .build();
-            final JwtPayload jwtPayload = JwtPayload.builder().sub(APPLICANT_USER_ID).email(emailAddress).build();
-
-            when(SecurityContextHolder.getContext().getAuthentication().getPrincipal()).thenReturn(jwtPayload);
-            when(submissionService.getSubmissionFromDatabaseBySubmissionId(APPLICANT_USER_ID, SUBMISSION_ID))
-                    .thenReturn(submission);
-
-            when(grantApplicantService.getApplicantFromPrincipal()).thenReturn(grantApplicant);
-
-            ResponseEntity<String> response = controllerUnderTest.submitApplication(submitApplication);
-
-            verify(submissionService).getSubmissionFromDatabaseBySubmissionId(APPLICANT_USER_ID, SUBMISSION_ID);
-            verify(submissionService).submit(submission, grantApplicant, emailAddress);
-
-            assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
-            assertThat(response.getBody()).isEqualTo("Submitted");
-        }
-
-        @Test
-        void submitApplication_isSuccessfulAndReturnsExpectedResponse_ForV2Schemes() {
-
-            // set up the V2 scheme
-            submission.getScheme().setVersion(2);
-
-            final String emailAddress = "test@email.com";
-            final GrantApplicant grantApplicant = GrantApplicant.builder().userId(APPLICANT_USER_ID).id(1).build();
-            final SubmitApplicationDto submitApplication = SubmitApplicationDto.builder()
-                    .submissionId(SUBMISSION_ID)
-                    .build();
-            final JwtPayload jwtPayload = JwtPayload.builder().sub(APPLICANT_USER_ID).email(emailAddress).build();
-
-            final GrantMandatoryQuestions mandatoryQuestions = GrantMandatoryQuestions.builder()
-                    .orgType(GrantMandatoryQuestionOrgType.LIMITED_COMPANY)
+            final int applicationId = submission.getApplication().getId();
+            final UUID attachmentId = UUID.randomUUID();
+            final GrantAttachment attachment = GrantAttachment.builder()
+                    .id(attachmentId)
                     .build();
 
-            when(SecurityContextHolder.getContext().getAuthentication().getPrincipal())
-                    .thenReturn(jwtPayload);
+            final GetNavigationParamsDto expectedNav = GetNavigationParamsDto.builder()
+                    .responseAccepted(Boolean.TRUE)
+                    .nextNavigation(Map.of(
+                            APIConstants.NAVIGATION_SECTION_ID, SECTION_ID_1,
+                            APIConstants.NAVIGATION_QUESTION_ID, QUESTION_ID_1
+                    ))
+                    .build();
 
             when(submissionService.getSubmissionFromDatabaseBySubmissionId(APPLICANT_USER_ID, SUBMISSION_ID))
                     .thenReturn(submission);
 
-            when(grantApplicantService.getApplicantFromPrincipal())
-                    .thenReturn(grantApplicant);
-
-            when(mandatoryQuestionService.getGrantMandatoryQuestionBySubmissionIdAndApplicantSub(submission.getId(), grantApplicant.getUserId()))
-                    .thenReturn(mandatoryQuestions);
-
-
-            final ResponseEntity<String> response = controllerUnderTest.submitApplication(submitApplication);
-
-
-            verify(mandatoryQuestionService).getGrantMandatoryQuestionBySubmissionIdAndApplicantSub(submission.getId(), grantApplicant.getUserId());
-            verify(spotlightService).createSpotlightCheck(mandatoryQuestions, submission.getScheme());
-            verify(submissionService).getSubmissionFromDatabaseBySubmissionId(APPLICANT_USER_ID, SUBMISSION_ID);
-            verify(submissionService).submit(submission, grantApplicant, emailAddress);
-
-            assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
-            assertThat(response.getBody()).isEqualTo("Submitted");
-        }
-
-        @ParameterizedTest
-        @EnumSource(value = GrantMandatoryQuestionOrgType.class, names = {"INDIVIDUAL", "OTHER"})
-        void submitApplication_DoesNotCreateSpotlightCheck_ForIndividualsOrOther_ForV2Schemes(GrantMandatoryQuestionOrgType orgType) {
-
-            // set up the V2 scheme
-            submission.getScheme().setVersion(2);
-
-            final String emailAddress = "test@email.com";
-            final GrantApplicant grantApplicant = GrantApplicant.builder().userId(APPLICANT_USER_ID).id(1).build();
-            final SubmitApplicationDto submitApplication = SubmitApplicationDto.builder()
-                    .submissionId(SUBMISSION_ID)
-                    .build();
-            final JwtPayload jwtPayload = JwtPayload.builder().sub(APPLICANT_USER_ID).email(emailAddress).build();
-
-            final GrantMandatoryQuestions mandatoryQuestions = GrantMandatoryQuestions.builder()
-                    .orgType(orgType)
-                    .build();
-
-            when(SecurityContextHolder.getContext().getAuthentication().getPrincipal())
-                    .thenReturn(jwtPayload);
-
-            when(submissionService.getSubmissionFromDatabaseBySubmissionId(APPLICANT_USER_ID, SUBMISSION_ID))
-                    .thenReturn(submission);
-
-            when(grantApplicantService.getApplicantFromPrincipal())
-                    .thenReturn(grantApplicant);
-
-            when(mandatoryQuestionService.getGrantMandatoryQuestionBySubmissionIdAndApplicantSub(submission.getId(), grantApplicant.getUserId()))
-                    .thenReturn(mandatoryQuestions);
-
-
-            final ResponseEntity<String> response = controllerUnderTest.submitApplication(submitApplication);
-
-
-            verify(mandatoryQuestionService).getGrantMandatoryQuestionBySubmissionIdAndApplicantSub(submission.getId(), grantApplicant.getUserId());
-            verify(spotlightService, never()).createSpotlightCheck(Mockito.any(), Mockito.any());
-            verify(submissionService).getSubmissionFromDatabaseBySubmissionId(APPLICANT_USER_ID, SUBMISSION_ID);
-            verify(submissionService).submit(submission, grantApplicant, emailAddress);
-
-            assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
-            assertThat(response.getBody()).isEqualTo("Submitted");
-        }
-
-        @Test
-        void submitApplication_ThrowsNotFoundException_IfSubmissionNotFound() {
-
-            final SubmitApplicationDto submitApplication = SubmitApplicationDto.builder()
-                    .submissionId(SUBMISSION_ID)
-                    .build();
-
-            when(submissionService.getSubmissionFromDatabaseBySubmissionId(APPLICANT_USER_ID, SUBMISSION_ID))
-                    .thenThrow(new NotFoundException(""));
-
-            when(grantApplicantService.getApplicantFromPrincipal()).thenReturn(GrantApplicant.builder().userId(APPLICANT_USER_ID).id(1).build());
-
-            assertThrows(NotFoundException.class, () -> controllerUnderTest.submitApplication(submitApplication));
-            verify(submissionService).getSubmissionFromDatabaseBySubmissionId(APPLICANT_USER_ID, SUBMISSION_ID);
-        }
-    }
-
-    @Nested
-    class createApplication {
-        @Test
-        void createApplication__submissionNotPublished_ThrowException() {
-            when(grantApplicationService.isGrantApplicationPublished(1)).thenReturn(false);
-            GrantApplicationNotPublishedException result = assertThrows(GrantApplicationNotPublishedException.class, () -> controllerUnderTest.createApplication(1));
-
-            assertTrue(result.getMessage().contains(String.format("Grant Application %s is not been published yet.", 1)));
-        }
-
-        @Test
-        void returnSubmission__IfsubmissionAlreadyExists() throws JsonProcessingException {
-            when(securityContext.getAuthentication()).thenReturn(authentication);
-
-            SecurityContextHolder.setContext(securityContext);
-            JwtPayload jwtPayload = JwtPayload.builder().sub(APPLICANT_USER_ID).build();
-
-            when(SecurityContextHolder.getContext().getAuthentication().getPrincipal()).thenReturn(jwtPayload);
-            when(grantApplicationService.isGrantApplicationPublished(1)).thenReturn(true);
-            when(grantApplicationService.getGrantApplicationById(1)).thenReturn(application);
-            when(grantApplicantService.getApplicantById(grantApplicant.getUserId())).thenReturn(grantApplicant);
-            when(submissionService.getSubmissionByApplicantAndApplicationId(grantApplicant, application))
-                    .thenReturn(Optional.of(submission));
-
-            ResponseEntity<CreateSubmissionResponseDto> response = controllerUnderTest.createApplication(1);
-
-            assertEquals(response, new ResponseEntity<>(CreateSubmissionResponseDto.builder().submissionCreated(false)
-                    .submissionId(submission.getId())
-                    .build(), HttpStatus.OK));
-        }
-
-        @Test
-        void createApplication_success() throws JsonProcessingException {
-            final UUID submissionId = UUID.fromString("1c2eabf0-b33c-433a-b00f-e73d8efca929");
-
-            final ApplicationDefinition applicationDefinition = new ApplicationDefinition();
-            final GrantScheme grantScheme = new GrantScheme();
-            final GrantApplication grantApplication = GrantApplication.builder().id(1)
-                    .applicationName("Test Application")
-                    .definition(applicationDefinition)
-                    .grantScheme(grantScheme)
-                    .version(1)
-                    .build();
-            final CreateSubmissionResponseDto createSubmissionResponseDto = CreateSubmissionResponseDto.builder()
-                    .submissionCreated(true)
-                    .submissionId(submissionId)
-                    .build();
-            when(securityContext.getAuthentication()).thenReturn(authentication);
-            SecurityContextHolder.setContext(securityContext);
-            JwtPayload jwtPayload = JwtPayload.builder().sub(APPLICANT_USER_ID).build();
-            final String applicantId = jwtPayload.getSub();
-            final GrantApplicant grantApplicant = GrantApplicant.builder().userId(applicantId).build();
-            when(SecurityContextHolder.getContext().getAuthentication().getPrincipal()).thenReturn(jwtPayload);
-
-            when(grantApplicationService.isGrantApplicationPublished(1)).thenReturn(true);
-            when(grantApplicationService.getGrantApplicationById(1)).thenReturn(grantApplication);
-            when(grantApplicantService.getApplicantById(applicantId)).thenReturn(grantApplicant);
-            when(submissionService.createSubmissionFromApplication(APPLICANT_USER_ID, grantApplicant, grantApplication)).thenReturn(createSubmissionResponseDto);
-
-            ResponseEntity<CreateSubmissionResponseDto> response = controllerUnderTest.createApplication(1);
-
-
-            assertEquals(HttpStatus.OK, response.getStatusCode());
-            assertEquals(createSubmissionResponseDto, response.getBody());
-        }
-    }
-
-    @Nested
-    class postSectionReview {
-        @Test
-        void postSectionReview_completedSectionStatus() {
-            final SubmissionReviewBodyDto submissionReviewBodyDto = SubmissionReviewBodyDto.builder().isComplete(true).build();
-            when(submissionService.handleSectionReview(APPLICANT_USER_ID, SUBMISSION_ID, SECTION_ID_1, submissionReviewBodyDto.getIsComplete())).thenReturn(SubmissionSectionStatus.COMPLETED);
-            final ResponseEntity<String> result = controllerUnderTest.postSectionReview(SUBMISSION_ID, SECTION_ID_1, submissionReviewBodyDto);
-            assertEquals(HttpStatus.OK, result.getStatusCode());
-            assertEquals(result.getBody(), String.format("Section with ID %s status has been updated to %s.", SECTION_ID_1, SubmissionSectionStatus.COMPLETED));
-        }
-
-        @Test
-        void postSectionReview_inProgressSectionStatus() {
-            final SubmissionReviewBodyDto submissionReviewBodyDto = SubmissionReviewBodyDto.builder().isComplete(false).build();
-            when(submissionService.handleSectionReview(APPLICANT_USER_ID, SUBMISSION_ID, SECTION_ID_1, submissionReviewBodyDto.getIsComplete())).thenReturn(SubmissionSectionStatus.IN_PROGRESS);
-            final ResponseEntity<String> result = controllerUnderTest.postSectionReview(SUBMISSION_ID, SECTION_ID_1, submissionReviewBodyDto);
-            assertEquals(HttpStatus.OK, result.getStatusCode());
-            assertEquals(result.getBody(), String.format("Section with ID %s status has been updated to %s.", SECTION_ID_1, SubmissionSectionStatus.IN_PROGRESS));
-        }
-
-        @Test
-        void postSectionReview_bodyIsNull() {
-            SubmissionReviewBodyDto submissionReviewBodyDto = SubmissionReviewBodyDto.builder().build();
-            assertThrows(NullPointerException.class, () -> controllerUnderTest.postSectionReview(SUBMISSION_ID, SECTION_ID_1, submissionReviewBodyDto));
-        }
-    }
-
-
-    @Test
-    void isSubmissionSubmitted_returnsExpectedResult() {
-        when(submissionService.hasSubmissionBeenSubmitted(APPLICANT_USER_ID, SUBMISSION_ID))
-                .thenReturn(true);
-
-        final ResponseEntity<Boolean> methodResponse = controllerUnderTest.isSubmissionSubmitted(SUBMISSION_ID);
-
-        assertThat(methodResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
-        assertThat(methodResponse.getBody()).isTrue();
-    }
-
-    @Nested
-    class updateAttachment {
-        @ParameterizedTest
-        @MethodSource("provideGrantAttachmentUpdates")
-        void updateAttachment_UpdatesExpectedAttachment(UpdateAttachmentDto update, GrantAttachmentStatus status) {
-
-            final GrantAttachment attachment = GrantAttachment.builder().build();
-
-            when(submissionService.getSubmissionFromDatabaseBySubmissionId(APPLICANT_USER_ID, SUBMISSION_ID))
-                    .thenReturn(submission);
-
-            when(grantAttachmentService.getAttachmentBySubmissionAndQuestion(submission, QUESTION_ID_1))
+            when(grantAttachmentService.getAttachment(attachmentId))
                     .thenReturn(attachment);
 
-            final ArgumentCaptor<GrantAttachment> attachmentCaptor = ArgumentCaptor.forClass(GrantAttachment.class);
-
-            final ResponseEntity<String> methodResponse = controllerUnderTest.updateAttachment(SUBMISSION_ID, QUESTION_ID_1, update, "topSecretKey");
+            final ResponseEntity<GetNavigationParamsDto> methodResponse = controllerUnderTest.removeAttachment(SUBMISSION_ID, SECTION_ID_1, QUESTION_ID_1, attachmentId);
 
             assertThat(methodResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
-            assertThat(methodResponse.getBody()).isEqualTo("Attachment Updated");
+            assertThat(methodResponse.getBody()).isEqualTo(expectedNav);
 
-            verify(grantAttachmentService).save(attachmentCaptor.capture());
-            assertThat(attachmentCaptor.getValue().getStatus()).isEqualTo(status);
-            assertThat(attachmentCaptor.getValue().getLastUpdated()).isEqualTo(Instant.now(clock));
-            assertThat(attachmentCaptor.getValue().getLocation()).isEqualTo(update.getUri());
+            verify(attachmentService).deleteAttachment(attachment, applicationId, SUBMISSION_ID, QUESTION_ID_1);
+            verify(submissionService).deleteQuestionResponse(APPLICANT_USER_ID, SUBMISSION_ID, QUESTION_ID_1);
+            verify(submissionService).handleSectionReview(APPLICANT_USER_ID, SUBMISSION_ID, SECTION_ID_1, Boolean.FALSE);
         }
 
-        @ParameterizedTest
-        @MethodSource("provideGrantAttachmentUpdates")
-        void updateAttachment_unauthenticatedError(UpdateAttachmentDto update) {
-            doThrow(new UnauthorizedException("Unauthorized oh nooo")).when(secretAuthService).authenticateSecret(anyString());
-
-            assertThrows(UnauthorizedException.class, () -> controllerUnderTest.updateAttachment(SUBMISSION_ID, QUESTION_ID_1, update, "topSecretKey"));
-        }
-
-        private static Stream<Arguments> provideGrantAttachmentUpdates() {
-            return Stream.of(
-                    Arguments.of(
-                            UpdateAttachmentDto.builder()
-                                    .isClean(true)
-                                    .uri("https://uri.com")
-                                    .build(),
-                            GrantAttachmentStatus.AVAILABLE
-                    ),
-                    Arguments.of(
-                            UpdateAttachmentDto.builder()
-                                    .isClean(false)
-                                    .uri("https://uri.com")
-                                    .build(),
-                            GrantAttachmentStatus.QUARANTINED
-                    )
-            );
-        }
-    }
-
-
-    @Nested
-    class postAttachment {
-        // it's frightening how simultaneously good and bad this test is
         @Test
-        void postAttachment_SavesTheDocumentAndCreatesADatabaseEntry() {
+        void getNextNavigationForQuestion_ReturnsExpectedResult() {
 
-            final String questionId = UUID.randomUUID().toString();
-
-            final SubmissionQuestionValidation validation = SubmissionQuestionValidation.builder()
-                    .mandatory(true)
-                    .allowedTypes(new String[]{"txt"})
+            final GetNavigationParamsDto expectedNav = GetNavigationParamsDto.builder()
+                    .responseAccepted(Boolean.TRUE)
+                    .nextNavigation(Map.of(
+                            APIConstants.NAVIGATION_SECTION_ID, SECTION_ID_1,
+                            APIConstants.NAVIGATION_QUESTION_ID, QUESTION_ID_1
+                    ))
                     .build();
 
-            final SubmissionQuestion question = SubmissionQuestion.builder()
-                    .questionId(questionId)
-                    .validation(validation)
-                    .build();
+            when(submissionService.getNextNavigation(APPLICANT_USER_ID, SUBMISSION_ID, SECTION_ID_1, QUESTION_ID_1, false))
+                    .thenReturn(expectedNav);
 
-            section2.setQuestions(List.of(question));
-
-            final MultipartFile file = new MockMultipartFile(
-                    "file",
-                    "hello.txt",
-                    MediaType.TEXT_PLAIN_VALUE,
-                    "Hello, World!".getBytes()
-            );
-
-            final GetNavigationParamsDto expectedNavigation = GetNavigationParamsDto.builder().build();
-
-            when(grantApplicantService.getApplicantFromPrincipal())
-                    .thenReturn(grantApplicant);
-
-            when(submissionService.getSubmissionFromDatabaseBySubmissionId(APPLICANT_USER_ID, SUBMISSION_ID))
-                    .thenReturn(submission);
-
-            when(submissionService.getNextNavigation(APPLICANT_USER_ID, SUBMISSION_ID, SECTION_ID_2, questionId, false))
-                    .thenReturn(expectedNavigation);
-
-            final ArgumentCaptor<GrantAttachment> attachmentCaptor = ArgumentCaptor.forClass(GrantAttachment.class);
-
-            final ResponseEntity<GetNavigationParamsDto> methodResponse = controllerUnderTest.postAttachment(SUBMISSION_ID, SECTION_ID_2, questionId, file);
-
-            verify(attachmentService).attachmentFile(application.getId() + "/" + SUBMISSION_ID + "/" + questionId + "/" + file.getOriginalFilename(), file);
-            verify(grantAttachmentService).createAttachment(attachmentCaptor.capture());
-            verify(submissionService).saveSubmission(submission);
+            final ResponseEntity<GetNavigationParamsDto> methodResponse = controllerUnderTest.getNextNavigationForQuestion(SUBMISSION_ID, SECTION_ID_1, QUESTION_ID_1, false);
 
             assertThat(methodResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
-            assertThat(methodResponse.getBody()).isEqualTo(expectedNavigation);
+            assertThat(methodResponse.getBody()).isEqualTo(expectedNav);
         }
 
-        @Test
-        void postAttachment_ThrowsAttachmentException_IfAttachmentIsNull() {
+        @Nested
+        class getSubmissions {
+            @Test
+            void getSubmissions_ReturnsExpectedResponse() {
+                grantApplicant.setSubmissions(List.of(submission));
+                when(grantApplicantService.getApplicantById(APPLICANT_USER_ID))
+                        .thenReturn(grantApplicant);
 
-            final String questionId = UUID.randomUUID().toString();
+                ResponseEntity<List<GetSubmissionDto>> response = controllerUnderTest.getSubmissions();
 
-            final SubmissionQuestionValidation validation = SubmissionQuestionValidation.builder()
-                    .mandatory(true)
-                    .allowedTypes(new String[]{"txt"})
-                    .build();
+                verify(grantApplicantService).getApplicantById(APPLICANT_USER_ID);
+                assertEquals(HttpStatus.OK, response.getStatusCode());
+                assertEquals(response.getBody(), getSubmissionDtos);
+            }
 
-            final SubmissionQuestion question = SubmissionQuestion.builder()
-                    .questionId(questionId)
-                    .validation(validation)
-                    .build();
+            @Test
+            void getSubmission_ReturnsExpectedResponse() {
+                when(submissionService.getSubmissionFromDatabaseBySubmissionId(APPLICANT_USER_ID, SUBMISSION_ID))
+                        .thenReturn(submission);
 
-            section2.setQuestions(List.of(question));
+                ResponseEntity<GetSubmissionDto> response = controllerUnderTest.getSubmission(SUBMISSION_ID);
 
-            when(grantApplicantService.getApplicantFromPrincipal())
-                    .thenReturn(grantApplicant);
-
-            when(submissionService.getSubmissionFromDatabaseBySubmissionId(APPLICANT_USER_ID, SUBMISSION_ID))
-                    .thenReturn(submission);
-
-            final AttachmentException ex = assertThrows(AttachmentException.class, () -> controllerUnderTest.postAttachment(SUBMISSION_ID, SECTION_ID_2, questionId, null));
-
-            assertThat(ex.getMessage()).isEqualTo("Select a file to continue");
+                verify(submissionService).getSubmissionFromDatabaseBySubmissionId(APPLICANT_USER_ID, SUBMISSION_ID);
+                assertEquals(HttpStatus.OK, response.getStatusCode());
+                assertEquals(response.getBody(), getSubmissionDto1);
+            }
         }
 
-        @Test
-        void postAttachment_ThrowsAttachmentException_IfAttachmentIsEmpty() {
+        @Nested
+        class getQuestion {
+            @Test
+            void getQuestion_ReturnsExpectedResponseNoNextNavigation() {
+                when(submissionService.getSubmissionFromDatabaseBySubmissionId(APPLICANT_USER_ID, SUBMISSION_ID))
+                        .thenReturn(submission);
 
-            final String questionId = UUID.randomUUID().toString();
+                ResponseEntity<GetQuestionDto> response = controllerUnderTest.getQuestion(SUBMISSION_ID, SECTION_ID_1, QUESTION_ID_1);
 
-            final SubmissionQuestionValidation validation = SubmissionQuestionValidation.builder()
-                    .mandatory(true)
-                    .allowedTypes(new String[]{"txt"})
-                    .build();
+                verify(submissionService).getSubmissionFromDatabaseBySubmissionId(APPLICANT_USER_ID, SUBMISSION_ID);
+                assertEquals(HttpStatus.OK, response.getStatusCode());
+                assertEquals(getQuestionDto1, response.getBody());
+            }
 
-            final SubmissionQuestion question = SubmissionQuestion.builder()
-                    .questionId(questionId)
-                    .validation(validation)
-                    .build();
+            @Test
+            void getQuestion_ReturnsExpectedResponseNextAndPreviousNavigation() {
+                when(submissionService.getSubmissionFromDatabaseBySubmissionId(APPLICANT_USER_ID, SUBMISSION_ID))
+                        .thenReturn(submission);
 
-            section2.setQuestions(List.of(question));
+                ResponseEntity<GetQuestionDto> response = controllerUnderTest.getQuestion(SUBMISSION_ID, SECTION_ID_1, QUESTION_ID_2);
 
-            final MultipartFile file = new MockMultipartFile(
-                    "file",
-                    "hello.txt",
-                    MediaType.TEXT_PLAIN_VALUE,
-                    "".getBytes()
-            );
+                verify(submissionService).getSubmissionFromDatabaseBySubmissionId(APPLICANT_USER_ID, SUBMISSION_ID);
+                assertEquals(HttpStatus.OK, response.getStatusCode());
+                assertEquals(getQuestionDto2, response.getBody());
+            }
 
-            when(grantApplicantService.getApplicantFromPrincipal())
-                    .thenReturn(grantApplicant);
+            @Test
+            void getQuestion_ReturnsExpectedResponseNoPreviousNavigation() {
+                when(submissionService.getSubmissionFromDatabaseBySubmissionId(APPLICANT_USER_ID, SUBMISSION_ID))
+                        .thenReturn(submission);
 
-            when(submissionService.getSubmissionFromDatabaseBySubmissionId(APPLICANT_USER_ID, SUBMISSION_ID))
-                    .thenReturn(submission);
+                ResponseEntity<GetQuestionDto> response = controllerUnderTest.getQuestion(SUBMISSION_ID, SECTION_ID_1, QUESTION_ID_3);
 
-            final AttachmentException ex = assertThrows(AttachmentException.class, () -> controllerUnderTest.postAttachment(SUBMISSION_ID, SECTION_ID_2, questionId, file));
+                verify(submissionService).getSubmissionFromDatabaseBySubmissionId(APPLICANT_USER_ID, SUBMISSION_ID);
+                assertEquals(HttpStatus.OK, response.getStatusCode());
+                assertEquals(getQuestionDto3, response.getBody());
+            }
 
-            assertThat(ex.getMessage()).isEqualTo("The selected file is empty");
+            @Test
+            void getQuestion_ThrowWhenSectionNotFound() {
+                String sectionId = "NONE";
+                when(submissionService.getSubmissionFromDatabaseBySubmissionId(APPLICANT_USER_ID, SUBMISSION_ID))
+                        .thenReturn(submission);
+
+                Exception result = assertThrows(NotFoundException.class, () -> controllerUnderTest.getQuestion(SUBMISSION_ID, sectionId, QUESTION_ID_1));
+                verify(submissionService).getSubmissionFromDatabaseBySubmissionId(APPLICANT_USER_ID, SUBMISSION_ID);
+                assertTrue(result.getMessage().contains(String.format("No Section with ID %s was found", sectionId)));
+            }
+
+            @Test
+            void getQuestion_ThrowWhenQuestionNotFound() {
+                String questionId = "NONE";
+                when(submissionService.getSubmissionFromDatabaseBySubmissionId(APPLICANT_USER_ID, SUBMISSION_ID))
+                        .thenReturn(submission);
+
+                Exception result = assertThrows(NotFoundException.class, () -> controllerUnderTest.getQuestion(SUBMISSION_ID, SECTION_ID_1, questionId));
+                verify(submissionService).getSubmissionFromDatabaseBySubmissionId(APPLICANT_USER_ID, SUBMISSION_ID);
+                assertTrue(result.getMessage().contains(String.format("No question with ID %s was found", questionId)));
+            }
         }
 
-        @Test
-        void postAttachment_ThrowsAttachmentException_IfQuestionAlreadyHasAnAttachment() {
+        @Nested
+        class save {
+            @Test
+            void save_savesQuestionResponseAndReturnsExpectedNextNav() {
 
-            final String questionId = UUID.randomUUID().toString();
+                final GetNavigationParamsDto nextNav = GetNavigationParamsDto.builder().build();
+                final CreateQuestionResponseDto questionResponse = CreateQuestionResponseDto.builder()
+                        .submissionId(SUBMISSION_ID)
+                        .questionId(QUESTION_ID_1)
+                        .build();
 
-            final SubmissionQuestionValidation validation = SubmissionQuestionValidation.builder()
-                    .mandatory(true)
-                    .allowedTypes(new String[]{"txt"})
-                    .build();
+                doReturn(nextNav)
+                        .when(submissionService).getNextNavigation(APPLICANT_USER_ID, SUBMISSION_ID, SECTION_ID_1, QUESTION_ID_1, false);
 
-            final SubmissionQuestion question = SubmissionQuestion.builder()
-                    .questionId(questionId)
-                    .validation(validation)
-                    .attachmentId(UUID.randomUUID())
-                    .build();
+                ResponseEntity<GetNavigationParamsDto> methodResponse = controllerUnderTest.save(SUBMISSION_ID, SECTION_ID_1, QUESTION_ID_1, questionResponse);
 
-            section2.setQuestions(List.of(question));
+                verify(submissionService).saveQuestionResponse(questionResponse, APPLICANT_USER_ID, SUBMISSION_ID, SECTION_ID_1);
+                assertThat(methodResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
+                assertThat(methodResponse.getBody()).isEqualTo(nextNav);
+            }
 
-            final MultipartFile file = new MockMultipartFile(
-                    "file",
-                    "hello.txt",
-                    MediaType.TEXT_PLAIN_VALUE,
-                    "Hello, World!".getBytes()
-            );
+            @Test
+            void save_savesQuestionResponseButCantSaveEvent_shouldReturnFine() {
 
-            when(grantApplicantService.getApplicantFromPrincipal())
-                    .thenReturn(grantApplicant);
+                final GetNavigationParamsDto nextNav = GetNavigationParamsDto.builder().build();
+                final CreateQuestionResponseDto questionResponse = CreateQuestionResponseDto.builder()
+                        .submissionId(SUBMISSION_ID)
+                        .questionId(QUESTION_ID_1)
+                        .build();
 
-            when(submissionService.getSubmissionFromDatabaseBySubmissionId(APPLICANT_USER_ID, SUBMISSION_ID))
-                    .thenReturn(submission);
+                doReturn(nextNav)
+                        .when(submissionService).getNextNavigation(APPLICANT_USER_ID, SUBMISSION_ID, SECTION_ID_1, QUESTION_ID_1, false);
+                doThrow(new RuntimeException()).when(eventLogService).logSubmissionUpdatedEvent(any(), anyString(), eq(SUBMISSION_ID.toString()));
 
-            final AttachmentException ex = assertThrows(AttachmentException.class, () -> controllerUnderTest.postAttachment(SUBMISSION_ID, SECTION_ID_2, questionId, file));
+                ResponseEntity<GetNavigationParamsDto> methodResponse = controllerUnderTest.save(SUBMISSION_ID, SECTION_ID_1, QUESTION_ID_1, questionResponse);
 
-            assertThat(ex.getMessage()).isEqualTo("You can only select up to 1 file at the same time");
+                verify(submissionService).saveQuestionResponse(questionResponse, APPLICANT_USER_ID, SUBMISSION_ID, SECTION_ID_1);
+                assertThat(methodResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
+                assertThat(methodResponse.getBody()).isEqualTo(nextNav);
+            }
+
         }
 
-        @Test
-        void postAttachment_SavesTheDocumentCleansFilenameAndCreatesADatabaseEntry() {
+        @Nested
+        class isSubmissionReadyToBeSubmitted {
+            @Test
+            void isSubmissionReadyToBeSubmitted_ReturnsExpectedResponse_ReturnTrue() {
+                when(submissionService.isSubmissionReadyToBeSubmitted(APPLICANT_USER_ID, SUBMISSION_ID))
+                        .thenReturn(true);
 
-            final String questionId = UUID.randomUUID().toString();
-
-            final SubmissionQuestionValidation validation = SubmissionQuestionValidation.builder()
-                    .mandatory(true)
-                    .allowedTypes(new String[]{"txt"})
-                    .build();
-
-            final SubmissionQuestion question = SubmissionQuestion.builder()
-                    .questionId(questionId)
-                    .validation(validation)
-                    .build();
-
-            section2.setQuestions(List.of(question));
-
-            final MultipartFile file = new MockMultipartFile(
-                    "file",
-                    "<>/?|/:@'*hello.txt",
-                    MediaType.TEXT_PLAIN_VALUE,
-                    "Hello, World!".getBytes()
-            );
-
-            final GetNavigationParamsDto expectedNavigation = GetNavigationParamsDto.builder().build();
-
-            when(grantApplicantService.getApplicantFromPrincipal())
-                    .thenReturn(grantApplicant);
-
-            when(submissionService.getSubmissionFromDatabaseBySubmissionId(APPLICANT_USER_ID, SUBMISSION_ID))
-                    .thenReturn(submission);
-
-            when(submissionService.getNextNavigation(APPLICANT_USER_ID, SUBMISSION_ID, SECTION_ID_2, questionId, false))
-                    .thenReturn(expectedNavigation);
-
-            final ArgumentCaptor<GrantAttachment> attachmentCaptor = ArgumentCaptor.forClass(GrantAttachment.class);
-
-            final ResponseEntity<GetNavigationParamsDto> methodResponse = controllerUnderTest.postAttachment(SUBMISSION_ID, SECTION_ID_2, questionId, file);
-
-            verify(attachmentService).attachmentFile(application.getId() + "/" + SUBMISSION_ID + "/" + questionId + "/" + "__________hello.txt", file);
-            verify(grantAttachmentService).createAttachment(attachmentCaptor.capture());
-            verify(submissionService).saveSubmission(submission);
-
-            assertThat(methodResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
-            assertThat(methodResponse.getBody()).isEqualTo(expectedNavigation);
-        }
-    }
+                ResponseEntity<Boolean> response = controllerUnderTest.isSubmissionReadyToBeSubmitted(SUBMISSION_ID);
 
 
-    @Test
-    void removeAttachment_RemovesFileFromS3_AndDeletesDatabaseEntry() {
+                assertEquals(HttpStatus.OK, response.getStatusCode());
+                assertEquals(true, response.getBody());
+            }
 
-        final int applicationId = submission.getApplication().getId();
-        final UUID attachmentId = UUID.randomUUID();
-        final GrantAttachment attachment = GrantAttachment.builder()
-                .id(attachmentId)
-                .build();
+            @Test
+            void isSubmissionReadyToBeSubmitted_ReturnsExpectedResponse_ReturnFalse() {
+                when(submissionService.isSubmissionReadyToBeSubmitted(APPLICANT_USER_ID, SUBMISSION_ID))
+                        .thenReturn(false);
 
-        final GetNavigationParamsDto expectedNav = GetNavigationParamsDto.builder()
-                .responseAccepted(Boolean.TRUE)
-                .nextNavigation(Map.of(
-                        APIConstants.NAVIGATION_SECTION_ID, SECTION_ID_1,
-                        APIConstants.NAVIGATION_QUESTION_ID, QUESTION_ID_1
-                ))
-                .build();
+                ResponseEntity<Boolean> response = controllerUnderTest.isSubmissionReadyToBeSubmitted(SUBMISSION_ID);
 
-        when(submissionService.getSubmissionFromDatabaseBySubmissionId(APPLICANT_USER_ID, SUBMISSION_ID))
-                .thenReturn(submission);
 
-        when(grantAttachmentService.getAttachment(attachmentId))
-                .thenReturn(attachment);
-
-        final ResponseEntity<GetNavigationParamsDto> methodResponse = controllerUnderTest.removeAttachment(SUBMISSION_ID, SECTION_ID_1, QUESTION_ID_1, attachmentId);
-
-        assertThat(methodResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
-        assertThat(methodResponse.getBody()).isEqualTo(expectedNav);
-
-        verify(attachmentService).deleteAttachment(attachment, applicationId, SUBMISSION_ID, QUESTION_ID_1);
-        verify(submissionService).deleteQuestionResponse(APPLICANT_USER_ID, SUBMISSION_ID, QUESTION_ID_1);
-        verify(submissionService).handleSectionReview(APPLICANT_USER_ID, SUBMISSION_ID, SECTION_ID_1, Boolean.FALSE);
-    }
-
-    @Test
-    void getNextNavigationForQuestion_ReturnsExpectedResult() {
-
-        final GetNavigationParamsDto expectedNav = GetNavigationParamsDto.builder()
-                .responseAccepted(Boolean.TRUE)
-                .nextNavigation(Map.of(
-                        APIConstants.NAVIGATION_SECTION_ID, SECTION_ID_1,
-                        APIConstants.NAVIGATION_QUESTION_ID, QUESTION_ID_1
-                ))
-                .build();
-
-        when(submissionService.getNextNavigation(APPLICANT_USER_ID, SUBMISSION_ID, SECTION_ID_1, QUESTION_ID_1, false))
-                .thenReturn(expectedNav);
-
-        final ResponseEntity<GetNavigationParamsDto> methodResponse = controllerUnderTest.getNextNavigationForQuestion(SUBMISSION_ID, SECTION_ID_1, QUESTION_ID_1, false);
-
-        assertThat(methodResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
-        assertThat(methodResponse.getBody()).isEqualTo(expectedNav);
-    }
-
-    @Nested
-    class isApplicantEligible {
-        @Test
-        void isApplicantEligible_ReturnsExpectedResponse_ReturnTrue() {
-            when(submissionService.isApplicantEligible(APPLICANT_USER_ID, SUBMISSION_ID))
-                    .thenReturn(true);
-
-            final ResponseEntity<Boolean> response = controllerUnderTest.isApplicantEligible(SUBMISSION_ID);
-
-            assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
-            assertThat(response.getBody()).isTrue();
-        }
-        
-
-        @Test
-        void isApplicantEligible_ReturnsExpectedResponse_ReturnFalse() {
-            when(submissionService.isApplicantEligible(APPLICANT_USER_ID, SUBMISSION_ID))
-                    .thenReturn(false);
-
-            final ResponseEntity<Boolean> response = controllerUnderTest.isApplicantEligible(SUBMISSION_ID);
-
-            assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
-            assertThat(response.getBody()).isFalse();
+                assertEquals(HttpStatus.OK, response.getStatusCode());
+                assertEquals(false, response.getBody());
+            }
         }
 
-        @Test
-        void testExportSingleSubmission() throws Exception {
-            UUID submissionId = UUID.randomUUID();
-            HttpServletRequest mockRequest = new MockHttpServletRequest();
-            Submission mockSubmission = mock(Submission.class);
-            when(grantApplicantService.getEmailById(any(), any())).thenReturn("mock@example.com");
-            when(submissionService.getSubmissionById(any())).thenReturn(mockSubmission);
-            when(submissionService.getSubmissionExport(any(), any(), any())).thenReturn(mock(OdfTextDocument.class));
-            ByteArrayOutputStream mockOutputSteam = new ByteArrayOutputStream();
-            mockOutputSteam.write(1);
-            when(zipService.createSubmissionZip(any(), any())).thenReturn(mockOutputSteam);
+        @Nested
+        class submitApplication {
+            @Test
+            void submitApplication_isSuccessfulAndReturnsExpectedResponse() {
 
-            when(zipService.byteArrayOutputStreamToResource(any())).thenReturn(new ByteArrayResource(new byte[]{1}));
-            ResponseEntity<ByteArrayResource> responseEntity =
+                final String emailAddress = "test@email.com";
+                final GrantApplicant grantApplicant = GrantApplicant.builder().userId(APPLICANT_USER_ID).id(1).build();
+                final SubmitApplicationDto submitApplication = SubmitApplicationDto.builder()
+                        .submissionId(SUBMISSION_ID)
+                        .build();
+                final JwtPayload jwtPayload = JwtPayload.builder().sub(APPLICANT_USER_ID).email(emailAddress).build();
+
+                when(SecurityContextHolder.getContext().getAuthentication().getPrincipal()).thenReturn(jwtPayload);
+                when(submissionService.getSubmissionFromDatabaseBySubmissionId(APPLICANT_USER_ID, SUBMISSION_ID))
+                        .thenReturn(submission);
+
+                when(grantApplicantService.getApplicantFromPrincipal()).thenReturn(grantApplicant);
+
+                ResponseEntity<String> response = controllerUnderTest.submitApplication(submitApplication);
+
+                verify(submissionService).getSubmissionFromDatabaseBySubmissionId(APPLICANT_USER_ID, SUBMISSION_ID);
+                verify(submissionService).submit(submission, grantApplicant, emailAddress);
+
+                assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+                assertThat(response.getBody()).isEqualTo("Submitted");
+            }
+
+            @Test
+            void submitApplication_isSuccessfulAndReturnsExpectedResponse_ForV2Schemes() {
+
+                // set up the V2 scheme
+                submission.getScheme().setVersion(2);
+
+                final String emailAddress = "test@email.com";
+                final GrantApplicant grantApplicant = GrantApplicant.builder().userId(APPLICANT_USER_ID).id(1).build();
+                final SubmitApplicationDto submitApplication = SubmitApplicationDto.builder()
+                        .submissionId(SUBMISSION_ID)
+                        .build();
+                final JwtPayload jwtPayload = JwtPayload.builder().sub(APPLICANT_USER_ID).email(emailAddress).build();
+
+                final GrantMandatoryQuestions mandatoryQuestions = GrantMandatoryQuestions.builder()
+                        .orgType(GrantMandatoryQuestionOrgType.LIMITED_COMPANY)
+                        .build();
+
+                when(SecurityContextHolder.getContext().getAuthentication().getPrincipal())
+                        .thenReturn(jwtPayload);
+
+                when(submissionService.getSubmissionFromDatabaseBySubmissionId(APPLICANT_USER_ID, SUBMISSION_ID))
+                        .thenReturn(submission);
+
+                when(grantApplicantService.getApplicantFromPrincipal())
+                        .thenReturn(grantApplicant);
+
+                when(mandatoryQuestionService.getGrantMandatoryQuestionBySubmissionIdAndApplicantSub(submission.getId(), grantApplicant.getUserId()))
+                        .thenReturn(mandatoryQuestions);
+
+
+                final ResponseEntity<String> response = controllerUnderTest.submitApplication(submitApplication);
+
+
+                verify(mandatoryQuestionService).getGrantMandatoryQuestionBySubmissionIdAndApplicantSub(submission.getId(), grantApplicant.getUserId());
+                verify(spotlightService).createSpotlightCheck(mandatoryQuestions, submission.getScheme());
+                verify(submissionService).getSubmissionFromDatabaseBySubmissionId(APPLICANT_USER_ID, SUBMISSION_ID);
+                verify(submissionService).submit(submission, grantApplicant, emailAddress);
+
+                assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+                assertThat(response.getBody()).isEqualTo("Submitted");
+            }
+
+            @ParameterizedTest
+            @EnumSource(value = GrantMandatoryQuestionOrgType.class, names = {"INDIVIDUAL", "OTHER"})
+            void submitApplication_DoesNotCreateSpotlightCheck_ForIndividualsOrOther_ForV2Schemes(GrantMandatoryQuestionOrgType orgType) {
+
+                // set up the V2 scheme
+                submission.getScheme().setVersion(2);
+
+                final String emailAddress = "test@email.com";
+                final GrantApplicant grantApplicant = GrantApplicant.builder().userId(APPLICANT_USER_ID).id(1).build();
+                final SubmitApplicationDto submitApplication = SubmitApplicationDto.builder()
+                        .submissionId(SUBMISSION_ID)
+                        .build();
+                final JwtPayload jwtPayload = JwtPayload.builder().sub(APPLICANT_USER_ID).email(emailAddress).build();
+
+                final GrantMandatoryQuestions mandatoryQuestions = GrantMandatoryQuestions.builder()
+                        .orgType(orgType)
+                        .build();
+
+                when(SecurityContextHolder.getContext().getAuthentication().getPrincipal())
+                        .thenReturn(jwtPayload);
+
+                when(submissionService.getSubmissionFromDatabaseBySubmissionId(APPLICANT_USER_ID, SUBMISSION_ID))
+                        .thenReturn(submission);
+
+                when(grantApplicantService.getApplicantFromPrincipal())
+                        .thenReturn(grantApplicant);
+
+                when(mandatoryQuestionService.getGrantMandatoryQuestionBySubmissionIdAndApplicantSub(submission.getId(), grantApplicant.getUserId()))
+                        .thenReturn(mandatoryQuestions);
+
+
+                final ResponseEntity<String> response = controllerUnderTest.submitApplication(submitApplication);
+
+
+                verify(mandatoryQuestionService).getGrantMandatoryQuestionBySubmissionIdAndApplicantSub(submission.getId(), grantApplicant.getUserId());
+                verify(spotlightService, never()).createSpotlightCheck(Mockito.any(), Mockito.any());
+                verify(submissionService).getSubmissionFromDatabaseBySubmissionId(APPLICANT_USER_ID, SUBMISSION_ID);
+                verify(submissionService).submit(submission, grantApplicant, emailAddress);
+
+                assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+                assertThat(response.getBody()).isEqualTo("Submitted");
+            }
+
+            @Test
+            void submitApplication_ThrowsNotFoundException_IfSubmissionNotFound() {
+
+                final SubmitApplicationDto submitApplication = SubmitApplicationDto.builder()
+                        .submissionId(SUBMISSION_ID)
+                        .build();
+
+                when(submissionService.getSubmissionFromDatabaseBySubmissionId(APPLICANT_USER_ID, SUBMISSION_ID))
+                        .thenThrow(new NotFoundException(""));
+
+                when(grantApplicantService.getApplicantFromPrincipal()).thenReturn(GrantApplicant.builder().userId(APPLICANT_USER_ID).id(1).build());
+
+                assertThrows(NotFoundException.class, () -> controllerUnderTest.submitApplication(submitApplication));
+                verify(submissionService).getSubmissionFromDatabaseBySubmissionId(APPLICANT_USER_ID, SUBMISSION_ID);
+            }
+        }
+
+        @Nested
+        class createApplication {
+            @Test
+            void createApplication__submissionNotPublished_ThrowException() {
+                when(grantApplicationService.isGrantApplicationPublished(1)).thenReturn(false);
+                GrantApplicationNotPublishedException result = assertThrows(GrantApplicationNotPublishedException.class, () -> controllerUnderTest.createApplication(1));
+
+                assertTrue(result.getMessage().contains(String.format("Grant Application %s is not been published yet.", 1)));
+            }
+
+            @Test
+            void returnSubmission__IfsubmissionAlreadyExists() throws JsonProcessingException {
+                when(securityContext.getAuthentication()).thenReturn(authentication);
+
+                SecurityContextHolder.setContext(securityContext);
+                JwtPayload jwtPayload = JwtPayload.builder().sub(APPLICANT_USER_ID).build();
+
+                when(SecurityContextHolder.getContext().getAuthentication().getPrincipal()).thenReturn(jwtPayload);
+                when(grantApplicationService.isGrantApplicationPublished(1)).thenReturn(true);
+                when(grantApplicationService.getGrantApplicationById(1)).thenReturn(application);
+                when(grantApplicantService.getApplicantById(grantApplicant.getUserId())).thenReturn(grantApplicant);
+                when(submissionService.getSubmissionByApplicantAndApplicationId(grantApplicant, application))
+                        .thenReturn(Optional.of(submission));
+
+                ResponseEntity<CreateSubmissionResponseDto> response = controllerUnderTest.createApplication(1);
+
+                assertEquals(response, new ResponseEntity<>(CreateSubmissionResponseDto.builder().submissionCreated(false)
+                        .submissionId(submission.getId())
+                        .build(), HttpStatus.OK));
+            }
+
+            @Test
+            void createApplication_success() throws JsonProcessingException {
+                final UUID submissionId = UUID.fromString("1c2eabf0-b33c-433a-b00f-e73d8efca929");
+
+                final ApplicationDefinition applicationDefinition = new ApplicationDefinition();
+                final GrantScheme grantScheme = new GrantScheme();
+                final GrantApplication grantApplication = GrantApplication.builder().id(1)
+                        .applicationName("Test Application")
+                        .definition(applicationDefinition)
+                        .grantScheme(grantScheme)
+                        .version(1)
+                        .build();
+                final CreateSubmissionResponseDto createSubmissionResponseDto = CreateSubmissionResponseDto.builder()
+                        .submissionCreated(true)
+                        .submissionId(submissionId)
+                        .build();
+                when(securityContext.getAuthentication()).thenReturn(authentication);
+                SecurityContextHolder.setContext(securityContext);
+                JwtPayload jwtPayload = JwtPayload.builder().sub(APPLICANT_USER_ID).build();
+                final String applicantId = jwtPayload.getSub();
+                final GrantApplicant grantApplicant = GrantApplicant.builder().userId(applicantId).build();
+                when(SecurityContextHolder.getContext().getAuthentication().getPrincipal()).thenReturn(jwtPayload);
+
+                when(grantApplicationService.isGrantApplicationPublished(1)).thenReturn(true);
+                when(grantApplicationService.getGrantApplicationById(1)).thenReturn(grantApplication);
+                when(grantApplicantService.getApplicantById(applicantId)).thenReturn(grantApplicant);
+                when(submissionService.createSubmissionFromApplication(APPLICANT_USER_ID, grantApplicant, grantApplication)).thenReturn(createSubmissionResponseDto);
+
+                ResponseEntity<CreateSubmissionResponseDto> response = controllerUnderTest.createApplication(1);
+
+
+                assertEquals(HttpStatus.OK, response.getStatusCode());
+                assertEquals(createSubmissionResponseDto, response.getBody());
+            }
+        }
+
+        @Nested
+        class postSectionReview {
+            @Test
+            void postSectionReview_completedSectionStatus() {
+                final SubmissionReviewBodyDto submissionReviewBodyDto = SubmissionReviewBodyDto.builder().isComplete(true).build();
+                when(submissionService.handleSectionReview(APPLICANT_USER_ID, SUBMISSION_ID, SECTION_ID_1, submissionReviewBodyDto.getIsComplete())).thenReturn(SubmissionSectionStatus.COMPLETED);
+                final ResponseEntity<String> result = controllerUnderTest.postSectionReview(SUBMISSION_ID, SECTION_ID_1, submissionReviewBodyDto);
+                assertEquals(HttpStatus.OK, result.getStatusCode());
+                assertEquals(result.getBody(), String.format("Section with ID %s status has been updated to %s.", SECTION_ID_1, SubmissionSectionStatus.COMPLETED));
+            }
+
+            @Test
+            void postSectionReview_inProgressSectionStatus() {
+                final SubmissionReviewBodyDto submissionReviewBodyDto = SubmissionReviewBodyDto.builder().isComplete(false).build();
+                when(submissionService.handleSectionReview(APPLICANT_USER_ID, SUBMISSION_ID, SECTION_ID_1, submissionReviewBodyDto.getIsComplete())).thenReturn(SubmissionSectionStatus.IN_PROGRESS);
+                final ResponseEntity<String> result = controllerUnderTest.postSectionReview(SUBMISSION_ID, SECTION_ID_1, submissionReviewBodyDto);
+                assertEquals(HttpStatus.OK, result.getStatusCode());
+                assertEquals(result.getBody(), String.format("Section with ID %s status has been updated to %s.", SECTION_ID_1, SubmissionSectionStatus.IN_PROGRESS));
+            }
+
+            @Test
+            void postSectionReview_bodyIsNull() {
+                SubmissionReviewBodyDto submissionReviewBodyDto = SubmissionReviewBodyDto.builder().build();
+                assertThrows(NullPointerException.class, () -> controllerUnderTest.postSectionReview(SUBMISSION_ID, SECTION_ID_1, submissionReviewBodyDto));
+            }
+        }
+
+        @Nested
+        class postAttachment {
+            // it's frightening how simultaneously good and bad this test is
+            @Test
+            void postAttachment_SavesTheDocumentAndCreatesADatabaseEntry() {
+
+                final String questionId = UUID.randomUUID().toString();
+
+                final SubmissionQuestionValidation validation = SubmissionQuestionValidation.builder()
+                        .mandatory(true)
+                        .allowedTypes(new String[]{"txt"})
+                        .build();
+
+                final SubmissionQuestion question = SubmissionQuestion.builder()
+                        .questionId(questionId)
+                        .validation(validation)
+                        .build();
+
+                section2.setQuestions(List.of(question));
+
+                final MultipartFile file = new MockMultipartFile(
+                        "file",
+                        "hello.txt",
+                        MediaType.TEXT_PLAIN_VALUE,
+                        "Hello, World!".getBytes()
+                );
+
+                final GetNavigationParamsDto expectedNavigation = GetNavigationParamsDto.builder().build();
+
+                when(grantApplicantService.getApplicantFromPrincipal())
+                        .thenReturn(grantApplicant);
+
+                when(submissionService.getSubmissionFromDatabaseBySubmissionId(APPLICANT_USER_ID, SUBMISSION_ID))
+                        .thenReturn(submission);
+
+                when(submissionService.getNextNavigation(APPLICANT_USER_ID, SUBMISSION_ID, SECTION_ID_2, questionId, false))
+                        .thenReturn(expectedNavigation);
+
+                final ArgumentCaptor<GrantAttachment> attachmentCaptor = ArgumentCaptor.forClass(GrantAttachment.class);
+
+                final ResponseEntity<GetNavigationParamsDto> methodResponse = controllerUnderTest.postAttachment(SUBMISSION_ID, SECTION_ID_2, questionId, file);
+
+                verify(attachmentService).attachmentFile(application.getId() + "/" + SUBMISSION_ID + "/" + questionId + "/" + file.getOriginalFilename(), file);
+                verify(grantAttachmentService).createAttachment(attachmentCaptor.capture());
+                verify(submissionService).saveSubmission(submission);
+
+                assertThat(methodResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
+                assertThat(methodResponse.getBody()).isEqualTo(expectedNavigation);
+            }
+
+            @Test
+            void postAttachment_ThrowsAttachmentException_IfAttachmentIsNull() {
+
+                final String questionId = UUID.randomUUID().toString();
+
+                final SubmissionQuestionValidation validation = SubmissionQuestionValidation.builder()
+                        .mandatory(true)
+                        .allowedTypes(new String[]{"txt"})
+                        .build();
+
+                final SubmissionQuestion question = SubmissionQuestion.builder()
+                        .questionId(questionId)
+                        .validation(validation)
+                        .build();
+
+                section2.setQuestions(List.of(question));
+
+                when(grantApplicantService.getApplicantFromPrincipal())
+                        .thenReturn(grantApplicant);
+
+                when(submissionService.getSubmissionFromDatabaseBySubmissionId(APPLICANT_USER_ID, SUBMISSION_ID))
+                        .thenReturn(submission);
+
+                final AttachmentException ex = assertThrows(AttachmentException.class, () -> controllerUnderTest.postAttachment(SUBMISSION_ID, SECTION_ID_2, questionId, null));
+
+                assertThat(ex.getMessage()).isEqualTo("Select a file to continue");
+            }
+
+            @Test
+            void postAttachment_ThrowsAttachmentException_IfAttachmentIsEmpty() {
+
+                final String questionId = UUID.randomUUID().toString();
+
+                final SubmissionQuestionValidation validation = SubmissionQuestionValidation.builder()
+                        .mandatory(true)
+                        .allowedTypes(new String[]{"txt"})
+                        .build();
+
+                final SubmissionQuestion question = SubmissionQuestion.builder()
+                        .questionId(questionId)
+                        .validation(validation)
+                        .build();
+
+                section2.setQuestions(List.of(question));
+
+                final MultipartFile file = new MockMultipartFile(
+                        "file",
+                        "hello.txt",
+                        MediaType.TEXT_PLAIN_VALUE,
+                        "".getBytes()
+                );
+
+                when(grantApplicantService.getApplicantFromPrincipal())
+                        .thenReturn(grantApplicant);
+
+                when(submissionService.getSubmissionFromDatabaseBySubmissionId(APPLICANT_USER_ID, SUBMISSION_ID))
+                        .thenReturn(submission);
+
+                final AttachmentException ex = assertThrows(AttachmentException.class, () -> controllerUnderTest.postAttachment(SUBMISSION_ID, SECTION_ID_2, questionId, file));
+
+                assertThat(ex.getMessage()).isEqualTo("The selected file is empty");
+            }
+
+            @Test
+            void postAttachment_ThrowsAttachmentException_IfQuestionAlreadyHasAnAttachment() {
+
+                final String questionId = UUID.randomUUID().toString();
+
+                final SubmissionQuestionValidation validation = SubmissionQuestionValidation.builder()
+                        .mandatory(true)
+                        .allowedTypes(new String[]{"txt"})
+                        .build();
+
+                final SubmissionQuestion question = SubmissionQuestion.builder()
+                        .questionId(questionId)
+                        .validation(validation)
+                        .attachmentId(UUID.randomUUID())
+                        .build();
+
+                section2.setQuestions(List.of(question));
+
+                final MultipartFile file = new MockMultipartFile(
+                        "file",
+                        "hello.txt",
+                        MediaType.TEXT_PLAIN_VALUE,
+                        "Hello, World!".getBytes()
+                );
+
+                when(grantApplicantService.getApplicantFromPrincipal())
+                        .thenReturn(grantApplicant);
+
+                when(submissionService.getSubmissionFromDatabaseBySubmissionId(APPLICANT_USER_ID, SUBMISSION_ID))
+                        .thenReturn(submission);
+
+                final AttachmentException ex = assertThrows(AttachmentException.class, () -> controllerUnderTest.postAttachment(SUBMISSION_ID, SECTION_ID_2, questionId, file));
+
+                assertThat(ex.getMessage()).isEqualTo("You can only select up to 1 file at the same time");
+            }
+
+            @Test
+            void postAttachment_SavesTheDocumentCleansFilenameAndCreatesADatabaseEntry() {
+
+                final String questionId = UUID.randomUUID().toString();
+
+                final SubmissionQuestionValidation validation = SubmissionQuestionValidation.builder()
+                        .mandatory(true)
+                        .allowedTypes(new String[]{"txt"})
+                        .build();
+
+                final SubmissionQuestion question = SubmissionQuestion.builder()
+                        .questionId(questionId)
+                        .validation(validation)
+                        .build();
+
+                section2.setQuestions(List.of(question));
+
+                final MultipartFile file = new MockMultipartFile(
+                        "file",
+                        "<>/?|/:@'*hello.txt",
+                        MediaType.TEXT_PLAIN_VALUE,
+                        "Hello, World!".getBytes()
+                );
+
+                final GetNavigationParamsDto expectedNavigation = GetNavigationParamsDto.builder().build();
+
+                when(grantApplicantService.getApplicantFromPrincipal())
+                        .thenReturn(grantApplicant);
+
+                when(submissionService.getSubmissionFromDatabaseBySubmissionId(APPLICANT_USER_ID, SUBMISSION_ID))
+                        .thenReturn(submission);
+
+                when(submissionService.getNextNavigation(APPLICANT_USER_ID, SUBMISSION_ID, SECTION_ID_2, questionId, false))
+                        .thenReturn(expectedNavigation);
+
+                final ArgumentCaptor<GrantAttachment> attachmentCaptor = ArgumentCaptor.forClass(GrantAttachment.class);
+
+                final ResponseEntity<GetNavigationParamsDto> methodResponse = controllerUnderTest.postAttachment(SUBMISSION_ID, SECTION_ID_2, questionId, file);
+
+                verify(attachmentService).attachmentFile(application.getId() + "/" + SUBMISSION_ID + "/" + questionId + "/" + "__________hello.txt", file);
+                verify(grantAttachmentService).createAttachment(attachmentCaptor.capture());
+                verify(submissionService).saveSubmission(submission);
+
+                assertThat(methodResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
+                assertThat(methodResponse.getBody()).isEqualTo(expectedNavigation);
+            }
+        }
+
+        @Nested
+        class isApplicantEligible {
+            @Test
+            void isApplicantEligible_ReturnsExpectedResponse_ReturnTrue() {
+                when(submissionService.isApplicantEligible(APPLICANT_USER_ID, SUBMISSION_ID))
+                        .thenReturn(true);
+
+                final ResponseEntity<Boolean> response = controllerUnderTest.isApplicantEligible(SUBMISSION_ID);
+
+                assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+                assertThat(response.getBody()).isTrue();
+            }
+
+
+            @Test
+            void isApplicantEligible_ReturnsExpectedResponse_ReturnFalse() {
+                when(submissionService.isApplicantEligible(APPLICANT_USER_ID, SUBMISSION_ID))
+                        .thenReturn(false);
+
+                final ResponseEntity<Boolean> response = controllerUnderTest.isApplicantEligible(SUBMISSION_ID);
+
+                assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+                assertThat(response.getBody()).isFalse();
+            }
+
+            @Test
+            void testExportSingleSubmission() throws Exception {
+                UUID submissionId = UUID.randomUUID();
+                HttpServletRequest mockRequest = new MockHttpServletRequest();
+                Submission mockSubmission = mock(Submission.class);
+                when(grantApplicantService.getEmailById(any(), any())).thenReturn("mock@example.com");
+                when(submissionService.getSubmissionById(any())).thenReturn(mockSubmission);
+                when(submissionService.getSubmissionExport(any(), any(), any())).thenReturn(mock(OdfTextDocument.class));
+                ByteArrayOutputStream mockOutputSteam = new ByteArrayOutputStream();
+                mockOutputSteam.write(1);
+                when(zipService.createSubmissionZip(any(), any())).thenReturn(mockOutputSteam);
+
+                when(zipService.byteArrayOutputStreamToResource(any())).thenReturn(new ByteArrayResource(new byte[]{1}));
+                ResponseEntity<ByteArrayResource> responseEntity =
+                        controllerUnderTest.exportSingleSubmission(submissionId, mockRequest);
+
+                assertEquals("attachment; filename=\"submission.zip\"", Objects.requireNonNull(responseEntity
+                        .getHeaders().get(HttpHeaders.CONTENT_DISPOSITION)).get(0));
+                assertEquals(MediaType.APPLICATION_OCTET_STREAM, responseEntity.getHeaders().getContentType());
+                assertEquals(1, Objects.requireNonNull(responseEntity.getBody()).contentLength());
+                verify(submissionService, times(1)).getSubmissionExport(any(), any(), any());
+                verify(zipService, times(1)).createSubmissionZip(any(), any());
+            }
+
+            @Test
+            void testExportSingleSubmission_OdtService_throws_ForbiddenException() {
+                UUID submissionId = UUID.randomUUID();
+                HttpServletRequest mockRequest = new MockHttpServletRequest();
+                Submission mockSubmission = mock(Submission.class);
+                when(grantApplicantService.getEmailById(any(), any())).thenReturn("mock@example.com");
+                when(submissionService.getSubmissionById(any())).thenReturn(mockSubmission);
+                when(submissionService.getSubmissionExport(any(), any(), any()))
+                        .thenThrow(new ForbiddenException());
+
+                RuntimeException runtimeException = assertThrows(RuntimeException.class, () -> controllerUnderTest
+                        .exportSingleSubmission(submissionId, mockRequest));
+                assertInstanceOf(ForbiddenException.class, runtimeException.getCause());
+                verify(submissionService, times(1)).getSubmissionExport(any(), any(), any());
+            }
+
+            @Test
+            void testExportSingleSubmission_zipService_throws_IOException() throws Exception {
+                UUID submissionId = UUID.randomUUID();
+                HttpServletRequest mockRequest = new MockHttpServletRequest();
+                Submission mockSubmission = mock(Submission.class);
+
+                when(grantApplicantService.getEmailById(any(), any())).thenReturn("mock@example.com");
+                when(submissionService.getSubmissionById(any())).thenReturn(mockSubmission);
+                when(submissionService.getSubmissionExport(any(), any(), any()))
+                        .thenReturn(mock(OdfTextDocument.class));
+                when(zipService.createSubmissionZip(any(), any()))
+                        .thenThrow(new IOException("Error creating zip file"));
+
+                RuntimeException runtimeException = assertThrows(RuntimeException.class, () -> {
                     controllerUnderTest.exportSingleSubmission(submissionId, mockRequest);
+                });
 
-            assertEquals("attachment; filename=\"submission.zip\"", Objects.requireNonNull(responseEntity
-                    .getHeaders().get(HttpHeaders.CONTENT_DISPOSITION)).get(0));
-            assertEquals(MediaType.APPLICATION_OCTET_STREAM, responseEntity.getHeaders().getContentType());
-            assertEquals(1, Objects.requireNonNull(responseEntity.getBody()).contentLength());
-            verify(submissionService, times(1)).getSubmissionExport(any(), any(), any());
-            verify(zipService, times(1)).createSubmissionZip(any(), any());
+                assertInstanceOf(IOException.class, runtimeException.getCause());
+                verify(submissionService, times(1)).getSubmissionExport(any(), any(), any());
+                verify(zipService, times(1)).createSubmissionZip(any(), any());
+            }
+
+
+            @Test
+            void exportSingleSubmissionThrowsRuntimeError() {
+                UUID submissionID = UUID.randomUUID();
+                final MockHttpServletRequest request = new MockHttpServletRequest();
+                when(submissionService.getSubmissionExport(Mockito.any(), Mockito.anyString(), Mockito.anyString()))
+                        .thenThrow(new ForbiddenException());
+
+                assertThrows(RuntimeException.class, () -> controllerUnderTest.exportSingleSubmission(submissionID, request));
+            }
         }
 
-        @Test
-        void testExportSingleSubmission_OdtService_throws_ForbiddenException() {
-            UUID submissionId = UUID.randomUUID();
-            HttpServletRequest mockRequest = new MockHttpServletRequest();
-            Submission mockSubmission = mock(Submission.class);
-            when(grantApplicantService.getEmailById(any(), any())).thenReturn("mock@example.com");
-            when(submissionService.getSubmissionById(any())).thenReturn(mockSubmission);
-            when(submissionService.getSubmissionExport(any(), any(), any()))
-                    .thenThrow(new ForbiddenException());
-
-            RuntimeException runtimeException = assertThrows(RuntimeException.class, () -> controllerUnderTest
-                    .exportSingleSubmission(submissionId, mockRequest));
-            assertTrue(runtimeException.getCause() instanceof ForbiddenException);
-            verify(submissionService, times(1)).getSubmissionExport(any(), any(), any());
-        }
-
-        @Test
-        void testExportSingleSubmission_zipService_throws_IOException() throws Exception {
-            UUID submissionId = UUID.randomUUID();
-            HttpServletRequest mockRequest = new MockHttpServletRequest();
-            Submission mockSubmission = mock(Submission.class);
-
-            when(grantApplicantService.getEmailById(any(), any())).thenReturn("mock@example.com");
-            when(submissionService.getSubmissionById(any())).thenReturn(mockSubmission);
-            when(submissionService.getSubmissionExport(any(), any(), any()))
-                    .thenReturn(mock(OdfTextDocument.class));
-            when(zipService.createSubmissionZip(any(), any()))
-                    .thenThrow(new IOException("Error creating zip file"));
-
-            RuntimeException runtimeException = assertThrows(RuntimeException.class, () -> {
-                controllerUnderTest.exportSingleSubmission(submissionId, mockRequest);
-            });
-
-            assertTrue(runtimeException.getCause() instanceof IOException);
-            verify(submissionService, times(1)).getSubmissionExport(any(), any(), any());
-            verify(zipService, times(1)).createSubmissionZip(any(), any());
-        }
-
-
-        @Test
-        void exportSingleSubmissionThrowsRuntimeError() {
-            UUID submissionID = UUID.randomUUID();
-            final MockHttpServletRequest request = new MockHttpServletRequest();
-            when(submissionService.getSubmissionExport(Mockito.any(), Mockito.anyString(), Mockito.anyString()))
-                    .thenThrow(new ForbiddenException());
-
-            assertThrows(RuntimeException.class, () -> controllerUnderTest.exportSingleSubmission(submissionID, request));
-        }
     }
 
+
+    @Nested
+    class withoutSecurityContext {
+        @Nested
+        class updateAttachment {
+            private static Stream<Arguments> provideGrantAttachmentUpdates() {
+                return Stream.of(
+                        Arguments.of(
+                                UpdateAttachmentDto.builder()
+                                        .isClean(true)
+                                        .uri("https://uri.com")
+                                        .build(),
+                                GrantAttachmentStatus.AVAILABLE
+                        ),
+                        Arguments.of(
+                                UpdateAttachmentDto.builder()
+                                        .isClean(false)
+                                        .uri("https://uri.com")
+                                        .build(),
+                                GrantAttachmentStatus.QUARANTINED
+                        )
+                );
+            }
+
+            @ParameterizedTest
+            @MethodSource("provideGrantAttachmentUpdates")
+            void updateAttachment_UpdatesExpectedAttachment(UpdateAttachmentDto update, GrantAttachmentStatus status) {
+
+                final GrantAttachment attachment = GrantAttachment.builder().build();
+
+                when(submissionService.getSubmissionById(SUBMISSION_ID))
+                        .thenReturn(submission);
+
+                when(grantAttachmentService.getAttachmentBySubmissionAndQuestion(submission, QUESTION_ID_1))
+                        .thenReturn(attachment);
+
+                final ArgumentCaptor<GrantAttachment> attachmentCaptor = ArgumentCaptor.forClass(GrantAttachment.class);
+
+                final ResponseEntity<String> methodResponse = controllerUnderTest.updateAttachment(SUBMISSION_ID, QUESTION_ID_1, update, "topSecretKey");
+
+                assertThat(methodResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
+                assertThat(methodResponse.getBody()).isEqualTo("Attachment Updated");
+
+                verify(grantAttachmentService).save(attachmentCaptor.capture());
+                assertThat(attachmentCaptor.getValue().getStatus()).isEqualTo(status);
+                assertThat(attachmentCaptor.getValue().getLastUpdated()).isEqualTo(Instant.now(clock));
+                assertThat(attachmentCaptor.getValue().getLocation()).isEqualTo(update.getUri());
+            }
+
+            @ParameterizedTest
+            @MethodSource("provideGrantAttachmentUpdates")
+            void updateAttachment_unauthenticatedError(UpdateAttachmentDto update) {
+                doThrow(new UnauthorizedException("Unauthorized oh nooo")).when(secretAuthService).authenticateSecret(anyString());
+
+                assertThrows(UnauthorizedException.class, () -> controllerUnderTest.updateAttachment(SUBMISSION_ID, QUESTION_ID_1, update, "topSecretKey"));
+            }
+        }
+    }
 }
