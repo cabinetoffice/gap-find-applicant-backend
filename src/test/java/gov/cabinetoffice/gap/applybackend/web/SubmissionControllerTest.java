@@ -13,11 +13,11 @@ import gov.cabinetoffice.gap.applybackend.dto.api.JwtPayload;
 import gov.cabinetoffice.gap.applybackend.dto.api.SubmissionReviewBodyDto;
 import gov.cabinetoffice.gap.applybackend.dto.api.SubmitApplicationDto;
 import gov.cabinetoffice.gap.applybackend.dto.api.UpdateAttachmentDto;
+import gov.cabinetoffice.gap.applybackend.enums.GrantApplicationStatus;
 import gov.cabinetoffice.gap.applybackend.enums.GrantAttachmentStatus;
 import gov.cabinetoffice.gap.applybackend.enums.GrantMandatoryQuestionOrgType;
 import gov.cabinetoffice.gap.applybackend.enums.SubmissionQuestionResponseType;
 import gov.cabinetoffice.gap.applybackend.enums.SubmissionSectionStatus;
-import gov.cabinetoffice.gap.applybackend.enums.SubmissionStatus;
 import gov.cabinetoffice.gap.applybackend.exception.AttachmentException;
 import gov.cabinetoffice.gap.applybackend.exception.ForbiddenException;
 import gov.cabinetoffice.gap.applybackend.exception.GrantApplicationNotPublishedException;
@@ -86,6 +86,7 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Stream;
 
+import static gov.cabinetoffice.gap.applybackend.enums.SubmissionStatus.IN_PROGRESS;
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
@@ -131,6 +132,7 @@ class SubmissionControllerTest {
             .lastUpdated(instant)
             .definition(new ApplicationDefinition())
             .grantScheme(scheme)
+            .applicationStatus(GrantApplicationStatus.PUBLISHED)
             .version(1)
             .lastUpdateBy(1)
             .build();
@@ -244,7 +246,7 @@ class SubmissionControllerTest {
             .lastUpdated(timestamp)
             .lastUpdatedBy(grantApplicant)
             .applicationName("Test Submission")
-            .status(SubmissionStatus.IN_PROGRESS)
+            .status(IN_PROGRESS)
             .definition(definition)
             .build();
     final GetSubmissionDto getSubmissionDto1 = GetSubmissionDto.builder()
@@ -253,7 +255,7 @@ class SubmissionControllerTest {
             .grantSubmissionId(SUBMISSION_ID)
             .applicationName("Test Submission")
             .sections(List.of(getSectionDto1, getSectionDto2))
-            .submissionStatus(SubmissionStatus.IN_PROGRESS)
+            .submissionStatus(IN_PROGRESS)
             .build();
     final List<GetSubmissionDto> getSubmissionDtos = List.of(getSubmissionDto1);
     final GetQuestionDto getQuestionDto1 = GetQuestionDto.builder()
@@ -1092,6 +1094,44 @@ class SubmissionControllerTest {
                         .thenThrow(new ForbiddenException());
 
                 assertThrows(RuntimeException.class, () -> controllerUnderTest.exportSingleSubmission(submissionID, request));
+            }
+        }
+
+        @Nested
+        class ApplicationStatus {
+            @Test
+            void applicationStatus_ReturnsStatusForMatchingApplicantId() {
+                when(submissionService.getOptionalSubmissionById(SUBMISSION_ID)).thenReturn(Optional.of(submission));
+
+                final ResponseEntity<String> response = controllerUnderTest.applicationStatus(SUBMISSION_ID);
+
+                assertEquals(HttpStatus.OK, response.getStatusCode());
+                assertEquals(GrantApplicationStatus.PUBLISHED.name(), response.getBody());
+            }
+
+            @Test
+            void applicationStatus_ReturnsNotFoundForNonexistentSubmissionId() {
+                when(submissionService.getOptionalSubmissionById(SUBMISSION_ID)).thenReturn(Optional.empty());
+
+                final ResponseEntity<String> response = controllerUnderTest.applicationStatus(SUBMISSION_ID);
+
+                assertEquals(HttpStatus.NOT_FOUND, response.getStatusCode());
+            }
+
+            @Test
+            void applicationStatus_ReturnsUnauthorizedForNonMatchingApplicantId() {
+                final GrantApplicant grantApplicant = GrantApplicant.builder().userId("aDifferentId").build();
+                final Submission submission = Submission
+                        .builder()
+                        .id(SUBMISSION_ID)
+                        .applicant(grantApplicant)
+                        .build();
+
+                when(submissionService.getOptionalSubmissionById(SUBMISSION_ID)).thenReturn(Optional.of(submission));
+
+                final ResponseEntity<String> response = controllerUnderTest.applicationStatus(SUBMISSION_ID);
+
+                assertEquals(HttpStatus.UNAUTHORIZED, response.getStatusCode());
             }
         }
 
