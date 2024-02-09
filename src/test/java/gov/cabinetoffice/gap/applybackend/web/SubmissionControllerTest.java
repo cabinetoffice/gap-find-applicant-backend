@@ -1076,9 +1076,7 @@ class SubmissionControllerTest {
                 when(zipService.createSubmissionZip(any(), any()))
                         .thenThrow(new IOException("Error creating zip file"));
 
-                RuntimeException runtimeException = assertThrows(RuntimeException.class, () -> {
-                    controllerUnderTest.exportSingleSubmission(submissionId, mockRequest);
-                });
+                RuntimeException runtimeException = assertThrows(RuntimeException.class, () -> controllerUnderTest.exportSingleSubmission(submissionId, mockRequest));
 
                 assertInstanceOf(IOException.class, runtimeException.getCause());
                 verify(submissionService, times(1)).getSubmissionExport(any(), any(), any());
