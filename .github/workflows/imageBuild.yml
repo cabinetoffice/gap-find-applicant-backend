@@ -125,6 +125,10 @@ jobs:
     environment: AWS
     needs: [build, test]
 
+    permissions:
+        id-token: write
+        contents: read
+
     steps:
       - uses: actions/checkout@v3
         with:
