@@ -2,25 +2,42 @@ package gov.cabinetoffice.gap.applybackend.web;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import gov.cabinetoffice.gap.applybackend.constants.APIConstants;
-import gov.cabinetoffice.gap.applybackend.dto.api.*;
-import gov.cabinetoffice.gap.eventservice.enums.EventType;
+import gov.cabinetoffice.gap.applybackend.dto.api.CreateQuestionResponseDto;
+import gov.cabinetoffice.gap.applybackend.dto.api.CreateSubmissionResponseDto;
+import gov.cabinetoffice.gap.applybackend.dto.api.GetNavigationParamsDto;
+import gov.cabinetoffice.gap.applybackend.dto.api.GetQuestionDto;
+import gov.cabinetoffice.gap.applybackend.dto.api.GetQuestionNavigationDto;
+import gov.cabinetoffice.gap.applybackend.dto.api.GetSectionDto;
+import gov.cabinetoffice.gap.applybackend.dto.api.GetSubmissionDto;
+import gov.cabinetoffice.gap.applybackend.dto.api.JwtPayload;
+import gov.cabinetoffice.gap.applybackend.dto.api.SubmissionReviewBodyDto;
+import gov.cabinetoffice.gap.applybackend.dto.api.SubmitApplicationDto;
+import gov.cabinetoffice.gap.applybackend.dto.api.UpdateAttachmentDto;
 import gov.cabinetoffice.gap.applybackend.enums.GrantAttachmentStatus;
 import gov.cabinetoffice.gap.applybackend.enums.GrantMandatoryQuestionOrgType;
 import gov.cabinetoffice.gap.applybackend.enums.SubmissionSectionStatus;
 import gov.cabinetoffice.gap.applybackend.exception.AttachmentException;
 import gov.cabinetoffice.gap.applybackend.exception.GrantApplicationNotPublishedException;
-import gov.cabinetoffice.gap.eventservice.exception.InvalidEventException;
 import gov.cabinetoffice.gap.applybackend.exception.NotFoundException;
-import gov.cabinetoffice.gap.applybackend.model.*;
-import gov.cabinetoffice.gap.applybackend.service.*;
-import gov.cabinetoffice.gap.applybackend.utils.ZipHelper;
+import gov.cabinetoffice.gap.applybackend.model.GrantApplicant;
+import gov.cabinetoffice.gap.applybackend.model.GrantApplication;
+import gov.cabinetoffice.gap.applybackend.model.GrantAttachment;
+import gov.cabinetoffice.gap.applybackend.model.GrantMandatoryQuestions;
+import gov.cabinetoffice.gap.applybackend.model.GrantScheme;
+import gov.cabinetoffice.gap.applybackend.model.Submission;
+import gov.cabinetoffice.gap.applybackend.model.SubmissionQuestion;
+import gov.cabinetoffice.gap.applybackend.model.SubmissionSection;
+import gov.cabinetoffice.gap.applybackend.service.AttachmentService;
+import gov.cabinetoffice.gap.applybackend.service.GrantApplicantService;
+import gov.cabinetoffice.gap.applybackend.service.GrantApplicationService;
+import gov.cabinetoffice.gap.applybackend.service.GrantAttachmentService;
+import gov.cabinetoffice.gap.applybackend.service.GrantMandatoryQuestionService;
+import gov.cabinetoffice.gap.applybackend.service.SecretAuthService;
+import gov.cabinetoffice.gap.applybackend.service.SpotlightService;
+import gov.cabinetoffice.gap.applybackend.service.SubmissionService;
+import gov.cabinetoffice.gap.applybackend.service.ZipService;
 import gov.cabinetoffice.gap.eventservice.enums.EventType;
 import gov.cabinetoffice.gap.eventservice.exception.InvalidEventException;
-import gov.cabinetoffice.gap.eventservice.service.EventLogService;
-
-import static gov.cabinetoffice.gap.applybackend.utils.SecurityContextHelper.getJwtIdFromSecurityContext;
-import static gov.cabinetoffice.gap.applybackend.utils.SecurityContextHelper.getUserIdFromSecurityContext;
-
 import gov.cabinetoffice.gap.eventservice.service.EventLogService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -33,7 +50,16 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
 import javax.servlet.http.HttpServletRequest;
@@ -41,8 +67,13 @@ import javax.validation.Valid;
 import java.io.ByteArrayOutputStream;
 import java.time.Clock;
 import java.time.Instant;
-import java.util.*;
-import java.util.zip.ZipOutputStream;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.UUID;
 
 import static gov.cabinetoffice.gap.applybackend.utils.SecurityContextHelper.getJwtIdFromSecurityContext;
 import static gov.cabinetoffice.gap.applybackend.utils.SecurityContextHelper.getUserIdFromSecurityContext;
@@ -54,6 +85,7 @@ import static gov.cabinetoffice.gap.applybackend.utils.SecurityContextHelper.get
 @RestController
 public class SubmissionController {
 
+    private static final String SPECIAL_CHARACTER_REGEX = "[^a-zA-Z0-9()_,.-]";
     private final SubmissionService submissionService;
     private final GrantApplicantService grantApplicantService;
     private final GrantAttachmentService grantAttachmentService;
@@ -61,14 +93,11 @@ public class SubmissionController {
     private final SpotlightService spotlightService;
     private final GrantMandatoryQuestionService mandatoryQuestionService;
     private final ZipService zipService;
-
     private final SecretAuthService secretAuthService;
     private final AttachmentService attachmentService;
     private final EventLogService eventLogService;
     private final Logger logger = LoggerFactory.getLogger(SubmissionController.class);
     private final Clock clock;
-
-    private static final String SPECIAL_CHARACTER_REGEX = "[^a-zA-Z0-9()_,.-]";
 
     @GetMapping
     public ResponseEntity<List<GetSubmissionDto>> getSubmissions() {
@@ -241,28 +270,37 @@ public class SubmissionController {
         return ResponseEntity.ok(submissionResponseDto);
     }
 
+    //this endpoint is consumed by the lambda-upload
     @PutMapping("/{submissionId}/question/{questionId}/attachment/scanresult")
     public ResponseEntity<String> updateAttachment(
             @PathVariable final UUID submissionId,
             @PathVariable final String questionId,
             @RequestBody final UpdateAttachmentDto updateDetails,
             @RequestHeader(HttpHeaders.AUTHORIZATION) final String authHeader) {
-        final String applicantId = getUserIdFromSecurityContext();
+        log.info("Lambda-upload is updating attachment for submissionId: {}, questionId: {} based on the scan result", submissionId, questionId);
 
         secretAuthService.authenticateSecret(authHeader);
 
-        Submission submission = submissionService.getSubmissionFromDatabaseBySubmissionId(applicantId, submissionId);
-        GrantAttachment attachment = grantAttachmentService.getAttachmentBySubmissionAndQuestion(submission, questionId);
+        final Submission submission = submissionService.getSubmissionById(submissionId);
+        log.info("Submission found for submissionId: {}", submissionId);
+
+        final GrantAttachment attachment = grantAttachmentService.getAttachmentBySubmissionAndQuestion(submission, questionId);
+        log.info("Attachment with id {} found for submissionId: {}, questionId: {}", attachment.getId(), submissionId, questionId);
+        log.info(" The file after scan check is clean : {}", updateDetails.getIsClean());
 
         attachment.setLastUpdated(Instant.now(clock));
         attachment.setLocation(updateDetails.getUri());
+
         if (Boolean.TRUE.equals(updateDetails.getIsClean())) {
             attachment.setStatus(GrantAttachmentStatus.AVAILABLE);
+            log.info("Attachment for submissionId: {}, questionId: {} status is set to AVAILABLE", submissionId, questionId);
         } else {
             attachment.setStatus(GrantAttachmentStatus.QUARANTINED);
+            log.info("Attachment for submissionId: {}, questionId: {} status is set to QUARANTINED", submissionId, questionId);
         }
 
         grantAttachmentService.save(attachment);
+        log.info("Attachment for submissionId: {}, questionId: {} is updated", submissionId, questionId);
 
         logSubmissionEvent(EventType.SUBMISSION_UPDATED, submissionId.toString());
 
@@ -370,7 +408,7 @@ public class SubmissionController {
         final Submission submission = submissionService.getSubmissionById(submissionId);
 
         try (OdfTextDocument odt = submissionService.getSubmissionExport(submission, userEmail, userSub);
-             ByteArrayOutputStream zip = zipService.createSubmissionZip(submission, odt)){
+             ByteArrayOutputStream zip = zipService.createSubmissionZip(submission, odt)) {
 
             ByteArrayResource zipResource = zipService.byteArrayOutputStreamToResource(zip);
 
@@ -379,15 +417,15 @@ public class SubmissionController {
             headers.add(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_OCTET_STREAM_VALUE);
 
             return ResponseEntity.ok().headers(headers).contentLength(zipResource.contentLength())
-                        .contentType(MediaType.APPLICATION_OCTET_STREAM).body(zipResource);
+                    .contentType(MediaType.APPLICATION_OCTET_STREAM).body(zipResource);
         } catch (Exception e) {
             log.error("Could not generate ZIP. Exception: ", e);
             throw new RuntimeException(e);
         }
     }
 
-        @GetMapping("/{submissionId}/isApplicantEligible")
-    public ResponseEntity<Boolean>  isApplicantEligible(@PathVariable final UUID submissionId) {
+    @GetMapping("/{submissionId}/isApplicantEligible")
+    public ResponseEntity<Boolean> isApplicantEligible(@PathVariable final UUID submissionId) {
         final String applicantId = getUserIdFromSecurityContext();
         return ResponseEntity.ok(submissionService.isApplicantEligible(applicantId, submissionId));
     }
