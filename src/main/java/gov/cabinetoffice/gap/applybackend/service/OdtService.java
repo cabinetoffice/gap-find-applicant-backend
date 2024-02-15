@@ -85,9 +85,8 @@ public class OdtService {
             populateRequiredChecksSection(submission, documentText, contentDom,
                     requiredCheckSection, fundingSectionName, odt);
 
-            addPageBreak(contentDom, odt);
-
             AtomicInteger count = new AtomicInteger(3); //2 sections already added
+
             if(submission.getSections().stream().anyMatch(section -> section.getSectionId().matches(UUID_REGEX))) {
                 addPageBreak(contentDom, odt);
                 documentText.appendChild(new OdfTextParagraph(contentDom)
