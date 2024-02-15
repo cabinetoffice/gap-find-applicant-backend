@@ -22,6 +22,8 @@ import org.odftoolkit.odfdom.incubator.doc.text.OdfTextParagraph;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
+
+import java.util.Arrays;
 import java.util.Objects;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -47,6 +49,7 @@ public class OdtService {
     private static final String Text_20_1 = "Text_20_1";
     private static final String Text_20_2 = "Text_20_2";
     private static final String Text_20_3 = "Text_20_3";
+    private static final String UUID_REGEX = "[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}";
 
     public OdfTextDocument generateSingleOdt(final Submission submission, final String email) {
         try {
@@ -80,18 +83,18 @@ public class OdtService {
             addPageBreak(contentDom, odt);
 
             populateRequiredChecksSection(submission, documentText, contentDom,
-                    requiredCheckSection, email, fundingSectionName, odt);
+                    requiredCheckSection, fundingSectionName, odt);
 
             addPageBreak(contentDom, odt);
 
             AtomicInteger count = new AtomicInteger(3); //2 sections already added
-            documentText.appendChild(new OdfTextParagraph(contentDom)
-                    .addStyledContentWhitespace(Heading_20_2, "Custom sections"));
+            if(submission.getSections().stream().anyMatch(section -> section.getSectionId().matches(UUID_REGEX))) {
+                addPageBreak(contentDom, odt);
+                documentText.appendChild(new OdfTextParagraph(contentDom)
+                        .addStyledContentWhitespace(Heading_20_2, "Custom sections"));
+            }
             submission.getSections().forEach(section -> {
-                if (!Objects.equals(section.getSectionId(), ELIGIBILITY_SECTION_ID) &&
-                        !Objects.equals(section.getSectionId(), ESSENTIAL_SECTION_ID) &&
-                        !Objects.equals(section.getSectionId(), ORGANISATION_DETAILS_SECTION_ID) &&
-                        !Objects.equals(section.getSectionId(), FUNDING_DETAILS_SECTION_ID)) {
+                if (section.getSectionId().matches(UUID_REGEX)) {
                     populateQuestionResponseTable(count, section, documentText, contentDom, odt);
                 }
             });
@@ -161,8 +164,7 @@ public class OdtService {
                                                    final OfficeTextElement documentText,
                                                    final OdfContentDom contentDom,
                                                    final SubmissionSection requiredCheckSection,
-                                                   final String email,
-                                                   final String fundingSectionName,
+                                                      final String fundingSectionName,
                                                       final OdfTextDocument odt) {
         OdfTextHeading requiredCheckHeading = new OdfTextHeading(contentDom);
         OdfTextHeading requiredCheckSubHeading = new OdfTextHeading(contentDom);
@@ -232,18 +234,18 @@ public class OdtService {
                 AtomicInteger questionIndex = new AtomicInteger(0);
                 OdfTable table = OdfTable.newTable(odt, section.getQuestions().size(), 2);
                 section.getQuestions().forEach(question -> {
-                    populateDocumentFromQuestionResponse(question, documentText, contentDom, questionIndex, odt,
-                             table);
+                    populateDocumentFromQuestionResponse(question, documentText, questionIndex,
+                            table);
                     questionIndex.incrementAndGet();
                 });
                 documentText.appendChild(new OdfTextParagraph(contentDom).addContentWhitespace(""));
                 count.getAndIncrement();
-        };
+        }
 
     private static void populateDocumentFromQuestionResponse(SubmissionQuestion question,
                                                              OfficeTextElement documentText,
-                                                             OdfContentDom contentDom, AtomicInteger questionIndex,
-                                                             OdfTextDocument odt, OdfTable table) {
+                                                             AtomicInteger questionIndex,
+                                                             OdfTable table) {
             switch (question.getResponseType()) {
                 case AddressInput, MultipleSelection -> {
                     table.getRowByIndex(questionIndex.get()).getCellByIndex(0).setStringValue(question.getFieldTitle());
@@ -269,7 +271,7 @@ public class OdtService {
                 }
                 case Date -> {
                     table.getRowByIndex(questionIndex.get()).getCellByIndex(0).setStringValue(question.getFieldTitle());
-                    if (question.getMultiResponse() != null) {
+                    if (question.getMultiResponse() != null  && !Arrays.stream(question.getMultiResponse()).allMatch(String::isEmpty)) {
                         final String date = String.join("-", question.getMultiResponse());
                         table.getRowByIndex(questionIndex.get()).getCellByIndex(1).setStringValue(date);
                     } else {
@@ -373,7 +375,7 @@ public class OdtService {
 
         styleProcessor.setStyle(stylesOfficeStyles.getDefaultStyle(OdfStyleFamily.Paragraph))
                 .margins("0cm", "0cm", "0cm", "0cm")
-                .fontFamilly("Arial")
+                .fontFamily("Arial")
                 .fontSize("11pt")
                 .textAlign("normal");
 
@@ -402,25 +404,25 @@ public class OdtService {
         //test
         styleProcessor.setStyle(stylesOfficeStyles.newStyle(Text_20_1, OdfStyleFamily.Text))
                 .margins("0cm", "0cm", "1cm", "0cm")
-                .fontFamilly("Arial")
+                .fontFamily("Arial")
                 .fontSize("15pt")
                 .color("#000000");
 
         styleProcessor.setStyle(stylesOfficeStyles.newStyle(Text_20_2, OdfStyleFamily.Text))
                 .margins("0cm", "0cm", "0cm", "0cm")
-                .fontFamilly("Arial")
+                .fontFamily("Arial")
                 .fontSize("11pt")
                 .color("#000000");
 
         styleProcessor.setStyle(stylesOfficeStyles.newStyle(Text_20_3, OdfStyleFamily.Text))
                 .margins("0cm", "0cm", "0cm", "0cm")
-                .fontFamilly("Arial")
+                .fontFamily("Arial")
                 .fontSize("11pt")
                 .color("#000000")
                 .fontStyle("italic");
     }
 
-    private class OdfStyleProcessor {
+    private static class OdfStyleProcessor {
 
         private OdfStylePropertySet style;
 
@@ -433,7 +435,7 @@ public class OdtService {
             return this;
         }
 
-        public OdfStyleProcessor fontFamilly(String value) {
+        public OdfStyleProcessor fontFamily(String value) {
             this.style.setProperty(StyleTextPropertiesElement.FontFamily, value);
             this.style.setProperty(StyleTextPropertiesElement.FontName, value);
             return this;
@@ -473,9 +475,8 @@ public class OdtService {
             return this;
         }
 
-        public OdfStyleProcessor textAlign(String value) {
+        public void textAlign(String value) {
             this.style.setProperty(StyleParagraphPropertiesElement.TextAlign, value);
-            return this;
         }
 
     }
