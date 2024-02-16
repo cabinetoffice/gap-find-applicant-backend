@@ -648,7 +648,7 @@ class SubmissionControllerTest {
             }
 
             @ParameterizedTest
-            @EnumSource(value = GrantMandatoryQuestionOrgType.class, names = {"INDIVIDUAL", "OTHER"})
+            @EnumSource(value = GrantMandatoryQuestionOrgType.class, names = {"INDIVIDUAL", "OTHER", "LOCAL_AUTHORITY"})
             void submitApplication_DoesNotCreateSpotlightCheck_ForIndividualsOrOther_ForV2Schemes(GrantMandatoryQuestionOrgType orgType) {
 
                 // set up the V2 scheme
