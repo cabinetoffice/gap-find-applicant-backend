@@ -224,7 +224,7 @@ public class SubmissionController {
 
         if (scheme.getVersion() > 1) {
             final GrantMandatoryQuestions mandatoryQuestions = mandatoryQuestionService.getGrantMandatoryQuestionBySubmissionIdAndApplicantSub(submission.getId(), grantApplicant.getUserId());
-            final boolean shouldSendToSpotlight = !isOrganisationIndividualOrOther(mandatoryQuestions);
+            final boolean shouldSendToSpotlight = !isOrganisationIndividualOrOtherOrLocalAuthority(mandatoryQuestions);
 
             if (shouldSendToSpotlight) {
                 spotlightService.createSpotlightCheck(mandatoryQuestions, scheme);
@@ -236,9 +236,10 @@ public class SubmissionController {
         return ResponseEntity.ok("Submitted");
     }
 
-    private boolean isOrganisationIndividualOrOther(GrantMandatoryQuestions mandatoryQuestions) {
+    private boolean isOrganisationIndividualOrOtherOrLocalAuthority(GrantMandatoryQuestions mandatoryQuestions) {
         return mandatoryQuestions.getOrgType().equals(GrantMandatoryQuestionOrgType.INDIVIDUAL) ||
-                mandatoryQuestions.getOrgType().equals(GrantMandatoryQuestionOrgType.OTHER);
+                mandatoryQuestions.getOrgType().equals(GrantMandatoryQuestionOrgType.OTHER) ||
+                mandatoryQuestions.getOrgType().equals(GrantMandatoryQuestionOrgType.LOCAL_AUTHORITY);
     }
 
     @PostMapping("/createSubmission/{applicationId}")
