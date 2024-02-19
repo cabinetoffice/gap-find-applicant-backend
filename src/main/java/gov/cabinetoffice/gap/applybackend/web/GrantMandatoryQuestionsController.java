@@ -26,6 +26,7 @@ import java.util.UUID;
 
 import static gov.cabinetoffice.gap.applybackend.enums.GrantMandatoryQuestionOrgType.INDIVIDUAL;
 import static gov.cabinetoffice.gap.applybackend.enums.GrantMandatoryQuestionOrgType.LOCAL_AUTHORITY;
+import static gov.cabinetoffice.gap.applybackend.enums.GrantMandatoryQuestionOrgType.OTHER;
 
 @RequiredArgsConstructor
 @RestController
@@ -148,7 +149,8 @@ public class GrantMandatoryQuestionsController {
 
         if (mandatoryQuestionDto.getOrgType() != null && mandatoryQuestionDto.getOrgType().isPresent() &&
                 (mandatoryQuestionDto.getOrgType().get().equals(LOCAL_AUTHORITY.toString())
-                        || mandatoryQuestionDto.getOrgType().get().equals(INDIVIDUAL.toString()))) {
+                        || mandatoryQuestionDto.getOrgType().get().equals(INDIVIDUAL.toString())
+                        || mandatoryQuestionDto.getOrgType().get().equals(OTHER.toString()))) {
             grantMandatoryQuestions.setCharityCommissionNumber(null);
             grantMandatoryQuestions.setCompaniesHouseNumber(null);
         }
