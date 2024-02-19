@@ -456,7 +456,7 @@ class GrantMandatoryQuestionServiceTest {
         }
 
         @Test
-        void testGenerateNextPageUrlForSkippingCompaniesHouseAndCharityCommission() {
+        void testGenerateNextPageUrlForSkippingCompaniesHouseAndCharityCommissionForIndividual() {
             final GrantApplicant applicant = GrantApplicant
                     .builder()
                     .userId(applicantUserId)
@@ -466,6 +466,29 @@ class GrantMandatoryQuestionServiceTest {
                     .id(MANDATORY_QUESTION_ID)
                     .createdBy(applicant)
                     .orgType(GrantMandatoryQuestionOrgType.INDIVIDUAL)
+                    .build();
+            when(grantMandatoryQuestionRepository.findById(MANDATORY_QUESTION_ID))
+                    .thenReturn(Optional.of(grantMandatoryQuestions));
+
+            final String url = "/any/url/organisation-address?some-param=some-value";
+            final String expectedNextPageUrl = "/mandatory-questions/" + MANDATORY_QUESTION_ID + "/organisation-funding-amount";
+
+            final String nextPageUrl = serviceUnderTest.generateNextPageUrl(url, MANDATORY_QUESTION_ID, applicantUserId);
+
+            assertThat(nextPageUrl).isEqualTo(expectedNextPageUrl);
+        }
+
+        @Test
+        void testGenerateNextPageUrlForSkippingCompaniesHouseAndCharityCommissionForLocalAuthority() {
+            final GrantApplicant applicant = GrantApplicant
+                    .builder()
+                    .userId(applicantUserId)
+                    .build();
+            final GrantMandatoryQuestions grantMandatoryQuestions = GrantMandatoryQuestions
+                    .builder()
+                    .id(MANDATORY_QUESTION_ID)
+                    .createdBy(applicant)
+                    .orgType(GrantMandatoryQuestionOrgType.LOCAL_AUTHORITY)
                     .build();
             when(grantMandatoryQuestionRepository.findById(MANDATORY_QUESTION_ID))
                     .thenReturn(Optional.of(grantMandatoryQuestions));
