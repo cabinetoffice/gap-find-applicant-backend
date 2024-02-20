@@ -43,6 +43,7 @@ public class OdtService {
     private static final String APPLICANT_AMOUNT = "APPLICANT_AMOUNT";
     private static final String BENEFITIARY_LOCATION = "BENEFITIARY_LOCATION";
     private static final String APPLICANT_ORG_TYPE_INDIVIDUAL = "I am applying as an individual";
+    private static final String APPLICANT_ORG_TYPE_LOCAL_AUTHORITY = "Local authority";
     private static final String Heading_20_1 = "Heading_20_1";
     private static final String Heading_20_2 = "Heading_20_2";
     private static final String Heading_20_3 = "Heading_20_3";
@@ -311,10 +312,11 @@ public class OdtService {
                                                              OdfTextDocument doc) {
         final String orgType = section.getQuestionById(APPLICANT_TYPE).getResponse();
         final boolean isIndividual = Objects.equals(orgType, APPLICANT_ORG_TYPE_INDIVIDUAL);
+        final boolean isLocalAuthority = Objects.equals(orgType, APPLICANT_ORG_TYPE_LOCAL_AUTHORITY);
         final String orgNameHeading = isIndividual ? "Applicant name" : "Organisation Name";
         OdfTable odfTable;
 
-        if(isIndividual)  {
+        if(isIndividual || isLocalAuthority)  {
             odfTable = OdfTable.newTable(doc, 7, 2);
         } else {
             odfTable = OdfTable.newTable(doc, 9, 2);
@@ -339,7 +341,7 @@ public class OdtService {
         odfTable.getRowByIndex(6).getCellByIndex(1)
                 .setStringValue(applicantOrgAddress[4]);
 
-        if(isIndividual){
+        if(isIndividual || isLocalAuthority){
             return odfTable.getOdfElement();
         }
             int index = 7;

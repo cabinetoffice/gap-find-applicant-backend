@@ -226,6 +226,28 @@ public class TestData {
             .response("I am applying as an individual")
             .build();
 
+    public static final SubmissionQuestion V2_ORG_TYPE_SUBMISSION_QUESTION_LOCAL_AUTHORITY = SubmissionQuestion.builder()
+            .questionId("APPLICANT_TYPE").fieldTitle("Choose your organisation type").
+            profileField("ORG_TYPE")
+            .hintText("Choose the option that best describes your organisation")
+            .responseType(SubmissionQuestionResponseType.Dropdown)
+            .validation(
+                    SubmissionQuestionValidation
+                            .builder()
+                            .mandatory(true)
+                            .build()
+            ).options(new String[]{
+                    "Limited company",
+                    "Non-limited company",
+                    "Registered charity",
+                    "Unregistered charity",
+                    "Other",
+                    "Local authority",
+                    "I am applying as an individual"
+            })
+            .response("Local authority")
+            .build();
+
     public static final SubmissionQuestion V2_ORG_NAME_SUBMISSION_QUESTION = SubmissionQuestion.builder()
             .questionId("APPLICANT_ORG_NAME")
             .profileField("ORG_NAME")
@@ -439,6 +461,17 @@ public class TestData {
             ))
             .build();
 
+    public static final SubmissionSection ORGANISATION_DETAILS_SECTION_SUBMISSION_LOCAL_AUTHORITY = SubmissionSection.builder()
+            .sectionId("ORGANISATION_DETAILS")
+            .sectionTitle("Your details")
+            .sectionStatus(SubmissionSectionStatus.COMPLETED)
+            .questions(Arrays.asList(
+                    V2_ORG_TYPE_SUBMISSION_QUESTION_LOCAL_AUTHORITY,
+                    V2_ORG_NAME_SUBMISSION_QUESTION,
+                    V2_ORG_ADDRESS_SUBMISSION_QUESTION
+            ))
+            .build();
+
     public static final SubmissionSection FUNDING_DETAILS_SECTION_SUBMISSION = SubmissionSection
             .builder()
             .sectionId("FUNDING_DETAILS")
@@ -497,12 +530,27 @@ public class TestData {
             FUNDING_DETAILS_SECTION_SUBMISSION
     );
 
+    public static final List<SubmissionSection> V2_SUBMISSION_SECTIONS_LIST_LOCAL_AUTHORITY = Arrays.asList(
+            ELIGIBILITY_SECTION_SUBMISSION,
+            ORGANISATION_DETAILS_SECTION_SUBMISSION_LOCAL_AUTHORITY,
+            FUNDING_DETAILS_SECTION_SUBMISSION
+    );
+
     public static final Submission V2_SUBMISSION_INDIVIDUAL = Submission
             .builder()
             .scheme(GrantScheme.builder().version(2).name("Test Org Name v2").build())
             .gapId("GAP-2")
             .submittedDate(ZonedDateTime.parse("2022-02-15T18:35:24.00Z"))
             .definition(SubmissionDefinition.builder().sections((V2_SUBMISSION_SECTIONS_LIST_INDIVIDUAL)).build())
+            .version(2)
+            .build();
+
+    public static final Submission V2_SUBMISSION_LOCAL_AUTHORITY = Submission
+            .builder()
+            .scheme(GrantScheme.builder().version(2).name("Test Org Name v2").build())
+            .gapId("GAP-2")
+            .submittedDate(ZonedDateTime.parse("2022-02-15T18:35:24.00Z"))
+            .definition(SubmissionDefinition.builder().sections((V2_SUBMISSION_SECTIONS_LIST_LOCAL_AUTHORITY)).build())
             .version(2)
             .build();
     public static final SubmissionSection V1_CUSTOM_SECTION_SUBMISSION = SubmissionSection
@@ -535,4 +583,6 @@ public class TestData {
             .build();
 
 }
+
+
 
