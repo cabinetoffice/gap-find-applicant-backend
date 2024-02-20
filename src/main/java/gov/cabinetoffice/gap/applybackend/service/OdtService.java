@@ -232,6 +232,10 @@ public class OdtService {
 
                 AtomicInteger questionIndex = new AtomicInteger(0);
                 OdfTable table = OdfTable.newTable(odt, section.getQuestions().size(), 2);
+                long firstColumnWidth = table.getWidth() / 3;
+                long secondColumnWidth = 2 * table.getWidth() / 3;
+                table.getColumnByIndex(0).setWidth(firstColumnWidth);
+                table.getColumnByIndex(1).setWidth(secondColumnWidth);
                 section.getQuestions().forEach(question -> {
                     populateDocumentFromQuestionResponse(question, documentText, questionIndex,
                             table);
@@ -246,9 +250,18 @@ public class OdtService {
                                                              AtomicInteger questionIndex,
                                                              OdfTable table) {
             switch (question.getResponseType()) {
-                case AddressInput, MultipleSelection -> {
+                case AddressInput -> {
                     table.getRowByIndex(questionIndex.get()).getCellByIndex(0).setStringValue(question.getFieldTitle());
                     if (question.getMultiResponse() != null) {
+                        table.getRowByIndex(questionIndex.get()).getCellByIndex(1).setStringValue(String.join(",\n",
+                                question.getMultiResponse()) + "\n");
+                    } else {
+                        table.getRowByIndex(questionIndex.get()).getCellByIndex(1).setStringValue("Not provided");
+                    }
+                }
+                case MultipleSelection -> {
+                    table.getRowByIndex(questionIndex.get()).getCellByIndex(0).setStringValue(question.getFieldTitle());
+                    if (question.getMultiResponse() != null && !Arrays.stream(question.getMultiResponse()).allMatch(String::isEmpty)) {
                         table.getRowByIndex(questionIndex.get()).getCellByIndex(1).setStringValue(String.join(",\n",
                                 question.getMultiResponse()) + "\n");
                     } else {
