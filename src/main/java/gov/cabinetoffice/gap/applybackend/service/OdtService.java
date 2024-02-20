@@ -23,6 +23,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
+import java.time.format.DateTimeFormatter;
 import java.util.Arrays;
 import java.util.Objects;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -51,6 +52,7 @@ public class OdtService {
     private static final String Text_20_2 = "Text_20_2";
     private static final String Text_20_3 = "Text_20_3";
     private static final String UUID_REGEX = "[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}";
+    private static final DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
 
     public OdfTextDocument generateSingleOdt(final Submission submission, final String email) {
         try {
@@ -139,7 +141,7 @@ public class OdtService {
             table.getRowByIndex(2).getCellByIndex(0).setStringValue("Submitted on");
             table.getRowByIndex(2).getCellByIndex(1).setStringValue(Objects.equals(null,
                     submission.getSubmittedDate())
-                    ? "Not yet submitted" : String.valueOf(submission.getSubmittedDate()));
+                    ? "Not yet submitted" : submission.getSubmittedDate().format(formatter));
         } else {
             table = OdfTable.newTable(odt, 4, 2);
             table.getRowByIndex(0).getCellByIndex(0).setStringValue("Organisation");
@@ -151,7 +153,7 @@ public class OdtService {
             table.getRowByIndex(3).getCellByIndex(0).setStringValue("Submitted on");
             table.getRowByIndex(3).getCellByIndex(1).setStringValue(Objects.equals(null,
                     submission.getSubmittedDate())
-                    ? "Not yet submitted" : String.valueOf(submission.getSubmittedDate()));
+                    ? "Not yet submitted" : submission.getSubmittedDate().format(formatter));
 
         }
         documentText.appendChild(h1);
