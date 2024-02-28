@@ -175,6 +175,39 @@ class OdtServiceTest {
        assertThat(generatedContent).doesNotContain("My Custom Section");
    }
 
+    @Test
+    void compareTestGenerateSingleOdtForLocalAuthorityForSchemeVersion2() throws Exception {
+        final OdfDocument generatedDoc = odtService.generateSingleOdt(V2_SUBMISSION_LOCAL_AUTHORITY, "testFileName5");
+        final String generatedContent = docToString(generatedDoc.getContentDom());
+
+
+        assertThat(generatedContent).contains("Organisation Name");
+        assertThat(generatedContent).contains("V2_Company name");
+        assertThat(generatedContent).contains("Eligibility");
+        assertThat(generatedContent).contains("Due diligence information");
+        assertThat(generatedContent).contains("Organisation details");
+        assertThat(generatedContent).contains("Test Org Name v2");
+        assertThat(generatedContent).contains("V2_test address");
+        assertThat(generatedContent).contains("V2_Edinburgh");
+        assertThat(generatedContent).contains("V2_POSTCODE");
+        assertThat(generatedContent).contains("Local authority");
+        assertThat(generatedContent).doesNotContain(
+                "Companies House number if the organisation has one (if blank, number has not been entered)");
+        assertThat(generatedContent).doesNotContain("V2_CHN");
+        assertThat(generatedContent).doesNotContain(
+                "Charities Commission number if the organisation has one (if blank, number has not been entered)");
+        assertThat(generatedContent).doesNotContain("V2_CMSN_NO");
+        assertThat(generatedContent).contains("V2_Scotland", "V2_North East England");
+        assertThat(generatedContent).doesNotContain("V1_test address");
+        assertThat(generatedContent).doesNotContain("V1_Edinburgh");
+        assertThat(generatedContent).doesNotContain("V1_TEST_POSTCODE");
+        assertThat(generatedContent).doesNotContain("V1_Limited company");
+        assertThat(generatedContent).doesNotContain("V1_CHN");
+        assertThat(generatedContent).doesNotContain("V1_CMSN_NO");
+        assertThat(generatedContent).doesNotContain("V1_Scotland", "V1_North East England");
+        assertThat(generatedContent).doesNotContain("My Custom Section");
+    }
+
    private String docToString(Document document) throws Exception {
        TransformerFactory tf = TransformerFactory.newInstance();
        Transformer transformer = tf.newTransformer();

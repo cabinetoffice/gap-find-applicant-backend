@@ -16,6 +16,8 @@ import gov.cabinetoffice.gap.applybackend.service.SubmissionService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -31,6 +33,7 @@ import java.util.Optional;
 import java.util.UUID;
 
 import static gov.cabinetoffice.gap.applybackend.enums.GrantMandatoryQuestionFundingLocation.SCOTLAND;
+import static gov.cabinetoffice.gap.applybackend.enums.GrantMandatoryQuestionOrgType.*;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -130,7 +133,7 @@ class GrantMandatoryQuestionsControllerTest {
                 .postcode("G2 7EZ")
                 .fundingLocation(fundingLocations)
                 .companiesHouseNumber("08761455")
-                .orgType(GrantMandatoryQuestionOrgType.LIMITED_COMPANY)
+                .orgType(LIMITED_COMPANY)
                 .build();
 
         final GetGrantMandatoryQuestionDto mandatoryQuestionsDto = GetGrantMandatoryQuestionDto.builder()
@@ -178,7 +181,7 @@ class GrantMandatoryQuestionsControllerTest {
                 .postcode("G2 7EZ")
                 .fundingLocation(fundingLocations)
                 .companiesHouseNumber("08761455")
-                .orgType(GrantMandatoryQuestionOrgType.LIMITED_COMPANY)
+                .orgType(LIMITED_COMPANY)
                 .build();
 
         when(grantApplicantService.getApplicantById(jwtPayload.getSub()))
@@ -291,6 +294,60 @@ class GrantMandatoryQuestionsControllerTest {
 
     }
 
+
+    @ParameterizedTest
+    @EnumSource(value = GrantMandatoryQuestionOrgType.class, names = {"INDIVIDUAL", "OTHER", "LOCAL_AUTHORITY"})
+    void updateMandatoryQuestion_setCharityAndCommissionNumberAsNullIfOrgTypeIsLocalAuthority(GrantMandatoryQuestionOrgType orgType) {
+        final String orgTypeString = orgType.toString();
+        final UpdateGrantMandatoryQuestionDto updateDto = UpdateGrantMandatoryQuestionDto.builder()
+                .orgType(Optional.of(orgTypeString))
+                .build();
+
+        final GrantMandatoryQuestions mandatoryQuestionsBefore = GrantMandatoryQuestions.builder()
+                .id(MANDATORY_QUESTION_ID)
+                .createdBy(applicant)
+                .grantScheme(scheme)
+                .name("AND Digital")
+                .companiesHouseNumber("08761455")
+                .charityCommissionNumber("123456")
+                .build();
+
+        final GrantMandatoryQuestions mandatoryQuestionsAfter = GrantMandatoryQuestions.builder()
+                .id(MANDATORY_QUESTION_ID)
+                .createdBy(applicant)
+                .grantScheme(scheme)
+                .name("AND Digital")
+                .orgType(orgType)
+                .companiesHouseNumber(null)
+                .charityCommissionNumber(null)
+                .build();
+
+        when(grantApplicantService.getApplicantById(jwtPayload.getSub()))
+                .thenReturn(applicant);
+
+        when(grantMandatoryQuestionService.getGrantMandatoryQuestionById(MANDATORY_QUESTION_ID, jwtPayload.getSub()))
+                .thenReturn(mandatoryQuestionsBefore);
+
+        when(grantMandatoryQuestionMapper.mapUpdateGrantMandatoryQuestionDtoToGrantMandatoryQuestion(updateDto, mandatoryQuestionsBefore))
+                .thenReturn(mandatoryQuestionsBefore);
+
+        when(grantMandatoryQuestionService.updateMandatoryQuestion(mandatoryQuestionsBefore, applicant))
+                .thenReturn(mandatoryQuestionsAfter);
+
+        when(grantMandatoryQuestionService.generateNextPageUrl("url", MANDATORY_QUESTION_ID, jwtPayload.getSub()))
+                .thenReturn("nextPageUrl");
+
+
+        final ResponseEntity<String> methodResponse = controllerUnderTest.updateMandatoryQuestion(MANDATORY_QUESTION_ID, updateDto, "url");
+
+        verify(grantMandatoryQuestionService).addMandatoryQuestionsToSubmissionObject(mandatoryQuestionsBefore);
+        verify(grantMandatoryQuestionService).updateMandatoryQuestion(mandatoryQuestionsBefore, applicant);
+        assertThat(methodResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(methodResponse.getBody()).isEqualTo("nextPageUrl");
+
+    }
+
+
     @Test
     void shouldReturnMandatoryQuestionsIfValidSchemeAndUserIdIsGiven() {
         final GrantMandatoryQuestions mandatoryQuestions = GrantMandatoryQuestions.builder()
@@ -303,7 +360,7 @@ class GrantMandatoryQuestionsControllerTest {
                 .city("Glasgow")
                 .postcode("G2 7EZ")
                 .companiesHouseNumber("08761455")
-                .orgType(GrantMandatoryQuestionOrgType.LIMITED_COMPANY)
+                .orgType(LIMITED_COMPANY)
                 .build();
 
         final GetGrantMandatoryQuestionDto mandatoryQuestionsDto = GetGrantMandatoryQuestionDto.builder()

@@ -1,7 +1,10 @@
 package gov.cabinetoffice.gap.applybackend.service;
 
 
-import com.contentful.java.cda.*;
+import com.contentful.java.cda.CDAArray;
+import com.contentful.java.cda.CDAClient;
+import com.contentful.java.cda.CDAEntry;
+import com.contentful.java.cda.CDAResourceNotFoundException;
 import gov.cabinetoffice.gap.applybackend.dto.api.GetGrantAdvertDto;
 import gov.cabinetoffice.gap.applybackend.dto.api.GetGrantMandatoryQuestionDto;
 import gov.cabinetoffice.gap.applybackend.enums.GrantAdvertStatus;

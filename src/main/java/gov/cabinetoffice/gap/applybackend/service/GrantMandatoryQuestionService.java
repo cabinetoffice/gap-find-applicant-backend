@@ -113,7 +113,7 @@ public class GrantMandatoryQuestionService {
         mapper.put("organisation-type", mandatoryQuestionsUrlStart + "/organisation-name");
         mapper.put("organisation-name", mandatoryQuestionsUrlStart + "/organisation-address");
         if (mqs.getOrgType() == GrantMandatoryQuestionOrgType.NON_LIMITED_COMPANY
-                || mqs.getOrgType() == GrantMandatoryQuestionOrgType.INDIVIDUAL) {
+                || mqs.getOrgType() == GrantMandatoryQuestionOrgType.INDIVIDUAL || mqs.getOrgType() == GrantMandatoryQuestionOrgType.LOCAL_AUTHORITY) {
             mapper.put("organisation-address", mandatoryQuestionsUrlStart + "/organisation-funding-amount");
         } else {
             mapper.put("organisation-address", mandatoryQuestionsUrlStart + "/organisation-companies-house-number");
@@ -163,6 +163,7 @@ public class GrantMandatoryQuestionService {
     public SubmissionSection buildOrganisationDetailsSubmissionSection(final GrantMandatoryQuestions mandatoryQuestions, final SubmissionSectionStatus sectionStatus) {
         final boolean isNonLimitedCompany = Objects.equals(mandatoryQuestions.getOrgType().toString(), GrantMandatoryQuestionOrgType.NON_LIMITED_COMPANY.toString());
         final boolean isIndividual = Objects.equals(mandatoryQuestions.getOrgType().toString(), GrantMandatoryQuestionOrgType.INDIVIDUAL.toString());
+        final boolean isLocalAuthority = Objects.equals(mandatoryQuestions.getOrgType().toString(), GrantMandatoryQuestionOrgType.LOCAL_AUTHORITY.toString());
         final String sectionTitle = isIndividual
                 ? MandatoryQuestionConstants.ORGANISATION_INDIVIDUAL_DETAILS_SECTION_TITLE
                 : MandatoryQuestionConstants.ORGANISATION_DETAILS_SECTION_TITLE;
@@ -183,7 +184,7 @@ public class GrantMandatoryQuestionService {
         questions.add(applicantType);
         questions.add(organisationName);
         questions.add(organisationAddress);
-        if (!isIndividual && !isNonLimitedCompany) {
+        if (!isIndividual && !isNonLimitedCompany && !isLocalAuthority) {
             final SubmissionQuestion charityCommissionNumber = mandatoryQuestionToSubmissionQuestion(
                     MandatoryQuestionConstants.SUBMISSION_QUESTION_IDS.APPLICANT_ORG_CHARITY_NUMBER.toString(),
                     mandatoryQuestions

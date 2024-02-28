@@ -10,6 +10,7 @@ public enum GrantApplicantOrganisationType {
     UNREGISTERED_CHARITY("Unregistered charity"),
     CHARITY("Charity"),
     INDIVIDUAL("I am applying as an individual"),
+    LOCAL_AUTHORITY("Local authority"),
     OTHER("Other");
 
     private String name;
