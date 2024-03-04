@@ -3,7 +3,9 @@ package gov.cabinetoffice.gap.applybackend.web;
 import gov.cabinetoffice.gap.applybackend.dto.api.GetGrantSchemeDto;
 import gov.cabinetoffice.gap.applybackend.dto.api.GetGrantSchemeWithApplicationAndAdverts;
 import gov.cabinetoffice.gap.applybackend.dto.api.JwtPayload;
+import gov.cabinetoffice.gap.applybackend.enums.GrantAdvertStatus;
 import gov.cabinetoffice.gap.applybackend.mapper.GrantSchemeMapper;
+import gov.cabinetoffice.gap.applybackend.model.GrantAdvert;
 import gov.cabinetoffice.gap.applybackend.model.GrantApplication;
 import gov.cabinetoffice.gap.applybackend.model.GrantScheme;
 import gov.cabinetoffice.gap.applybackend.service.GrantSchemeService;
@@ -78,6 +80,36 @@ class GrantSchemeControllerTest {
         assertEquals(GetGrantSchemeWithApplicationAndAdverts.builder()
                 .grantScheme(getGrantSchemeDto)
                 .grantAdverts(Collections.emptyList())
+                .grantApplication(null)
+                .build(), response.getBody());
+    }
+
+    @Test
+    void getGrantSchemeById_ReturnsTheCorrectGrantSchemeWithNoAdverts() {
+        final GrantAdvert grantAdvert = GrantAdvert.builder().status(GrantAdvertStatus.DRAFT).build();
+        final GrantScheme grantScheme = GrantScheme.builder()
+                .id(SCHEME_ID)
+                .funderId(1)
+                .version(1)
+                .lastUpdated(Instant.now())
+                .lastUpdatedBy(1)
+                .ggisIdentifier("SCH-000003589")
+                .name("scheme_name")
+                .email("contact@contact.com")
+                .grantAdverts(Collections.singletonList(grantAdvert))
+                .grantApplication(GrantApplication.builder().build())
+                .build();
+        final GetGrantSchemeDto getGrantSchemeDto = new GetGrantSchemeDto(grantScheme);
+
+        when(grantSchemeService.getSchemeByIdWithApplicationAndAdverts(SCHEME_ID)).thenReturn(grantScheme);
+
+        ResponseEntity<GetGrantSchemeWithApplicationAndAdverts> response = controllerUnderTest.getGrantSchemeById(SCHEME_ID);
+
+        verify(grantSchemeService).getSchemeByIdWithApplicationAndAdverts(SCHEME_ID);
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertEquals(GetGrantSchemeWithApplicationAndAdverts.builder()
+                .grantScheme(getGrantSchemeDto)
+                .grantAdverts(Collections.singletonList(null))
                 .grantApplication(null)
                 .build(), response.getBody());
     }
