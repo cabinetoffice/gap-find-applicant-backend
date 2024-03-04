@@ -136,7 +136,7 @@ public class GrantMandatoryQuestionService {
     public void addMandatoryQuestionsToSubmissionObject(final GrantMandatoryQuestions mandatoryQuestions) {
         final Submission submission = mandatoryQuestions.getSubmission();
 
-        if (submission != null && submission.getScheme().getVersion() > 1) { // TODO: should we check scheme version instead of submission version?
+        if (submission != null && submission.getScheme().getVersion() > 1) {
 
             log.info("Adding mandatory question responses to submission " + submission.getId());
 
