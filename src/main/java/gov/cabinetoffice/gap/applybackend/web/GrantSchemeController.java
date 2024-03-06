@@ -1,6 +1,7 @@
 package gov.cabinetoffice.gap.applybackend.web;
 
 import gov.cabinetoffice.gap.applybackend.dto.api.*;
+import gov.cabinetoffice.gap.applybackend.enums.GrantAdvertStatus;
 import gov.cabinetoffice.gap.applybackend.mapper.GrantSchemeMapper;
 import gov.cabinetoffice.gap.applybackend.model.GrantScheme;
 import gov.cabinetoffice.gap.applybackend.service.GrantAdvertService;
@@ -41,6 +42,7 @@ public class GrantSchemeController {
         final GetGrantSchemeDto grantSchemeDto = new GetGrantSchemeDto(grantScheme);
         final GetGrantApplicationDto grantApplicationDto = grantSchemeMapper.grantSchemeToGetGrantApplicationDto(grantScheme);
         final List<GetGrantAdvertDto> grantAdvertDtos = grantScheme.getGrantAdverts().stream()
+                .filter(grantAdvert -> grantAdvert.getStatus().equals(GrantAdvertStatus.PUBLISHED))
                 .map(grantAdvert -> grantAdvertService.grantAdvertToDto(grantAdvert, jwtPayload.getSub(), grantSchemeId))
                 .toList();
 

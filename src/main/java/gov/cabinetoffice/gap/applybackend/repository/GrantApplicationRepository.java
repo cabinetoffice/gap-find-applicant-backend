@@ -1,6 +1,7 @@
 package gov.cabinetoffice.gap.applybackend.repository;
 
 
+import gov.cabinetoffice.gap.applybackend.enums.GrantApplicationStatus;
 import gov.cabinetoffice.gap.applybackend.model.GrantApplication;
 import gov.cabinetoffice.gap.applybackend.model.GrantScheme;
 import org.jetbrains.annotations.NotNull;
@@ -15,6 +16,7 @@ public interface GrantApplicationRepository extends JpaRepository<GrantApplicati
 
     Optional<GrantApplication> findByGrantScheme(GrantScheme grantScheme);
 
+    Optional<GrantApplication> findByGrantSchemeAndApplicationStatus(GrantScheme grantScheme, GrantApplicationStatus applicationStatus);
 
     @NotNull
     @EntityGraph(attributePaths = {"grantScheme"})

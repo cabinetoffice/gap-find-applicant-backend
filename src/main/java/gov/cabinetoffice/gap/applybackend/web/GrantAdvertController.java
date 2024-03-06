@@ -130,7 +130,7 @@ public class GrantAdvertController {
     @Operation(summary = "Get advert scheme version and whether it is an internal application")
     public ResponseEntity<GetGrantAdvertSummaryDto> getAdvertSchemeVersion(@PathVariable final String advertSlug) {
         GrantAdvert advert = grantAdvertService.getAdvertByContentfulSlug(advertSlug);
-        boolean isInternalApplication = grantApplicationService.doesSchemeHaveApplication(advert.getScheme());
+        boolean isInternalApplication = grantApplicationService.doesSchemeHaveAPublishedApplication(advert.getScheme());
 
         GetGrantAdvertSummaryDto advertSummary = GetGrantAdvertSummaryDto.builder()
                 .schemeVersion(advert.getScheme().getVersion())

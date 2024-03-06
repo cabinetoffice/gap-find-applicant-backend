@@ -550,6 +550,7 @@ class GrantMandatoryQuestionServiceTest {
     @Nested
     class addMandatoryQuestionsToSubmissionObject {
         //TODO I think we could maybe write more thorough tests for this method but these should be OK for now
+        final GrantScheme grantScheme = GrantScheme.builder().version(2).build();
 
         @Test
         void doesNothing_IfSubmissionIsNull() {
@@ -567,10 +568,11 @@ class GrantMandatoryQuestionServiceTest {
         }
 
         @Test
-        void doesNothing_IfSubmissionIsVersionOne() {
-
+        void doesNothing_IfSchemeIsVersionOne() {
+            final GrantScheme scheme = GrantScheme.builder().version(1).build();
             final Submission submission = Submission.builder()
                     .version(1)
+                    .scheme(scheme)
                     .build();
 
             final GrantMandatoryQuestions mandatoryQuestions = GrantMandatoryQuestions.builder()
@@ -594,6 +596,7 @@ class GrantMandatoryQuestionServiceTest {
             final Submission submission = Submission.builder()
                     .definition(definition)
                     .version(2)
+                    .scheme(grantScheme)
                     .build();
 
             final GrantMandatoryQuestions mandatoryQuestions = GrantMandatoryQuestions.builder()
@@ -619,6 +622,7 @@ class GrantMandatoryQuestionServiceTest {
             final Submission submission = Submission.builder()
                     .definition(definition)
                     .version(2)
+                    .scheme(grantScheme)
                     .build();
 
             final GrantMandatoryQuestions mandatoryQuestions = GrantMandatoryQuestions.builder()
@@ -652,6 +656,7 @@ class GrantMandatoryQuestionServiceTest {
             final Submission submission = Submission.builder()
                     .definition(definition)
                     .version(2)
+                    .scheme(grantScheme)
                     .build();
 
             final GrantMandatoryQuestions mandatoryQuestions = GrantMandatoryQuestions.builder()
