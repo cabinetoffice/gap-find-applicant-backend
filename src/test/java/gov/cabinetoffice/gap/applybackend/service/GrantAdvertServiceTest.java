@@ -140,7 +140,7 @@ class GrantAdvertServiceTest {
                     .build();
             final GetGrantMandatoryQuestionDto mandatoryQuestionDto = GetGrantMandatoryQuestionDto.builder().build();
 
-            when(grantApplicationService.doesSchemeHaveApplication(scheme)).thenReturn(true);
+            when(grantApplicationService.doesSchemeHaveAPublishedApplication(scheme)).thenReturn(true);
             when(grantApplicationService.getGrantApplicationId(scheme)).thenReturn(1);
 
             final GetGrantAdvertDto methodResponse = grantAdvertService.generateGetGrantAdvertDto(advert, mandatoryQuestionDto);
@@ -169,7 +169,7 @@ class GrantAdvertServiceTest {
                     .build();
             final GetGrantMandatoryQuestionDto mandatoryQuestionDto = GetGrantMandatoryQuestionDto.builder().build();
 
-            when(grantApplicationService.doesSchemeHaveApplication(scheme)).thenReturn(true);
+            when(grantApplicationService.doesSchemeHaveAPublishedApplication(scheme)).thenReturn(true);
             when(grantApplicationService.getGrantApplicationId(scheme)).thenReturn(1);
 
             final GetGrantAdvertDto methodResponse = grantAdvertService.generateGetGrantAdvertDto(advert, mandatoryQuestionDto);
@@ -198,7 +198,7 @@ class GrantAdvertServiceTest {
                     .build();
             final GetGrantMandatoryQuestionDto mandatoryQuestionDto = GetGrantMandatoryQuestionDto.builder().build();
 
-            when(grantApplicationService.doesSchemeHaveApplication(scheme)).thenReturn(false);
+            when(grantApplicationService.doesSchemeHaveAPublishedApplication(scheme)).thenReturn(false);
             when(grantApplicationService.getGrantApplicationId(scheme)).thenReturn(null);
 
             final GetGrantAdvertDto methodResponse = grantAdvertService.generateGetGrantAdvertDto(advert, mandatoryQuestionDto);
@@ -227,7 +227,7 @@ class GrantAdvertServiceTest {
                     .build();
             final GetGrantMandatoryQuestionDto mandatoryQuestionDto = GetGrantMandatoryQuestionDto.builder().build();
 
-            when(grantApplicationService.doesSchemeHaveApplication(scheme)).thenReturn(false);
+            when(grantApplicationService.doesSchemeHaveAPublishedApplication(scheme)).thenReturn(false);
             when(grantApplicationService.getGrantApplicationId(scheme)).thenReturn(null);
 
             final GetGrantAdvertDto methodResponse = grantAdvertService.generateGetGrantAdvertDto(advert, mandatoryQuestionDto);
@@ -256,7 +256,7 @@ class GrantAdvertServiceTest {
                     .build();
             final GetGrantMandatoryQuestionDto mandatoryQuestionDto = GetGrantMandatoryQuestionDto.builder().build();
 
-            when(grantApplicationService.doesSchemeHaveApplication(scheme)).thenReturn(false);
+            when(grantApplicationService.doesSchemeHaveAPublishedApplication(scheme)).thenReturn(false);
             when(grantApplicationService.getGrantApplicationId(scheme)).thenReturn(null);
 
             final GetGrantAdvertDto methodResponse = grantAdvertService.generateGetGrantAdvertDto(advert, mandatoryQuestionDto);
@@ -285,7 +285,7 @@ class GrantAdvertServiceTest {
                     .build();
             final GetGrantMandatoryQuestionDto mandatoryQuestionDto = GetGrantMandatoryQuestionDto.builder().build();
 
-            when(grantApplicationService.doesSchemeHaveApplication(scheme)).thenReturn(false);
+            when(grantApplicationService.doesSchemeHaveAPublishedApplication(scheme)).thenReturn(false);
             when(grantApplicationService.getGrantApplicationId(scheme)).thenReturn(null);
 
             final GetGrantAdvertDto methodResponse = grantAdvertService.generateGetGrantAdvertDto(advert, mandatoryQuestionDto);
@@ -314,7 +314,7 @@ class GrantAdvertServiceTest {
                     .build();
             final GetGrantMandatoryQuestionDto mandatoryQuestionDto = GetGrantMandatoryQuestionDto.builder().build();
 
-            when(grantApplicationService.doesSchemeHaveApplication(scheme)).thenReturn(false);
+            when(grantApplicationService.doesSchemeHaveAPublishedApplication(scheme)).thenReturn(false);
             when(grantApplicationService.getGrantApplicationId(scheme)).thenReturn(null);
 
             final GetGrantAdvertDto methodResponse = grantAdvertService.generateGetGrantAdvertDto(advert, mandatoryQuestionDto);

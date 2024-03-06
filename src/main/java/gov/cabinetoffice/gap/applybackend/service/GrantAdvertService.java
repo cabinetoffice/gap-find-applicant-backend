@@ -54,7 +54,7 @@ public class GrantAdvertService {
     }
 
     public GetGrantAdvertDto generateGetGrantAdvertDto(GrantAdvert advert, GetGrantMandatoryQuestionDto mandatoryQuestions) {
-        final boolean isInternal = grantApplicationService.doesSchemeHaveApplication(advert.getScheme());
+        final boolean isInternal = grantApplicationService.doesSchemeHaveAPublishedApplication(advert.getScheme());
         final Integer grantApplicationId = grantApplicationService.getGrantApplicationId(advert.getScheme());
 
         return GetGrantAdvertDto.builder()
