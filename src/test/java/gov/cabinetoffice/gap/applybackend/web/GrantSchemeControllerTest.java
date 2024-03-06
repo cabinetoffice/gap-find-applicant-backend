@@ -109,7 +109,7 @@ class GrantSchemeControllerTest {
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertEquals(GetGrantSchemeWithApplicationAndAdverts.builder()
                 .grantScheme(getGrantSchemeDto)
-                .grantAdverts(Collections.singletonList(null))
+                .grantAdverts(Collections.emptyList())
                 .grantApplication(null)
                 .build(), response.getBody());
     }

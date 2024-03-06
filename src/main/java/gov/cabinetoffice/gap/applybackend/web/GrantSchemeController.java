@@ -42,9 +42,8 @@ public class GrantSchemeController {
         final GetGrantSchemeDto grantSchemeDto = new GetGrantSchemeDto(grantScheme);
         final GetGrantApplicationDto grantApplicationDto = grantSchemeMapper.grantSchemeToGetGrantApplicationDto(grantScheme);
         final List<GetGrantAdvertDto> grantAdvertDtos = grantScheme.getGrantAdverts().stream()
-                .map(grantAdvert ->
-                        grantAdvert.getStatus().equals(GrantAdvertStatus.PUBLISHED) ?
-                        grantAdvertService.grantAdvertToDto(grantAdvert, jwtPayload.getSub(), grantSchemeId) : null)
+                .filter(grantAdvert -> grantAdvert.getStatus().equals(GrantAdvertStatus.PUBLISHED))
+                .map(grantAdvert -> grantAdvertService.grantAdvertToDto(grantAdvert, jwtPayload.getSub(), grantSchemeId))
                 .toList();
 
         final GetGrantSchemeWithApplicationAndAdverts getGrantSchemeWithApplicationAndAdverts = GetGrantSchemeWithApplicationAndAdverts.builder()
