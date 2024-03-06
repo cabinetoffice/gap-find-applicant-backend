@@ -252,7 +252,7 @@ class GrantAdvertControllerTest {
 
             when(grantAdvertService.getAdvertByContentfulSlug(mockInternalV1Advert.getContentfulSlug()))
                     .thenReturn(mockInternalV1Advert);
-            when(grantApplicationService.doesSchemeHaveApplication(mockInternalV1Advert.getScheme()))
+            when(grantApplicationService.doesSchemeHaveAPublishedApplication(mockInternalV1Advert.getScheme()))
                     .thenReturn(true);
 
             ResponseEntity<GetGrantAdvertSummaryDto> response = grantAdvertController.getAdvertSchemeVersion(mockInternalV1Advert.getContentfulSlug());
@@ -274,7 +274,7 @@ class GrantAdvertControllerTest {
 
             when(grantAdvertService.getAdvertByContentfulSlug(mockExternalV1Advert.getContentfulSlug()))
                     .thenReturn(mockExternalV1Advert);
-            when(grantApplicationService.doesSchemeHaveApplication(mockExternalV1Advert.getScheme()))
+            when(grantApplicationService.doesSchemeHaveAPublishedApplication(mockExternalV1Advert.getScheme()))
                     .thenReturn(false);
 
             ResponseEntity<GetGrantAdvertSummaryDto> response = grantAdvertController.getAdvertSchemeVersion(mockExternalV1Advert.getContentfulSlug());
@@ -296,7 +296,7 @@ class GrantAdvertControllerTest {
 
             when(grantAdvertService.getAdvertByContentfulSlug(mockInternalV2Advert.getContentfulSlug()))
                     .thenReturn(mockInternalV2Advert);
-            when(grantApplicationService.doesSchemeHaveApplication(mockInternalV2Advert.getScheme()))
+            when(grantApplicationService.doesSchemeHaveAPublishedApplication(mockInternalV2Advert.getScheme()))
                     .thenReturn(true);
 
             ResponseEntity<GetGrantAdvertSummaryDto> response = grantAdvertController.getAdvertSchemeVersion(mockInternalV2Advert.getContentfulSlug());
@@ -318,7 +318,7 @@ class GrantAdvertControllerTest {
 
             when(grantAdvertService.getAdvertByContentfulSlug(mockExternalV2Advert.getContentfulSlug()))
                     .thenReturn(mockExternalV2Advert);
-            when(grantApplicationService.doesSchemeHaveApplication(mockExternalV2Advert.getScheme()))
+            when(grantApplicationService.doesSchemeHaveAPublishedApplication(mockExternalV2Advert.getScheme()))
                     .thenReturn(false);
 
             ResponseEntity<GetGrantAdvertSummaryDto> response = grantAdvertController.getAdvertSchemeVersion(mockExternalV2Advert.getContentfulSlug());
