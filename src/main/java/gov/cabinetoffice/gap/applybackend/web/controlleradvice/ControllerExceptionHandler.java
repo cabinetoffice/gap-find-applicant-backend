@@ -5,6 +5,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.tomcat.util.http.fileupload.impl.FileSizeLimitExceededException;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.springframework.http.HttpStatus;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -16,7 +17,11 @@ import org.springframework.web.context.request.WebRequest;
 
 import java.time.Clock;
 import java.time.ZonedDateTime;
+import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
+import java.util.function.Function;
+import java.util.function.UnaryOperator;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -62,61 +67,39 @@ public class ControllerExceptionHandler {
         return ErrorResponseBody.builder()
                 .responseAccepted(Boolean.FALSE)
                 .message("Validation failure")
-                .errors(sortFieldErrors(errors))
+                .errors(sortErrors(errors))
                 .invalidData(ex.getBindingResult().getTarget())
                 .build();
     }
 
-    private List<Error> sortFieldErrors(List<Error> errors) {
-        if (errors.stream().anyMatch(error -> error.getFieldName().contains("multiResponse"))) {
-            return sortMultiResponseErrors(errors);
-        } else if (errors.stream().anyMatch(error -> ADDRESS_FIELDS.contains(error.getFieldName()))) {
-            return sortAddressResponseErrors(errors);
-        }
+    private Optional<Function<Error, Integer>> getErrorIntegerFunction(List<Error> errors) {
+        final boolean isMultiResponse = errors.stream()
+                .anyMatch(error -> error.getFieldName().contains("multiResponse"));
+        final boolean isAddressResponse = errors.stream()
+                .anyMatch(error -> ADDRESS_FIELDS.contains(error.getFieldName()));
 
-        return errors;
+        if (isMultiResponse)
+            return Optional.of(this::getIntegerFromFieldName);
+        else if (isAddressResponse)
+            return Optional.of(this::getIntFromAddressField);
+
+        return Optional.empty();
     }
 
-    /**
-     * Sorts multi response errors in ascending numeric order.
-     * For example. multiResponse[0] will always appear above multiResponse[1] in the list.
-     *
-     * @param errors
-     * @return sorted list of error fields
-     */
-    @NotNull
-    private List<Error> sortMultiResponseErrors(List<Error> errors) {
-        return errors.stream()
-                .sorted((a, b) -> {
-                    int multiResponseField = getIntegerFromFieldName(a);
-                    int multiResponseField2 = getIntegerFromFieldName(b);
+    private List<Error> sortErrors(List<Error> errors) {
+        return getErrorIntegerFunction(errors)
+                .stream()
+                .map(fn -> errors.stream()
+                            .sorted((a, b) -> {
+                                int multiResponseField = fn.apply(a);
+                                int multiResponseField2 = fn.apply(b);
 
-                    return multiResponseField - multiResponseField2;
-                })
-                .toList();
-    }
-
-    /**
-     * Sorts address response errors in order of how the fields appear on the form
-     *
-     * - addressLine1
-     * - addressLine2
-     * - city
-     * - county
-     * - postcode
-     *
-     * @param errors
-     * @return
-     */
-    private List<Error> sortAddressResponseErrors(List<Error> errors) {
-        return errors.stream()
-                .sorted((a, b) -> {
-                    int multiResponseField1 = getIntFromAddressField(a);
-                    int multiResponseField2 = getIntFromAddressField(b);
-
-                    return multiResponseField1 - multiResponseField2;
-                })
-                .toList();
+                                return multiResponseField - multiResponseField2;
+                            })
+                            .toList()
+                )
+                .findFirst()
+                .orElse(errors);
     }
 
     private int getIntFromAddressField(Error fieldError) {
