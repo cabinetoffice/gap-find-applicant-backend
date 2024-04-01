@@ -84,6 +84,12 @@ public class GrantBeneficiary {
     private Boolean locationNir;
 
     @Column
+    private Boolean locationLon;
+
+    @Column
+    private Boolean locationOutUk;
+
+    @Column
     private Boolean hasProvidedAdditionalAnswers;
 
     @Column
