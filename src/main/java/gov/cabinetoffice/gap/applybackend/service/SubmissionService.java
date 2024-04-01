@@ -367,6 +367,8 @@ public class SubmissionService {
                 .locationSco(containsLocation(locations, "Scotland"))
                 .locationWal(containsLocation(locations, "Wales"))
                 .locationNir(containsLocation(locations, "Northern Ireland"))
+                .locationLon(containsLocation(locations, "London"))
+                .locationOutUk(containsLocation(locations, "Outside of the UK"))
                 .gapId(submission.getGapId())
                 .build());
     }

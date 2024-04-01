@@ -21,6 +21,8 @@ public class CreateGrantBeneficiaryDto {
     private Boolean locationSco;
     private Boolean locationWal;
     private Boolean locationNir;
+    private Boolean locationLon;
+    private Boolean locationOutUk;
 
     @NotNull(message = "Select 'Yes, answer the equality questions' or 'No, skip the equality questions'")
     private Boolean hasProvidedAdditionalAnswers;
