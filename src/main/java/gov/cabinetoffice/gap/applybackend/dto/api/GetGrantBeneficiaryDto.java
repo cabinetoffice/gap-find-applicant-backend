@@ -22,6 +22,8 @@ public class GetGrantBeneficiaryDto {
     private Boolean locationSco;
     private Boolean locationWal;
     private Boolean locationNir;
+    private Boolean locationLon;
+    private Boolean locationOutUk;
     private Boolean hasProvidedAdditionalAnswers;
     private Boolean ageGroup1;
     private Boolean ageGroup2;

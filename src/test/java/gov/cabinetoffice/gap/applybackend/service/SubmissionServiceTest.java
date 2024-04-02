@@ -53,7 +53,7 @@ class SubmissionServiceTest {
     final String amount = "1000";
     final String companiesHouseNo = "1234";
     final String charityNo = "1234";
-    final String[] beneficiaryLocation = new String[]{"South West England", "Midlands", "Scotland"};
+    final String[] beneficiaryLocation = new String[]{"South West England", "Midlands", "Scotland", "London"};
     final String userId = "75ab5fbd-0682-4d3d-a467-01c7a447f07c";
     private final String CHRISTMAS_2022_MIDDAY = "2022-12-25T12:00:00.00z";
     private final Clock clock = Clock.fixed(Instant.parse(CHRISTMAS_2022_MIDDAY), ZoneId.of("UTC"));
@@ -1350,6 +1350,8 @@ class SubmissionServiceTest {
             assertThat(capturedBeneficiary.getLocationMidEng()).isTrue();
             assertThat(capturedBeneficiary.getLocationSeEng()).isFalse();
             assertThat(capturedBeneficiary.getLocationNwEng()).isFalse();
+            assertThat(capturedBeneficiary.getLocationLon()).isTrue();
+            assertThat(capturedBeneficiary.getLocationOutUk()).isFalse();
             assertThat(capturedBeneficiary.getGapId()).isEqualTo(submission.getGapId());
         }
 

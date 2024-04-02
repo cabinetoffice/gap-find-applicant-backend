@@ -102,46 +102,48 @@ public class QuestionResponseValidator implements ConstraintValidator<ValidQuest
             }
         }
 
-        if (validation.getMinLength() != null &&
-                submittedQuestion.getResponse().length() < validation.getMinLength()) {
-            result.addError(ValidationConstants.SINGLE_RESPONSE_FIELD, String.format("Answer must be %s characters or more", validation.getMinLength()));
-            return result;
-        }
-
-        if (validation.getMaxLength() != null &&
-                submittedQuestion.getResponse().length() > validation.getMaxLength()) {
-            result.addError(ValidationConstants.SINGLE_RESPONSE_FIELD, String.format("Answer must be %s characters or less", validation.getMaxLength()));
-            return result;
-        }
-
-        if (validation.getMinWords() != null &&
-                getNumberOfWords(submittedQuestion.getResponse()) < validation.getMinWords()) {
-            result.addError(ValidationConstants.SINGLE_RESPONSE_FIELD, String.format("Answer must be %s words or more", validation.getMinWords()));
-            return result;
-        }
-
-        if (validation.getMaxWords() != null &&
-                getNumberOfWords(submittedQuestion.getResponse()) > validation.getMaxWords()) {
-            result.addError(ValidationConstants.SINGLE_RESPONSE_FIELD, String.format("Answer must be %s words or less", validation.getMaxWords()));
-            return result;
-        }
-
-        if (validation.getGreaterThanZero() != null &&
-                validation.getGreaterThanZero()) {
-            try {
-                if (Float.parseFloat(submittedQuestion.getResponse()) <= 0F) {
-                    result.addError(ValidationConstants.SINGLE_RESPONSE_FIELD, "Answer must have a value greater than zero");
-                    return result;
-                }
-            } catch (final NumberFormatException e) {
-                result.addError(ValidationConstants.SINGLE_RESPONSE_FIELD, "Answer must only include numeric values/ decimal");
+        if (!singleResponseIsEmpty) {
+            if (validation.getMinLength() != null &&
+                    submittedQuestion.getResponse().length() < validation.getMinLength()) {
+                result.addError(ValidationConstants.SINGLE_RESPONSE_FIELD, String.format("Answer must be %s characters or more", validation.getMinLength()));
                 return result;
             }
-        }
 
-        if (!singleResponseIsEmpty && containsSpecialCharacters(submittedQuestion.getResponse())) {
-            result.addError(ValidationConstants.SINGLE_RESPONSE_FIELD, "Answer must only include letters, numbers, and special characters such as hyphens, spaces and apostrophes");
-            return result;
+            if (validation.getMaxLength() != null &&
+                    submittedQuestion.getResponse().length() > validation.getMaxLength()) {
+                result.addError(ValidationConstants.SINGLE_RESPONSE_FIELD, String.format("Answer must be %s characters or less", validation.getMaxLength()));
+                return result;
+            }
+
+            if (validation.getMinWords() != null &&
+                    getNumberOfWords(submittedQuestion.getResponse()) < validation.getMinWords()) {
+                result.addError(ValidationConstants.SINGLE_RESPONSE_FIELD, String.format("Answer must be %s words or more", validation.getMinWords()));
+                return result;
+            }
+
+            if (validation.getMaxWords() != null &&
+                    getNumberOfWords(submittedQuestion.getResponse()) > validation.getMaxWords()) {
+                result.addError(ValidationConstants.SINGLE_RESPONSE_FIELD, String.format("Answer must be %s words or less", validation.getMaxWords()));
+                return result;
+            }
+
+            if (validation.getGreaterThanZero() != null &&
+                    validation.getGreaterThanZero()) {
+                try {
+                    if (Float.parseFloat(submittedQuestion.getResponse()) <= 0F) {
+                        result.addError(ValidationConstants.SINGLE_RESPONSE_FIELD, "Answer must have a value greater than zero");
+                        return result;
+                    }
+                } catch (final NumberFormatException e) {
+                    result.addError(ValidationConstants.SINGLE_RESPONSE_FIELD, "Answer must only include numeric values/ decimal");
+                    return result;
+                }
+            }
+
+            if (containsSpecialCharacters(submittedQuestion.getResponse())) {
+                result.addError(ValidationConstants.SINGLE_RESPONSE_FIELD, "Answer must only include letters, numbers, and special characters such as hyphens, spaces and apostrophes");
+                return result;
+            }
         }
 
         result.setValid(Boolean.TRUE);
