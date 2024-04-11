@@ -65,13 +65,14 @@ public class GrantMandatoryQuestionService {
         return grantMandatoryQuestion.get();
     }
 
-    public GrantMandatoryQuestions createMandatoryQuestion(GrantScheme scheme, GrantApplicant applicant) {
+    public GrantMandatoryQuestions createMandatoryQuestion(GrantScheme scheme, GrantApplicant applicant, boolean isForInternalApplication) {
         if (mandatoryQuestionExistsBySchemeIdAndApplicantId(scheme.getId(), applicant.getId())) {
             log.debug("Mandatory question for scheme {}, and applicant {} already exist", scheme.getId(), applicant.getId());
             return grantMandatoryQuestionRepository.findByGrantSchemeAndCreatedBy(scheme, applicant).get(0);
         }
 
-        if (scheme.getGrantApplication() != null && scheme.getGrantApplication().getApplicationStatus() == GrantApplicationStatus.REMOVED) {
+        if (isForInternalApplication &&  scheme.getGrantApplication() != null &&
+                scheme.getGrantApplication().getApplicationStatus() == GrantApplicationStatus.REMOVED) {
             throw new GrantApplicationNotPublishedException(String.format("Mandatory question for scheme %d could not be created as the application is not published", scheme.getId()));
         }
 

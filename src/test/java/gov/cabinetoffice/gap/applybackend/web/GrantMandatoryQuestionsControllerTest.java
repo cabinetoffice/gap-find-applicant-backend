@@ -1,5 +1,6 @@
 package gov.cabinetoffice.gap.applybackend.web;
 
+import gov.cabinetoffice.gap.applybackend.config.properties.EnvironmentProperties;
 import gov.cabinetoffice.gap.applybackend.dto.api.GetGrantMandatoryQuestionDto;
 import gov.cabinetoffice.gap.applybackend.dto.api.JwtPayload;
 import gov.cabinetoffice.gap.applybackend.dto.api.UpdateGrantMandatoryQuestionDto;
@@ -9,7 +10,9 @@ import gov.cabinetoffice.gap.applybackend.enums.GrantMandatoryQuestionOrgType;
 import gov.cabinetoffice.gap.applybackend.enums.GrantMandatoryQuestionStatus;
 import gov.cabinetoffice.gap.applybackend.mapper.GrantMandatoryQuestionMapper;
 import gov.cabinetoffice.gap.applybackend.model.*;
+import gov.cabinetoffice.gap.applybackend.service.GrantAdvertService;
 import gov.cabinetoffice.gap.applybackend.service.GrantApplicantService;
+import gov.cabinetoffice.gap.applybackend.service.GrantApplicationService;
 import gov.cabinetoffice.gap.applybackend.service.GrantMandatoryQuestionService;
 import gov.cabinetoffice.gap.applybackend.service.GrantSchemeService;
 import gov.cabinetoffice.gap.applybackend.service.SubmissionService;
@@ -35,6 +38,8 @@ import java.util.UUID;
 import static gov.cabinetoffice.gap.applybackend.enums.GrantMandatoryQuestionFundingLocation.SCOTLAND;
 import static gov.cabinetoffice.gap.applybackend.enums.GrantMandatoryQuestionOrgType.*;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -52,7 +57,7 @@ class GrantMandatoryQuestionsControllerTest {
             .organisationProfile(applicantOrganisationProfile)
             .build();
 
-    private final int schemeId = 123;
+    private final Integer schemeId = 123;
 
     private final GrantScheme scheme = GrantScheme.builder()
             .id(schemeId)
@@ -68,6 +73,13 @@ class GrantMandatoryQuestionsControllerTest {
     private GrantApplicantService grantApplicantService;
     @Mock
     private GrantSchemeService grantSchemeService;
+
+    @Mock
+    private GrantAdvertService grantAdvertService;
+    @Mock
+    private EnvironmentProperties environmentProperties;
+    @Mock
+    private GrantApplicationService grantApplicationService;
     @Mock
     private Authentication authentication;
     @Mock
@@ -97,6 +109,14 @@ class GrantMandatoryQuestionsControllerTest {
         final GetGrantMandatoryQuestionDto emptyMandatoryQuestionsDto = GetGrantMandatoryQuestionDto.builder()
                 .id(MANDATORY_QUESTION_ID)
                 .build();
+        final GrantAdvert grantAdvert = GrantAdvert.builder().scheme(scheme).build();
+        final String webPageUrl = "http://localhost:3000/apply/applicant/internalUrl";
+        final String frontEndUrl = "http://localhost:3000/apply/applicant";
+
+
+        when(grantAdvertService.getAdvertBySchemeId(schemeId.toString())).thenReturn(grantAdvert);
+        when(grantAdvertService.getExternalSubmissionUrl(grantAdvert)).thenReturn(webPageUrl);
+        when(environmentProperties.getFrontEndUri()).thenReturn(frontEndUrl);
 
         when(grantApplicantService.getApplicantById(applicantUserId))
                 .thenReturn(applicant);
@@ -104,7 +124,7 @@ class GrantMandatoryQuestionsControllerTest {
         when(grantSchemeService.getSchemeById(schemeId))
                 .thenReturn(scheme);
 
-        when(grantMandatoryQuestionService.createMandatoryQuestion(scheme, applicant))
+        when(grantMandatoryQuestionService.createMandatoryQuestion(scheme, applicant, true))
                 .thenReturn(emptyMandatoryQuestions);
 
         when(grantMandatoryQuestionMapper.mapGrantMandatoryQuestionToGetGrantMandatoryQuestionDTO(emptyMandatoryQuestions))
@@ -112,7 +132,7 @@ class GrantMandatoryQuestionsControllerTest {
 
         final ResponseEntity<GetGrantMandatoryQuestionDto> methodResponse = controllerUnderTest.createMandatoryQuestion(schemeId);
 
-        verify(grantMandatoryQuestionService).createMandatoryQuestion(scheme, applicant);
+        verify(grantMandatoryQuestionService).createMandatoryQuestion(scheme, applicant,true);
         assertThat(methodResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(methodResponse.getBody()).isEqualTo(emptyMandatoryQuestionsDto);
 

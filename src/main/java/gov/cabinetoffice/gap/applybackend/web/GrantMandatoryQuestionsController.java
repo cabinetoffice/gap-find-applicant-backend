@@ -1,11 +1,13 @@
 package gov.cabinetoffice.gap.applybackend.web;
 
+import gov.cabinetoffice.gap.applybackend.config.properties.EnvironmentProperties;
 import gov.cabinetoffice.gap.applybackend.dto.api.GetGrantMandatoryQuestionDto;
 import gov.cabinetoffice.gap.applybackend.dto.api.JwtPayload;
 import gov.cabinetoffice.gap.applybackend.dto.api.UpdateGrantMandatoryQuestionDto;
 import gov.cabinetoffice.gap.applybackend.enums.GrantMandatoryQuestionStatus;
 import gov.cabinetoffice.gap.applybackend.mapper.GrantMandatoryQuestionMapper;
 import gov.cabinetoffice.gap.applybackend.model.*;
+import gov.cabinetoffice.gap.applybackend.service.GrantAdvertService;
 import gov.cabinetoffice.gap.applybackend.service.GrantApplicantService;
 import gov.cabinetoffice.gap.applybackend.service.GrantMandatoryQuestionService;
 import gov.cabinetoffice.gap.applybackend.service.GrantSchemeService;
@@ -38,7 +40,9 @@ public class GrantMandatoryQuestionsController {
     private final GrantApplicantService grantApplicantService;
     private final GrantSchemeService grantSchemeService;
     private final GrantMandatoryQuestionMapper grantMandatoryQuestionMapper;
+    private final GrantAdvertService grantAdvertService;
     private final SubmissionService submissionService;
+    private final EnvironmentProperties environmentProperties;
 
     @PostMapping()
     @ApiResponses(value = {
@@ -46,11 +50,25 @@ public class GrantMandatoryQuestionsController {
             @ApiResponse(responseCode = "404", description = "No Grant Mandatory question found", content = @Content(mediaType = "application/json")),
     })
     public ResponseEntity<GetGrantMandatoryQuestionDto> createMandatoryQuestion(@RequestParam final Integer schemeId) {
+        log.info("Creating mandatory question for scheme id {}", schemeId);
         final JwtPayload jwtPayload = (JwtPayload) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
         final GrantApplicant applicant = grantApplicantService.getApplicantById(jwtPayload.getSub());
-        final GrantScheme scheme = grantSchemeService.getSchemeById(schemeId);
 
-        final GrantMandatoryQuestions grantMandatoryQuestions = grantMandatoryQuestionService.createMandatoryQuestion(scheme, applicant);
+        log.info("Getting scheme with id {}", schemeId);
+        final GrantScheme scheme = grantSchemeService.getSchemeById(schemeId);
+        log.info("Scheme with id {} found", schemeId);
+
+        log.info("Getting Advert associated to scheme with id {}", schemeId);
+        final GrantAdvert advert = grantAdvertService.getAdvertBySchemeId(schemeId.toString());
+        log.info("Advert with id {} found for scheme with id {}", advert.getId(), schemeId);
+
+        final String webpageUrl = grantAdvertService.getExternalSubmissionUrl(advert);
+
+        log.info("Checking that the advert has link to internal or external application");
+        final boolean webPageUrlIsForInternalApplications = webpageUrl.contains(environmentProperties.getFrontEndUri());
+        log.info("Advert is pointing to an internal application form : {}", webPageUrlIsForInternalApplications);
+
+        final GrantMandatoryQuestions grantMandatoryQuestions = grantMandatoryQuestionService.createMandatoryQuestion(scheme, applicant, webPageUrlIsForInternalApplications);
         log.info("Mandatory question with ID {} has been created.", grantMandatoryQuestions.getId());
 
         final GetGrantMandatoryQuestionDto getGrantMandatoryQuestionDto = grantMandatoryQuestionMapper.mapGrantMandatoryQuestionToGetGrantMandatoryQuestionDTO(grantMandatoryQuestions);

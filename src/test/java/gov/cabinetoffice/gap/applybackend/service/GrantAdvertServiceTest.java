@@ -79,7 +79,7 @@ class GrantAdvertServiceTest {
                     .response(response)
                     .build();
 
-            final String methodResponse = GrantAdvertService.getExternalSubmissionUrl(advert);
+            final String methodResponse = grantAdvertService.getExternalSubmissionUrl(advert);
 
             assertThat(methodResponse).isEqualTo("responseUrl");
         }
@@ -91,7 +91,7 @@ class GrantAdvertServiceTest {
                     .response(response)
                     .build();
 
-            final String methodResponse = GrantAdvertService.getExternalSubmissionUrl(advert);
+            final String methodResponse = grantAdvertService.getExternalSubmissionUrl(advert);
 
             assertThat(methodResponse).isEmpty();
         }
