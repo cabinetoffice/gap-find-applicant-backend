@@ -68,21 +68,19 @@ public class GrantSchemeController {
                     content = @Content(mediaType = "application/json")),
     })
     public ResponseEntity<SchemeMandatoryQuestionApplicationFormInfosDto> schemeHasInternalApplication(@PathVariable Integer grantSchemeId){
-        log.info("Checking if scheme with id {} has internal application form and if it is published",grantSchemeId);
+        log.debug("Checking if scheme with id {} has internal application form and if it is published",grantSchemeId);
 
-        log.info("Getting scheme with id {}", grantSchemeId);
         final GrantScheme grantScheme = grantSchemeService.getSchemeById(grantSchemeId);
-        log.info("Scheme with id {} found", grantSchemeId);
+        log.debug("Scheme with id {} found. Getting associated advert", grantSchemeId);
 
-        log.info("Getting Advert associated to scheme with id {}", grantSchemeId);
+        log.debug("Getting Advert associated to scheme with id {}", grantSchemeId);
         final GrantAdvert advert = grantAdvertService.getAdvertBySchemeId(grantSchemeId.toString());
-        log.info("Advert with id {} found for scheme with id {}", advert.getId(), grantSchemeId);
+        log.debug("Advert with id {} found for scheme with id {}", advert.getId(), grantSchemeId);
 
         final String webpageUrl = grantAdvertService.getExternalSubmissionUrl(advert);
 
-        log.info("Checking that the advert has link to internal or external application");
         final boolean webPageUrlIsForInternalApplications = webpageUrl.contains(environmentProperties.getFrontEndUri());
-        log.info("Advert is pointing to an internal application form : {}", webPageUrlIsForInternalApplications);
+        log.debug("Advert is pointing to an internal application form : {}", webPageUrlIsForInternalApplications);
 
         final SchemeMandatoryQuestionApplicationFormInfosDto dto = SchemeMandatoryQuestionApplicationFormInfosDto.builder()
                 .hasInternalApplication(webPageUrlIsForInternalApplications)
@@ -91,11 +89,11 @@ public class GrantSchemeController {
 
         if (webPageUrlIsForInternalApplications) {
             final boolean hasPublishedApplication = grantApplicationService.doesSchemeHaveAPublishedApplication(grantScheme);
-            log.info("Application form associated to advert with Id {} has PUBLISHED status: {}", advert.getId(), hasPublishedApplication);
+            log.debug("Application form associated to advert with Id {} has PUBLISHED status: {}", advert.getId(), hasPublishedApplication);
             dto.setHasPublishedInternalApplication(hasPublishedApplication);
         }
 
-        log.info("Scheme with ID {} is for internal application: {} and has a published application form : {}",
+        log.debug("Scheme with ID {} is for internal application: {} and has a published application form : {}",
                 grantSchemeId, dto.isHasInternalApplication(), dto.isHasPublishedInternalApplication());
 
         return ResponseEntity.ok(dto);
