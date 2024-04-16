@@ -34,7 +34,7 @@ public class GrantAdvertService {
     private final GrantMandatoryQuestionService grantMandatoryQuestionService;
     private final GrantApplicantService grantApplicantService;
 
-    protected static String getExternalSubmissionUrl(GrantAdvert advert) {
+    public String getExternalSubmissionUrl(GrantAdvert advert) {
         return advert.getResponse().getSections().stream()
                 .filter(section -> section.getId().equals("howToApply"))
                 .flatMap(section -> section.getPages().stream())

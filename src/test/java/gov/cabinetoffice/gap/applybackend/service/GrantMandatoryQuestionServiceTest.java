@@ -242,7 +242,7 @@ class GrantMandatoryQuestionServiceTest {
             when(grantMandatoryQuestionRepository.findByGrantSchemeAndCreatedBy(scheme, applicant))
                     .thenReturn(List.of(existingMandatoryQuestions));
 
-            final GrantMandatoryQuestions methodResponse = serviceUnderTest.createMandatoryQuestion(scheme, applicant);
+            final GrantMandatoryQuestions methodResponse = serviceUnderTest.createMandatoryQuestion(scheme, applicant, false);
 
             verify(grantMandatoryQuestionRepository, never()).save(Mockito.any());
             assertThat(methodResponse).isEqualTo(existingMandatoryQuestions);
@@ -265,7 +265,7 @@ class GrantMandatoryQuestionServiceTest {
             when(grantMandatoryQuestionRepository.existsByGrantScheme_IdAndCreatedBy_Id(scheme.getId(), applicant.getId()))
                     .thenReturn(false);
 
-            assertThrows(GrantApplicationNotPublishedException.class, () -> serviceUnderTest.createMandatoryQuestion(scheme, applicant));
+            assertThrows(GrantApplicationNotPublishedException.class, () -> serviceUnderTest.createMandatoryQuestion(scheme, applicant, true));
         }
 
 
@@ -302,7 +302,7 @@ class GrantMandatoryQuestionServiceTest {
             when(organisationProfileMapper.mapOrgProfileToGrantMandatoryQuestion(organisationProfile))
                     .thenReturn(grantMandatoryQuestions);
 
-            final GrantMandatoryQuestions methodResponse = serviceUnderTest.createMandatoryQuestion(scheme, applicant);
+            final GrantMandatoryQuestions methodResponse = serviceUnderTest.createMandatoryQuestion(scheme, applicant,true);
 
             verify(organisationProfileMapper).mapOrgProfileToGrantMandatoryQuestion(organisationProfile);
             verify(grantMandatoryQuestionRepository).save(any());
@@ -352,7 +352,7 @@ class GrantMandatoryQuestionServiceTest {
             when(organisationProfileMapper.mapOrgProfileToGrantMandatoryQuestion(orgProfileWithLongCCandCH))
                     .thenReturn(grantMandatoryQuestions);
 
-            final GrantMandatoryQuestions methodResponse = serviceUnderTest.createMandatoryQuestion(scheme, applicant);
+            final GrantMandatoryQuestions methodResponse = serviceUnderTest.createMandatoryQuestion(scheme, applicant,true);
 
             verify(organisationProfileMapper).mapOrgProfileToGrantMandatoryQuestion(orgProfileWithLongCCandCH);
             verify(grantMandatoryQuestionRepository).save(any());
