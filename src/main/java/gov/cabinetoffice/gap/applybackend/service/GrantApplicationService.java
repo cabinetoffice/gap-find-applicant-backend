@@ -35,6 +35,10 @@ public class GrantApplicationService {
         return grantApplicationRepository.findByGrantSchemeAndApplicationStatus(grantScheme, GrantApplicationStatus.PUBLISHED).isPresent();
     }
 
+    public boolean doesSchemeHaveAnApplication(final GrantScheme grantScheme) {
+        return grantApplicationRepository.findByGrantScheme(grantScheme).isPresent();
+    }
+
     public Integer getGrantApplicationId(final GrantScheme grantScheme) {
         final Optional<GrantApplication> grantApplication = grantApplicationRepository.findByGrantScheme(grantScheme);
         return grantApplication.map(GrantApplication::getId).orElse(null);

@@ -10,6 +10,7 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @Builder
 public class SchemeMandatoryQuestionApplicationFormInfosDto {
+    private boolean hasAdvertPublished;
     private boolean hasInternalApplication;
     private boolean hasPublishedInternalApplication;
 }

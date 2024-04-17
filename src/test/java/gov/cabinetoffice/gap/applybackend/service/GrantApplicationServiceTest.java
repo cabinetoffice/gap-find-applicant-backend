@@ -96,7 +96,7 @@ class GrantApplicationServiceTest {
     }
 
     @Test
-    void doesSchemeHaveApplication__True() {
+    void doesSchemeHavePublishedApplication__True() {
         final GrantScheme scheme = GrantScheme.builder().id(1).build();
         final GrantApplication application = GrantApplication.builder()
                 .grantScheme(scheme)
@@ -113,7 +113,7 @@ class GrantApplicationServiceTest {
     }
 
     @Test
-    void doesSchemeHaveApplication__False() {
+    void doesSchemeHavePublishedApplication__False() {
         final GrantScheme scheme = GrantScheme.builder().id(1).build();
 
         when(grantApplicationRepository.findByGrantSchemeAndApplicationStatus(scheme, GrantApplicationStatus.PUBLISHED)).thenReturn(Optional.empty());
@@ -124,6 +124,33 @@ class GrantApplicationServiceTest {
         assertFalse(response);
     }
 
+    @Test
+    void doesSchemeHaveApplication__True() {
+        final GrantScheme scheme = GrantScheme.builder().id(1).build();
+        final GrantApplication application = GrantApplication.builder()
+                .grantScheme(scheme)
+                .build();
+
+        when(grantApplicationRepository.findByGrantScheme(scheme))
+                .thenReturn(Optional.of(application));
+
+        final boolean response = serviceUnderTest.doesSchemeHaveAnApplication(scheme);
+
+        verify(grantApplicationRepository).findByGrantScheme(scheme);
+        assertTrue(response);
+    }
+
+    @Test
+    void doesSchemeHaveApplication__False() {
+        final GrantScheme scheme = GrantScheme.builder().id(1).build();
+
+        when(grantApplicationRepository.findByGrantScheme(scheme)).thenReturn(Optional.empty());
+
+        final boolean response = serviceUnderTest.doesSchemeHaveAnApplication(scheme);
+
+        verify(grantApplicationRepository).findByGrantScheme(scheme);
+        assertFalse(response);
+    }
     @Test
     void getGrantApplicationId__returnsId() {
         final GrantScheme scheme = GrantScheme.builder().id(1).build();

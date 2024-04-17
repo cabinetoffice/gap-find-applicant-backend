@@ -3,6 +3,8 @@ package gov.cabinetoffice.gap.applybackend.web;
 import gov.cabinetoffice.gap.applybackend.config.properties.EnvironmentProperties;
 import gov.cabinetoffice.gap.applybackend.dto.api.*;
 import gov.cabinetoffice.gap.applybackend.enums.GrantAdvertStatus;
+import gov.cabinetoffice.gap.applybackend.exception.AdvertNotPublishedException;
+import gov.cabinetoffice.gap.applybackend.exception.NotFoundException;
 import gov.cabinetoffice.gap.applybackend.mapper.GrantSchemeMapper;
 import gov.cabinetoffice.gap.applybackend.model.GrantAdvert;
 import gov.cabinetoffice.gap.applybackend.model.GrantScheme;
@@ -67,36 +69,52 @@ public class GrantSchemeController {
             @ApiResponse(responseCode = "404", description = "No Grant Scheme found",
                     content = @Content(mediaType = "application/json")),
     })
-    public ResponseEntity<SchemeMandatoryQuestionApplicationFormInfosDto> schemeHasInternalApplication(@PathVariable Integer grantSchemeId){
-        log.debug("Checking if scheme with id {} has internal application form and if it is published",grantSchemeId);
+    public ResponseEntity<SchemeMandatoryQuestionApplicationFormInfosDto> schemeHasInternalApplication(@PathVariable Integer grantSchemeId) {
+        log.debug("Checking if scheme with id {} has internal application form and if it is published", grantSchemeId);
 
         final GrantScheme grantScheme = grantSchemeService.getSchemeById(grantSchemeId);
         log.debug("Scheme with id {} found. Getting associated advert", grantSchemeId);
 
-        log.debug("Getting Advert associated to scheme with id {}", grantSchemeId);
-        final GrantAdvert advert = grantAdvertService.getAdvertBySchemeId(grantSchemeId.toString());
-        log.debug("Advert with id {} found for scheme with id {}", advert.getId(), grantSchemeId);
-
-        final String webpageUrl = grantAdvertService.getExternalSubmissionUrl(advert);
-
-        final boolean webPageUrlIsForInternalApplications = webpageUrl.contains(environmentProperties.getFrontEndUri());
-        log.debug("Advert is pointing to an internal application form : {}", webPageUrlIsForInternalApplications);
+        final boolean hasSchemeAnApplication = grantApplicationService.doesSchemeHaveAnApplication(grantScheme);
+        final boolean hasPublishedApplication = grantApplicationService.doesSchemeHaveAPublishedApplication(grantScheme);
+        log.debug("Application form associated to scheme with Id {} has PUBLISHED status: {}", grantScheme.getId(), hasPublishedApplication);
 
         final SchemeMandatoryQuestionApplicationFormInfosDto dto = SchemeMandatoryQuestionApplicationFormInfosDto.builder()
-                .hasInternalApplication(webPageUrlIsForInternalApplications)
-                .hasPublishedInternalApplication(false)
+                .hasAdvertPublished(false)
+                .hasInternalApplication(hasSchemeAnApplication)
+                .hasPublishedInternalApplication(hasPublishedApplication)
                 .build();
 
-        if (webPageUrlIsForInternalApplications) {
-            final boolean hasPublishedApplication = grantApplicationService.doesSchemeHaveAPublishedApplication(grantScheme);
-            log.debug("Application form associated to advert with Id {} has PUBLISHED status: {}", advert.getId(), hasPublishedApplication);
-            dto.setHasPublishedInternalApplication(hasPublishedApplication);
-        }
+        checkIfAdvertExistAndHasApplyingUrlPointingToInternalApplication(grantSchemeId, dto);
 
         log.debug("Scheme with ID {} is for internal application: {} and has a published application form : {}",
                 grantSchemeId, dto.isHasInternalApplication(), dto.isHasPublishedInternalApplication());
 
         return ResponseEntity.ok(dto);
+    }
+
+
+    private void checkIfAdvertExistAndHasApplyingUrlPointingToInternalApplication(Integer grantSchemeId, SchemeMandatoryQuestionApplicationFormInfosDto dto) {
+        try {
+            log.debug("Getting Advert associated to scheme with id {}", grantSchemeId);
+            final GrantAdvert advert = grantAdvertService.getAdvertBySchemeId(grantSchemeId.toString());
+            log.debug("Advert with id {} found for scheme with id {}", advert.getId(), grantSchemeId);
+
+            final boolean isAdvertPublished = advert.getStatus().equals(GrantAdvertStatus.PUBLISHED);
+            if (!isAdvertPublished) {
+                throw new AdvertNotPublishedException("Advert with id " + advert.getId() + " is not published");
+            }
+            dto.setHasAdvertPublished(true);
+
+            final String webpageUrl = grantAdvertService.getApplyToUrl(advert);
+
+            final boolean webPageUrlIsForInternalApplications = webpageUrl.contains(environmentProperties.getFrontEndUri());
+            log.debug("Advert is pointing to an internal application form : {}", webPageUrlIsForInternalApplications);
+            dto.setHasInternalApplication(webPageUrlIsForInternalApplications);
+
+        } catch (AdvertNotPublishedException | NotFoundException e) {
+            log.debug(e.getMessage());
+        }
     }
 
 }
