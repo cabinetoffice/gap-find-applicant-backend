@@ -75,17 +75,17 @@ public class GrantSchemeController {
         final GrantScheme grantScheme = grantSchemeService.getSchemeById(grantSchemeId);
         log.debug("Scheme with id {} found. Getting associated advert", grantSchemeId);
 
-        final boolean hasSchemeAnApplication = grantApplicationService.doesSchemeHaveAnApplication(grantScheme);
+        final boolean schemeHasAnApplication = grantApplicationService.doesSchemeHaveAnApplication(grantScheme);
         final boolean hasPublishedApplication = grantApplicationService.doesSchemeHaveAPublishedApplication(grantScheme);
         log.debug("Application form associated to scheme with Id {} has PUBLISHED status: {}", grantScheme.getId(), hasPublishedApplication);
 
         final SchemeMandatoryQuestionApplicationFormInfosDto dto = SchemeMandatoryQuestionApplicationFormInfosDto.builder()
                 .hasAdvertPublished(false)
-                .hasInternalApplication(hasSchemeAnApplication)
+                .hasInternalApplication(schemeHasAnApplication)
                 .hasPublishedInternalApplication(hasPublishedApplication)
                 .build();
 
-        checkIfAdvertExistAndHasApplyingUrlPointingToInternalApplication(grantSchemeId, dto);
+        checkIfAdvertExistAndIsInternal(grantSchemeId, dto);
 
         log.debug("Scheme with ID {} is for internal application: {} and has a published application form : {}",
                 grantSchemeId, dto.isHasInternalApplication(), dto.isHasPublishedInternalApplication());
@@ -94,7 +94,7 @@ public class GrantSchemeController {
     }
 
 
-    private void checkIfAdvertExistAndHasApplyingUrlPointingToInternalApplication(Integer grantSchemeId, SchemeMandatoryQuestionApplicationFormInfosDto dto) {
+    private void checkIfAdvertExistAndIsInternal(Integer grantSchemeId, SchemeMandatoryQuestionApplicationFormInfosDto dto) {
         try {
             log.debug("Getting Advert associated to scheme with id {}", grantSchemeId);
             final GrantAdvert advert = grantAdvertService.getAdvertBySchemeId(grantSchemeId.toString());
