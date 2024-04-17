@@ -30,6 +30,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import java.time.Instant;
 import java.util.Collections;
 
+import static gov.cabinetoffice.gap.applybackend.enums.GrantAdvertStatus.*;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -100,7 +101,7 @@ class GrantSchemeControllerTest {
 
     @Test
     void getGrantSchemeById_ReturnsTheCorrectGrantSchemeWithNoAdverts() {
-        final GrantAdvert grantAdvert = GrantAdvert.builder().status(GrantAdvertStatus.DRAFT).build();
+        final GrantAdvert grantAdvert = GrantAdvert.builder().status(DRAFT).build();
         final GrantScheme grantScheme = GrantScheme.builder()
                 .id(SCHEME_ID)
                 .funderId(1)
@@ -133,63 +134,89 @@ class GrantSchemeControllerTest {
     }
 
     @Test
-    void schemeHasInternalApplicationAndHasPublishedApplicationForm(){
+    void schemeHasAdvertPublishedAndHasInternalApplicationAndHasPublishedApplicationForm() {
         final GrantScheme grantScheme = GrantScheme.builder()
                 .id(SCHEME_ID).build();
-        final GrantAdvert grantAdvert = GrantAdvert.builder().scheme(grantScheme).build();
+        final GrantAdvert grantAdvert = GrantAdvert.builder().scheme(grantScheme).status(PUBLISHED).build();
         final String webPageUrl = "http://localhost:3000/apply/applicant/internalUrl";
         final String frontEndUrl = "http://localhost:3000/apply/applicant";
 
         when(grantSchemeService.getSchemeById(SCHEME_ID)).thenReturn(grantScheme);
         when(grantAdvertService.getAdvertBySchemeId(SCHEME_ID.toString())).thenReturn(grantAdvert);
-        when(grantAdvertService.getExternalSubmissionUrl(grantAdvert)).thenReturn(webPageUrl);
+        when(grantAdvertService.getApplyToUrl(grantAdvert)).thenReturn(webPageUrl);
         when(environmentProperties.getFrontEndUri()).thenReturn(frontEndUrl);
         when(grantApplicationService.doesSchemeHaveAPublishedApplication(grantScheme)).thenReturn(true);
+        when(grantApplicationService.doesSchemeHaveAnApplication(grantScheme)).thenReturn(true);
 
         final ResponseEntity<SchemeMandatoryQuestionApplicationFormInfosDto> response = controllerUnderTest.schemeHasInternalApplication(SCHEME_ID);
 
         assertTrue(response.getBody().isHasInternalApplication());
         assertTrue(response.getBody().isHasPublishedInternalApplication());
+        assertTrue(response.getBody().isHasAdvertPublished());
     }
 
     @Test
-    void schemeHasInternalApplicationAndHasNotPublishedApplicationForm(){
+    void schemeHasAdvertPublishedAndHasInternalApplicationAndHasNotPublishedApplicationForm() {
         final GrantScheme grantScheme = GrantScheme.builder()
                 .id(SCHEME_ID).build();
-        final GrantAdvert grantAdvert = GrantAdvert.builder().scheme(grantScheme).build();
+        final GrantAdvert grantAdvert = GrantAdvert.builder().scheme(grantScheme).status(PUBLISHED).build();
         final String webPageUrl = "http://localhost:3000/apply/applicant/internalUrl";
         final String frontEndUrl = "http://localhost:3000/apply/applicant";
 
         when(grantSchemeService.getSchemeById(SCHEME_ID)).thenReturn(grantScheme);
         when(grantAdvertService.getAdvertBySchemeId(SCHEME_ID.toString())).thenReturn(grantAdvert);
-        when(grantAdvertService.getExternalSubmissionUrl(grantAdvert)).thenReturn(webPageUrl);
+        when(grantAdvertService.getApplyToUrl(grantAdvert)).thenReturn(webPageUrl);
         when(environmentProperties.getFrontEndUri()).thenReturn(frontEndUrl);
         when(grantApplicationService.doesSchemeHaveAPublishedApplication(grantScheme)).thenReturn(false);
+        when(grantApplicationService.doesSchemeHaveAnApplication(grantScheme)).thenReturn(true);
 
         final ResponseEntity<SchemeMandatoryQuestionApplicationFormInfosDto> response = controllerUnderTest.schemeHasInternalApplication(SCHEME_ID);
 
         assertTrue(response.getBody().isHasInternalApplication());
         assertFalse(response.getBody().isHasPublishedInternalApplication());
+        assertTrue(response.getBody().isHasAdvertPublished());
+
     }
 
     @Test
-    void schemeHasNotInternalApplicationAndHasNotPublishedApplicationForm(){
+    void schemeHasAdvertPublishedAndHasNotInternalApplicationAndHasNotPublishedApplicationForm() {
         final GrantScheme grantScheme = GrantScheme.builder()
                 .id(SCHEME_ID).build();
-        final GrantAdvert grantAdvert = GrantAdvert.builder().scheme(grantScheme).build();
+        final GrantAdvert grantAdvert = GrantAdvert.builder().scheme(grantScheme).status(PUBLISHED).build();
         final String webPageUrl = "http://externalURL";
         final String frontEndUrl = "http://localhost:3000/apply/applicant";
 
         when(grantSchemeService.getSchemeById(SCHEME_ID)).thenReturn(grantScheme);
         when(grantAdvertService.getAdvertBySchemeId(SCHEME_ID.toString())).thenReturn(grantAdvert);
-        when(grantAdvertService.getExternalSubmissionUrl(grantAdvert)).thenReturn(webPageUrl);
+        when(grantAdvertService.getApplyToUrl(grantAdvert)).thenReturn(webPageUrl);
         when(environmentProperties.getFrontEndUri()).thenReturn(frontEndUrl);
+        when(grantApplicationService.doesSchemeHaveAnApplication(grantScheme)).thenReturn(false);
+        when(grantApplicationService.doesSchemeHaveAPublishedApplication(grantScheme)).thenReturn(false);
 
         final ResponseEntity<SchemeMandatoryQuestionApplicationFormInfosDto> response = controllerUnderTest.schemeHasInternalApplication(SCHEME_ID);
 
-        verify(grantApplicationService, never()).doesSchemeHaveAPublishedApplication(grantScheme);
         assertFalse(response.getBody().isHasInternalApplication());
         assertFalse(response.getBody().isHasPublishedInternalApplication());
+        assertTrue(response.getBody().isHasAdvertPublished());
+
     }
 
+    @Test
+    void schemeHasAdvertNotPublishedAndInternalApplicationAndHasPublishedApplicationForm() {
+        final GrantScheme grantScheme = GrantScheme.builder()
+                .id(SCHEME_ID).build();
+        final GrantAdvert grantAdvert = GrantAdvert.builder().scheme(grantScheme).status(UNPUBLISHED).build();
+
+        when(grantSchemeService.getSchemeById(SCHEME_ID)).thenReturn(grantScheme);
+        when(grantAdvertService.getAdvertBySchemeId(SCHEME_ID.toString())).thenReturn(grantAdvert);
+        when(grantApplicationService.doesSchemeHaveAnApplication(grantScheme)).thenReturn(true);
+        when(grantApplicationService.doesSchemeHaveAPublishedApplication(grantScheme)).thenReturn(true);
+
+        final ResponseEntity<SchemeMandatoryQuestionApplicationFormInfosDto> response = controllerUnderTest.schemeHasInternalApplication(SCHEME_ID);
+
+        verify(grantAdvertService, never()).getApplyToUrl(grantAdvert);
+        assertTrue(response.getBody().isHasInternalApplication());
+        assertTrue(response.getBody().isHasPublishedInternalApplication());
+        assertFalse(response.getBody().isHasAdvertPublished());
+    }
 }
