@@ -1173,7 +1173,7 @@ class SubmissionControllerTest {
 
                 final ArgumentCaptor<GrantAttachment> attachmentCaptor = ArgumentCaptor.forClass(GrantAttachment.class);
 
-                final ResponseEntity<String> methodResponse = controllerUnderTest.updateAttachment(SUBMISSION_ID, QUESTION_ID_1, update, "topSecretKey");
+                final ResponseEntity<String> methodResponse = controllerUnderTest.updateAttachment(SUBMISSION_ID, QUESTION_ID_1, update);
 
                 assertThat(methodResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
                 assertThat(methodResponse.getBody()).isEqualTo("Attachment Updated");
@@ -1184,13 +1184,7 @@ class SubmissionControllerTest {
                 assertThat(attachmentCaptor.getValue().getLocation()).isEqualTo(update.getUri());
             }
 
-            @ParameterizedTest
-            @MethodSource("provideGrantAttachmentUpdates")
-            void updateAttachment_unauthenticatedError(UpdateAttachmentDto update) {
-                doThrow(new UnauthorizedException("Unauthorized oh nooo")).when(secretAuthService).authenticateSecret(anyString());
 
-                assertThrows(UnauthorizedException.class, () -> controllerUnderTest.updateAttachment(SUBMISSION_ID, QUESTION_ID_1, update, "topSecretKey"));
-            }
         }
     }
 }
