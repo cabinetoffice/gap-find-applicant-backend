@@ -15,7 +15,7 @@ public class LambdasInterceptor implements WebMvcConfigurer {
     private static final String UUID_REGEX_STRING = "[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}";
     private final LambdaSecretConfigProperties lambdaSecretConfigProperties;
 
-    @Bean()
+    @Bean(name="lambdas_applicant_interceptor")
     AuthorizationHeaderInterceptor lambdasInterceptor() {
         return new AuthorizationHeaderInterceptor(lambdaSecretConfigProperties.getSecret(),
                 lambdaSecretConfigProperties.getPrivateKey());
