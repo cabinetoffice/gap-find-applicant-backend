@@ -1,6 +1,7 @@
 package gov.cabinetoffice.gap.applybackend.web;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import gov.cabinetoffice.gap.applybackend.annotations.LambdasHeaderValidator;
 import gov.cabinetoffice.gap.applybackend.constants.APIConstants;
 import gov.cabinetoffice.gap.applybackend.dto.api.CreateQuestionResponseDto;
 import gov.cabinetoffice.gap.applybackend.dto.api.CreateSubmissionResponseDto;
@@ -56,7 +57,6 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -273,14 +273,13 @@ public class SubmissionController {
 
     //this endpoint is consumed by the lambda-upload
     @PutMapping("/{submissionId}/question/{questionId}/attachment/scanresult")
+    @LambdasHeaderValidator
     public ResponseEntity<String> updateAttachment(
             @PathVariable final UUID submissionId,
             @PathVariable final String questionId,
-            @RequestBody final UpdateAttachmentDto updateDetails,
-            @RequestHeader(HttpHeaders.AUTHORIZATION) final String authHeader) {
-        log.info("Lambda-upload is updating attachment for submissionId: {}, questionId: {} based on the scan result", submissionId, questionId);
+            @RequestBody final UpdateAttachmentDto updateDetails) {
 
-        secretAuthService.authenticateSecret(authHeader);
+        log.info("Lambda-upload is updating attachment for submissionId: {}, questionId: {} based on the scan result", submissionId, questionId);
 
         final Submission submission = submissionService.getSubmissionById(submissionId);
         log.info("Submission found for submissionId: {}", submissionId);
