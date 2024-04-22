@@ -38,28 +38,28 @@ public class AuthorizationHeaderInterceptor implements HandlerInterceptor {
 
     @Override
     public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) {
-        log.info("Intercepting request: " + request.getRequestURI());
+        log.debug("Intercepting request: " + request.getRequestURI());
         if (handler instanceof HandlerMethod handlerMethod) {
             final Method method = handlerMethod.getMethod();
 
             final LambdasHeaderValidator annotation = method.getAnnotation(LambdasHeaderValidator.class);
 
             if (annotation != null) {
-                log.info("Request is coming from lambda, validating authorization header");
+                log.debug("Request is coming from lambda, validating authorization header");
 
                 final String authorizationHeader = request.getHeader(HttpHeaders.AUTHORIZATION);
                 final boolean isAuthorizationHeaderCorrect = compareAuthorizationSecret(authorizationHeader,
                         expectedAuthorizationValue, privateKey);
                 if (authorizationHeader == null || !isAuthorizationHeaderCorrect) {
 
-                    log.info("Authorization Header Value: " + authorizationHeader
+                    log.debug("Authorization Header Value: " + authorizationHeader
                             + " does not match the expected value");
 
                     response.setStatus(HttpServletResponse.SC_FORBIDDEN);
                     return false;
                 }
 
-                log.info("Authorization Header Value matches the expected value");
+                log.debug("Authorization Header Value matches the expected value");
             }
         }
 
@@ -97,7 +97,7 @@ public class AuthorizationHeaderInterceptor implements HandlerInterceptor {
         }
         catch (IllegalArgumentException | InvalidKeyException | NoSuchAlgorithmException | InvalidKeySpecException
                 | BadPaddingException | IllegalBlockSizeException | NoSuchPaddingException e) {
-            log.info("Error decrypting authorization header from lambdas: " + e.getMessage());
+            log.error("Error decrypting authorization header from lambdas: " + e.getMessage());
             return "";
         }
     }
