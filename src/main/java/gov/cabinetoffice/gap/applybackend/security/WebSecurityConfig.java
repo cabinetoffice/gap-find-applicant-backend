@@ -2,10 +2,12 @@ package gov.cabinetoffice.gap.applybackend.security;
 
 import gov.cabinetoffice.gap.applybackend.repository.GrantApplicantOrganisationProfileRepository;
 import gov.cabinetoffice.gap.applybackend.repository.GrantApplicantRepository;
+import gov.cabinetoffice.gap.applybackend.security.filters.CustomRequestLoggingFilter;
 import gov.cabinetoffice.gap.applybackend.service.GrantApplicantService;
 import gov.cabinetoffice.gap.applybackend.service.JwtService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpStatus;
@@ -100,4 +102,13 @@ public class WebSecurityConfig {
         return http.build();
     }
 
+    @Bean
+    public FilterRegistrationBean<CustomRequestLoggingFilter> loggingFilter() {
+        FilterRegistrationBean<CustomRequestLoggingFilter> registrationBean = new FilterRegistrationBean<>();
+
+        registrationBean.setFilter(new CustomRequestLoggingFilter());
+        registrationBean.addUrlPatterns("/*");
+
+        return registrationBean;
+    }
 }
