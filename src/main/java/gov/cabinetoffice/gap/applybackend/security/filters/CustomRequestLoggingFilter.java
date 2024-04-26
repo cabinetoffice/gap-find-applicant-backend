@@ -20,9 +20,10 @@ public class CustomRequestLoggingFilter extends AbstractRequestLoggingFilter {
 
     @Override
     protected boolean shouldLog(HttpServletRequest request) {
-        if (excludedUrls.contains(request.getRequestURI())) {
+        if (request.getRequestURI().endsWith("/health")) {
             return false;
         }
+
         return logger.isDebugEnabled();
     }
 
