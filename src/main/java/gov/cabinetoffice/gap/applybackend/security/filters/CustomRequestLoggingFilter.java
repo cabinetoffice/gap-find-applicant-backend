@@ -4,7 +4,6 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.filter.AbstractRequestLoggingFilter;
 
 import javax.servlet.http.HttpServletRequest;
-import java.util.Set;
 
 @Component
 public class CustomRequestLoggingFilter extends AbstractRequestLoggingFilter {
