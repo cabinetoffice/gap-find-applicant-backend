@@ -9,8 +9,6 @@ import java.util.Set;
 @Component
 public class CustomRequestLoggingFilter extends AbstractRequestLoggingFilter {
 
-    private final Set<String> excludedUrls = Set.of("/health");
-
     public CustomRequestLoggingFilter() {
         this.setIncludeHeaders(true);
         this.setIncludeQueryString(true);
