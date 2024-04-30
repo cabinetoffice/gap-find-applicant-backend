@@ -362,7 +362,9 @@ class QuestionResponseValidatorTest {
                 Arguments.of(new String[]{"31", "40", "2022"}, "Date must include a real month"), // too many months in the year
                 Arguments.of(new String[]{"29", "02", "2022"}, "Date must include a real day"), // 2022 was not a leap year
                 Arguments.of(new String[]{"29", "02", "-1"}, "Date must include a real year"), // -1 is less than 0000
-                Arguments.of(new String[]{"29", "02", "10000"}, "Date must include a real year") // -1 is less than 0000
+                Arguments.of(new String[]{"29", "02", "10000"}, "Date must include a real year"), // 10000 is more than 9999
+                Arguments.of(new String[]{"31", "0", "2022"}, "Date must include a real month"), // 0 is not a month
+                Arguments.of(new String[]{"0", "02", "2022"}, "Date must include a real day") // 0 is not a day
         );
     }
 
