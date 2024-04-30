@@ -297,7 +297,7 @@ public class QuestionResponseValidator implements ConstraintValidator<ValidQuest
                 return dateValidationResult;
             }
 
-            if (month > 12) {
+            if (month < 1 || month > 12 ) {
                 dateValidationResult.addError(ValidationConstants.MULTI_RESPONSE_FIELD + "[1]", "Date must include a real month");
                 return dateValidationResult;
             }
@@ -307,7 +307,7 @@ public class QuestionResponseValidator implements ConstraintValidator<ValidQuest
                 return dateValidationResult;
             }
 
-            if (!dayIsValidForMonth(day, month, year)) {
+            if (day < 1 || !dayIsValidForMonth(day, month, year) ) {
                 dateValidationResult.addError(ValidationConstants.MULTI_RESPONSE_FIELD + "[0]", "Date must include a real day");
                 return dateValidationResult;
             }
