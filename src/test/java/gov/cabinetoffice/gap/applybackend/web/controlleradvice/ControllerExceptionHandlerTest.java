@@ -115,6 +115,140 @@ class ControllerExceptionHandlerTest {
         assertThat(response).isEqualTo(body);
     }
 
+    @Test
+    void handleValidationExceptions_HandlesMultiResponse_AndSortsProperly() {
+
+        final String multiResponseErrorMessage1 = "You must enter a response";
+        final String multiResponseErrorField1 = "multiResponse[0]";
+
+        final String multiResponseErrorMessage2 = "You must enter a response";
+        final String multiResponseErrorField2 = "multiResponse[3]";
+
+        final String multiResponseErrorMessage3 = "You must enter a response";
+        final String multiResponseErrorField3 = "multiResponse[4]";
+
+        // set up validation failure
+        final ObjectError fieldError1 = new FieldError("question", multiResponseErrorField1, multiResponseErrorMessage1);
+        final ObjectError fieldError2 = new FieldError("question", multiResponseErrorField2, multiResponseErrorMessage2);
+        final ObjectError fieldError3 = new FieldError("question", multiResponseErrorField3, multiResponseErrorMessage3);
+
+        final BindingResult result = mock(BindingResult.class);
+        when(result.getAllErrors())
+                .thenReturn(
+                        List.of(fieldError2, fieldError1, fieldError3)
+                );
+
+        // exception thrown by Spring when validation failure occurs
+        final MethodParameter parameter = mock(MethodParameter.class);
+        final MethodArgumentNotValidException ex = new MethodArgumentNotValidException(parameter, result);
+
+        // make the web request
+        final MockHttpServletRequest request = new MockHttpServletRequest();
+        request.setRequestURI("/some-uri");
+        request.setRemoteAddr("https://some-domain.com");
+
+        // Build the expected error message
+        final Error expectedFieldError1 = Error.builder()
+                .fieldName(multiResponseErrorField1)
+                .errorMessage(multiResponseErrorMessage1)
+                .build();
+        final Error expectedFieldError2 = Error.builder()
+                .fieldName(multiResponseErrorField2)
+                .errorMessage(multiResponseErrorMessage2)
+                .build();
+        final Error expectedFieldError3 = Error.builder()
+                .fieldName(multiResponseErrorField3)
+                .errorMessage(multiResponseErrorMessage3)
+                .build();
+        final ErrorResponseBody body = ErrorResponseBody.builder()
+                .responseAccepted(Boolean.FALSE)
+                .message("Validation failure")
+                .errors(List.of(expectedFieldError1, expectedFieldError2, expectedFieldError3))
+                .build();
+
+        ErrorResponseBody response = exceptionHandlerUnderTest.handleValidationExceptions(ex);
+
+        assertThat(response).isEqualTo(body);
+    }
+
+    @Test
+    void handleValidationExceptions_HandlesAddressResponse_AndSortsProperly() {
+
+        final String addressResponseErrorMessage1 = "You must enter a response";
+        final String addressResponseErrorField1 = "addressLine1";
+
+        final String addressResponseErrorMessage2 = "response must not be a ghost";
+        final String addressResponseErrorField2 = "addressLine2";
+
+        final String addressResponseErrorMessage3 = "You must enter a response";
+        final String addressResponseErrorField3 = "city";
+
+        final String addressResponseErrorMessage4 = "response must be less than one bajillion characters";
+        final String addressResponseErrorField4 = "county";
+
+        final String addressResponseErrorMessage5 = "You must enter a response";
+        final String addressResponseErrorField5 = "postcode";
+
+        // set up validation failure
+        final ObjectError fieldError1 = new FieldError("question", addressResponseErrorField1, addressResponseErrorMessage1);
+        final ObjectError fieldError2 = new FieldError("question", addressResponseErrorField2, addressResponseErrorMessage2);
+        final ObjectError fieldError3 = new FieldError("question", addressResponseErrorField3, addressResponseErrorMessage3);
+        final ObjectError fieldError4 = new FieldError("question", addressResponseErrorField4, addressResponseErrorMessage4);
+        final ObjectError fieldError5 = new FieldError("question", addressResponseErrorField5, addressResponseErrorMessage5);
+
+        final BindingResult result = mock(BindingResult.class);
+        when(result.getAllErrors())
+                .thenReturn(
+                        List.of(fieldError5, fieldError2, fieldError1, fieldError3, fieldError4) // The rndom order ensures the sort definitely runs
+                );
+
+        // exception thrown by Spring when validation failure occurs
+        final MethodParameter parameter = mock(MethodParameter.class);
+        final MethodArgumentNotValidException ex = new MethodArgumentNotValidException(parameter, result);
+
+        // make the web request
+        final MockHttpServletRequest request = new MockHttpServletRequest();
+        request.setRequestURI("/some-uri");
+        request.setRemoteAddr("https://some-domain.com");
+
+        // Build the expected error message
+        final Error expectedFieldError1 = Error.builder()
+                .fieldName(addressResponseErrorField1)
+                .errorMessage(addressResponseErrorMessage1)
+                .build();
+        final Error expectedFieldError2 = Error.builder()
+                .fieldName(addressResponseErrorField2)
+                .errorMessage(addressResponseErrorMessage2)
+                .build();
+        final Error expectedFieldError3 = Error.builder()
+                .fieldName(addressResponseErrorField3)
+                .errorMessage(addressResponseErrorMessage3)
+                .build();
+        final Error expectedFieldError4 = Error.builder()
+                .fieldName(addressResponseErrorField4)
+                .errorMessage(addressResponseErrorMessage4)
+                .build();
+        final Error expectedFieldError5 = Error.builder()
+                .fieldName(addressResponseErrorField5)
+                .errorMessage(addressResponseErrorMessage5)
+                .build();
+        final ErrorResponseBody body = ErrorResponseBody.builder()
+                .responseAccepted(Boolean.FALSE)
+                .message("Validation failure")
+                .errors(List.of(
+                        expectedFieldError1,
+                        expectedFieldError2,
+                        expectedFieldError3,
+                        expectedFieldError4,
+                        expectedFieldError5
+                ))
+                .build();
+
+        ErrorResponseBody response = exceptionHandlerUnderTest.handleValidationExceptions(ex);
+
+        assertThat(response).isEqualTo(body);
+    }
+
     private static Stream<Arguments> provideBadRequests() {
         return Stream.of(
                 Arguments.of(new SubmissionNotReadyException("Submission is not ready")),

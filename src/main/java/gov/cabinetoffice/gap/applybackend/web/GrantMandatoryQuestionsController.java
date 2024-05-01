@@ -1,11 +1,16 @@
 package gov.cabinetoffice.gap.applybackend.web;
 
+import gov.cabinetoffice.gap.applybackend.config.properties.EnvironmentProperties;
 import gov.cabinetoffice.gap.applybackend.dto.api.GetGrantMandatoryQuestionDto;
 import gov.cabinetoffice.gap.applybackend.dto.api.JwtPayload;
 import gov.cabinetoffice.gap.applybackend.dto.api.UpdateGrantMandatoryQuestionDto;
+import gov.cabinetoffice.gap.applybackend.enums.GrantAdvertStatus;
 import gov.cabinetoffice.gap.applybackend.enums.GrantMandatoryQuestionStatus;
+import gov.cabinetoffice.gap.applybackend.exception.AdvertNotPublishedException;
+import gov.cabinetoffice.gap.applybackend.exception.NotFoundException;
 import gov.cabinetoffice.gap.applybackend.mapper.GrantMandatoryQuestionMapper;
 import gov.cabinetoffice.gap.applybackend.model.*;
+import gov.cabinetoffice.gap.applybackend.service.GrantAdvertService;
 import gov.cabinetoffice.gap.applybackend.service.GrantApplicantService;
 import gov.cabinetoffice.gap.applybackend.service.GrantMandatoryQuestionService;
 import gov.cabinetoffice.gap.applybackend.service.GrantSchemeService;
@@ -38,7 +43,9 @@ public class GrantMandatoryQuestionsController {
     private final GrantApplicantService grantApplicantService;
     private final GrantSchemeService grantSchemeService;
     private final GrantMandatoryQuestionMapper grantMandatoryQuestionMapper;
+    private final GrantAdvertService grantAdvertService;
     private final SubmissionService submissionService;
+    private final EnvironmentProperties environmentProperties;
 
     @PostMapping()
     @ApiResponses(value = {
@@ -46,18 +53,29 @@ public class GrantMandatoryQuestionsController {
             @ApiResponse(responseCode = "404", description = "No Grant Mandatory question found", content = @Content(mediaType = "application/json")),
     })
     public ResponseEntity<GetGrantMandatoryQuestionDto> createMandatoryQuestion(@RequestParam final Integer schemeId) {
+        log.info("Creating mandatory question for scheme id {}", schemeId);
         final JwtPayload jwtPayload = (JwtPayload) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
         final GrantApplicant applicant = grantApplicantService.getApplicantById(jwtPayload.getSub());
-        final GrantScheme scheme = grantSchemeService.getSchemeById(schemeId);
 
-        final GrantMandatoryQuestions grantMandatoryQuestions = grantMandatoryQuestionService.createMandatoryQuestion(scheme, applicant);
+        final GrantScheme scheme = grantSchemeService.getSchemeById(schemeId);
+        boolean isForInternalApplication = true;
+
+        try {
+            final String webpageUrl = getApplyingUrlFromAdvert(scheme);
+            isForInternalApplication = webpageUrl.contains(environmentProperties.getFrontEndUri());
+            log.debug("Advert is pointing to an internal application form : {}", isForInternalApplication);
+
+        } catch (AdvertNotPublishedException | NotFoundException e) {
+            log.debug(e.getMessage());
+        }
+
+        final GrantMandatoryQuestions grantMandatoryQuestions = grantMandatoryQuestionService.createMandatoryQuestion(scheme, applicant, isForInternalApplication);
         log.info("Mandatory question with ID {} has been created.", grantMandatoryQuestions.getId());
 
         final GetGrantMandatoryQuestionDto getGrantMandatoryQuestionDto = grantMandatoryQuestionMapper.mapGrantMandatoryQuestionToGetGrantMandatoryQuestionDTO(grantMandatoryQuestions);
 
         return ResponseEntity.ok(getGrantMandatoryQuestionDto);
     }
-
 
     @GetMapping("/{mandatoryQuestionId}")
     @ApiResponses(value = {
@@ -174,5 +192,19 @@ public class GrantMandatoryQuestionsController {
         final GrantApplication grantApplication = grantMandatoryQuestions.getGrantScheme().getGrantApplication();
 
         return ResponseEntity.ok(grantApplication.getApplicationStatus().name());
+    }
+
+    private String getApplyingUrlFromAdvert(GrantScheme scheme) {
+        log.debug("Getting Advert associated to scheme with id {}", scheme.getId());
+        final GrantAdvert advert = grantAdvertService.getAdvertBySchemeId(scheme.getId().toString());
+        log.debug("Advert with id {} found for scheme with id {}", advert.getId(), scheme.getId());
+
+        final boolean isAdvertPublished = advert.getStatus().equals(GrantAdvertStatus.PUBLISHED);
+        if (!isAdvertPublished) {
+            throw new AdvertNotPublishedException("Advert with id " + advert.getId() + " is not published");
+        }
+
+        final String webpageUrl = grantAdvertService.getApplyToUrl(advert);
+        return webpageUrl;
     }
 }
