@@ -71,11 +71,6 @@ public class QuestionResponseValidator implements ConstraintValidator<ValidQuest
         SubmissionQuestionValidation validation = question.getValidation();
         ValidationResult result = ValidationResult.builder().build();
 
-        if (question.getResponseType().equals(SubmissionQuestionResponseType.Dropdown)) {
-            result.setValid(true);
-            return result;
-        }
-
         // Dates need to be handled differently
         if (question.getResponseType().equals(SubmissionQuestionResponseType.Date)) {
             return validateDate(submittedQuestion.getMultiResponse(), question.getValidation().isMandatory());
@@ -143,6 +138,11 @@ public class QuestionResponseValidator implements ConstraintValidator<ValidQuest
                     result.addError(ValidationConstants.SINGLE_RESPONSE_FIELD, "Answer must only include numeric values/ decimal");
                     return result;
                 }
+            }
+
+            if (question.getResponseType().equals(SubmissionQuestionResponseType.Dropdown)) {
+                result.setValid(Boolean.TRUE);
+                return result;
             }
 
             if (containsSpecialCharacters(submittedQuestion.getResponse())) {
