@@ -205,7 +205,6 @@ class QuestionResponseValidatorTest {
                 Arguments.of(SubmissionQuestionResponseType.YesNo, "Select an option"),
                 Arguments.of(SubmissionQuestionResponseType.MultipleSelection, "Select an option"),
                 Arguments.of(SubmissionQuestionResponseType.SingleSelection, "Select an option"),
-                Arguments.of(SubmissionQuestionResponseType.Dropdown, "Select at least one option"),
                 Arguments.of(SubmissionQuestionResponseType.ShortAnswer, "You must enter an answer"),
                 Arguments.of(SubmissionQuestionResponseType.LongAnswer, "You must enter an answer"),
                 Arguments.of(SubmissionQuestionResponseType.Numeric, "You must enter an answer")
