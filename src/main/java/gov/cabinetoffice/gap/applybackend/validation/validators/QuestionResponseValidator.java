@@ -71,11 +71,6 @@ public class QuestionResponseValidator implements ConstraintValidator<ValidQuest
         SubmissionQuestionValidation validation = question.getValidation();
         ValidationResult result = ValidationResult.builder().build();
 
-        if (question.getResponseType().equals(SubmissionQuestionResponseType.Dropdown)) {
-            result.setValid(true);
-            return result;
-        }
-
         // Dates need to be handled differently
         if (question.getResponseType().equals(SubmissionQuestionResponseType.Date)) {
             return validateDate(submittedQuestion.getMultiResponse(), question.getValidation().isMandatory());
@@ -220,7 +215,8 @@ public class QuestionResponseValidator implements ConstraintValidator<ValidQuest
     }
 
     private boolean containsSpecialCharacters(String response) {
-        return !response.matches("^(?![\\s\\S])|^[a-zA-Z0-9à-üÀ-Ü\\s',!@£$%^&*()_+=\\[\\];./?><:\"{}|`~ß€•–¥¢…µèéêëěẽýŷÿùúûüǔũūűìíîïǐĩiòóôöǒàáâäśğźžżćçčċñńņň-“”‘’]+$");
+        // hyphen must be at the end of regex expression or else it will be treated as a range
+        return !response.matches("^(?![\\s\\S])|^[a-zA-Z0-9à-üÀ-Ü\\s',!@£$%^&*()_+=\\[\\];./?><:\"{}|`~ß€•–¥¢…µèéêëěẽýŷÿùúûüǔũūűìíîïǐĩiòóôöǒàáâäśğźžżćçčċñńņň“”‘’-]+$");
     }
 
     private ValidationResult validateDate(final String[] dateComponents, final boolean isMandatory) {
