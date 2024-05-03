@@ -8,6 +8,7 @@ import gov.cabinetoffice.gap.applybackend.model.SubmissionQuestion;
 import gov.cabinetoffice.gap.applybackend.model.SubmissionQuestionValidation;
 import gov.cabinetoffice.gap.applybackend.service.SubmissionService;
 import gov.cabinetoffice.gap.applybackend.validation.validators.QuestionResponseValidator;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -204,7 +205,6 @@ class QuestionResponseValidatorTest {
                 Arguments.of(SubmissionQuestionResponseType.YesNo, "Select an option"),
                 Arguments.of(SubmissionQuestionResponseType.MultipleSelection, "Select an option"),
                 Arguments.of(SubmissionQuestionResponseType.SingleSelection, "Select an option"),
-                Arguments.of(SubmissionQuestionResponseType.Dropdown, "Select at least one option"),
                 Arguments.of(SubmissionQuestionResponseType.ShortAnswer, "You must enter an answer"),
                 Arguments.of(SubmissionQuestionResponseType.LongAnswer, "You must enter an answer"),
                 Arguments.of(SubmissionQuestionResponseType.Numeric, "You must enter an answer")
@@ -242,6 +242,72 @@ class QuestionResponseValidatorTest {
         validatorUnderTest.isValid(response, validatorContext);
 
         verify(validatorContext).buildConstraintViolationWithTemplate(message);
+    }
+
+    @Test
+    void validate_returnsTrueIfDropdownOptionsAreValid() {
+
+        final SubmissionQuestionValidation validation = SubmissionQuestionValidation.builder()
+                .mandatory(Boolean.TRUE)
+                .build();
+
+        String[] options = {"(1-3)", "“”‘’"};
+
+        final SubmissionQuestion question = SubmissionQuestion.builder()
+                    .questionId("1")
+                    .responseType(SubmissionQuestionResponseType.Dropdown)
+                    .validation(validation)
+                    .options(options)
+                    .build();
+
+        final CreateQuestionResponseDto response = CreateQuestionResponseDto.builder()
+                .questionId(questionId)
+                .submissionId(submissionId)
+                .response("(1-3)")
+                .build();
+
+
+        doReturn(question)
+                .when(submissionService).getQuestionByQuestionId(USER_ID, submissionId, questionId);
+
+        boolean isValid = validatorUnderTest.isValid(response, validatorContext);
+
+        Assertions.assertTrue(isValid);
+    }
+
+    @Test
+    void validate_returnsFalseIfDropdownOptionsAreInvalid() {
+
+        final SubmissionQuestionValidation validation = SubmissionQuestionValidation.builder()
+                .mandatory(Boolean.TRUE)
+                .build();
+
+        String[] options = {"±", "“”‘’"};
+
+        final SubmissionQuestion question = SubmissionQuestion.builder()
+                .questionId("1")
+                .responseType(SubmissionQuestionResponseType.Dropdown)
+                .validation(validation)
+                .options(options)
+                .build();
+
+        final CreateQuestionResponseDto response = CreateQuestionResponseDto.builder()
+                .questionId(questionId)
+                .submissionId(submissionId)
+                .response("±")
+                .build();
+
+        when(validatorContext.buildConstraintViolationWithTemplate(Mockito.anyString()))
+                .thenReturn(builder);
+        when(builder.addPropertyNode(Mockito.anyString()))
+                .thenReturn(nodeBuilder);
+
+        doReturn(question)
+                .when(submissionService).getQuestionByQuestionId(USER_ID, submissionId, questionId);
+
+        boolean isValid = validatorUnderTest.isValid(response, validatorContext);
+
+        Assertions.assertFalse(isValid);
     }
 
 
