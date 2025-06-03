@@ -16,7 +16,8 @@ public enum GrantMandatoryQuestionFundingLocation {
     SCOTLAND("Scotland"),
     WALES("Wales"),
     NORTHERN_IRELAND("Northern Ireland"),
-    OUTSIDE_UK("Outside of the UK");
+    OUTSIDE_UK("Outside of the UK"),
+    INTERNATIONAL("International");
 
     private final String name;
 
