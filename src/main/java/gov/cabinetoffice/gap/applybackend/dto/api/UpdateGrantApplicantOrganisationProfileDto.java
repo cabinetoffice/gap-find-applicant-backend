@@ -15,44 +15,44 @@ import javax.validation.constraints.Size;
 @Builder
 public class UpdateGrantApplicantOrganisationProfileDto {
     @Size(max = 250, message = "Organisation name must be 250 characters or less")
-    @Pattern(regexp = "^(?![\\s\\S])|^[a-zA-Z0-9\\s',-]+$",
+    @Pattern(regexp = "^(?![\\s\\S])|^[a-zA-Z0-9\\s\\p{Pd}',-\\\\]+$",
             message = "Organisation name must only use letters, numbers, and special characters such as hyphens, spaces and apostrophes")
     private String legalName;
 
     private GrantApplicantOrganisationType type;
 
     @Size(max = 250, message = "Address line 1 must be 250 characters or less")
-    @Pattern(regexp = "^(?![\\s\\S])|^[a-zA-Z0-9\\s',-]+$",
+    @Pattern(regexp = "^(?![\\s\\S])|^[a-zA-Z0-9\\s\\p{Pd}',-\\\\]+$",
             message = "Address line 1 must only use letters, numbers, and special characters such as hyphens, spaces and apostrophes")
     private String addressLine1;
 
     @Size(max = 250, message = "Address line 2 must be 250 characters or less")
-    @Pattern(regexp = "^(?![\\s\\S])|^[a-zA-Z0-9\\s',-]+$",
+    @Pattern(regexp = "^(?![\\s\\S])|^[a-zA-Z0-9\\s\\p{Pd}',-\\\\]+$",
             message = "Address line 2 must only use letters, numbers, and special characters such as hyphens, spaces and apostrophes")
     private String addressLine2;
 
     @Size(max = 250, message = "Town or City must be 250 characters or less")
-    @Pattern(regexp = "^(?![\\s\\S])|^[a-zA-Z0-9\\s',-]+$",
+    @Pattern(regexp = "^(?![\\s\\S])|^[a-zA-Z0-9\\s\\p{Pd}',-\\\\]+$",
             message = "Town or City must only use letters, numbers, and special characters such as hyphens, spaces and apostrophes")
     private String town;
 
     @Size(max = 250, message = "County must be 250 characters or less")
-    @Pattern(regexp = "^(?![\\s\\S])|^[a-zA-Z0-9\\s',-]+$",
+    @Pattern(regexp = "^(?![\\s\\S])|^[a-zA-Z0-9\\s\\p{Pd}',-\\\\]+$",
             message = "County must only use letters, numbers, and special characters such as hyphens, spaces and apostrophes")
     private String county;
 
     @Size(max = 8, message = "Postcode must be 8 characters or less")
-    @Pattern(regexp = "^(?![\\s\\S])|^[a-zA-Z0-9\\s',-]+$",
+    @Pattern(regexp = "^(?![\\s\\S])|^[a-zA-Z0-9\\s\\p{Pd}',-\\\\]+$",
             message = "Postcode must only use letters, numbers, and special characters such as hyphens, spaces and apostrophes")
     private String postcode;
 
     @Size(max = 15, message = "Charity commission number must be 15 characters or less")
-    @Pattern(regexp = "^(?![\\s\\S])|^[a-zA-Z0-9\\s',-]+$",
+    @Pattern(regexp = "^(?![\\s\\S])|^[a-zA-Z0-9\\s\\p{Pd}',-\\\\]+$",
             message = "Charity commission number must only use letters, numbers, and special characters such as hyphens, spaces and apostrophes")
     private String charityCommissionNumber;
 
     @Size(max = 8, message = "Companies house number must be 8 characters or less")
-    @Pattern(regexp = "^(?![\\s\\S])|^[a-zA-Z0-9\\s',-]+$",
+    @Pattern(regexp = "^(?![\\s\\S])|^[a-zA-Z0-9\\s\\p{Pd}',-\\\\]+$",
             message = "Companies house must only use letters, numbers, and special characters such as hyphens, spaces and apostrophes")
     private String companiesHouseNumber;
 
