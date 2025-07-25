@@ -216,7 +216,7 @@ public class QuestionResponseValidator implements ConstraintValidator<ValidQuest
 
     private boolean containsSpecialCharacters(String response) {
         // hyphen must be at the end of regex expression or else it will be treated as a range
-        return !response.matches("^(?![\\s\\S])|^[a-zA-Z0-9à-üÀ-Ü\\s',!@£$%^&*()_+=\\[\\];./?><:\"{}|`~ß€•–¥¢…µèéêëěẽýŷÿùúûüǔũūűìíîïǐĩiòóôöǒàáâäśğźžżćçčċñńņň“”‘’-]+$");
+        return !response.matches("^(?![\\s\\S])|^[a-zA-Z0-9à-üÀ-Ü\\s',!@£$%^&*()_+=;./?><:\"{}|`~ß€•¥¢…µèéêëěẽýŷÿùúûüǔũūűìíîïǐĩiòóôöǒàáâäśğźžżćçčċñńņň“”‘’-]+$");
     }
 
     private ValidationResult validateDate(final String[] dateComponents, final boolean isMandatory) {
