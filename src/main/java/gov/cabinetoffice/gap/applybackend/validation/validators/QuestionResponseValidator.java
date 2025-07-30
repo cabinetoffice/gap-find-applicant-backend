@@ -140,10 +140,10 @@ public class QuestionResponseValidator implements ConstraintValidator<ValidQuest
                 }
             }
 
-            if (containsSpecialCharacters(submittedQuestion.getResponse())) {
+            /*if (containsSpecialCharacters(submittedQuestion.getResponse())) {
                 result.addError(ValidationConstants.SINGLE_RESPONSE_FIELD, "Answer must only include letters, numbers, and special characters such as hyphens, spaces and apostrophes");
                 return result;
-            }
+            }*/
         }
 
         result.setValid(Boolean.TRUE);
@@ -216,7 +216,7 @@ public class QuestionResponseValidator implements ConstraintValidator<ValidQuest
 
     private boolean containsSpecialCharacters(String response) {
         // hyphen must be at the end of regex expression or else it will be treated as a range
-        return !response.matches("^(?![\\s\\S])|^[a-zA-Z0-9à-üÀ-Ü\\s',!@£$%^&*()_+=\\[\\];./?><:\"{}|`~ß€•–¥¢…µèéêëěẽýŷÿùúûüǔũūűìíîïǐĩiòóôöǒàáâäśğźžżćçčċñńņň“”‘’-]+$");
+        return !response.matches("^(?![\\s\\S])|^[a-zA-Z0-9à-üÀ-Ü\\s',!@£$%^&*()_+=;./?><:\"{}|`~ß€•¥¢…µèéêëěẽýŷÿùúûüǔũūűìíîïǐĩiòóôöǒàáâäśğźžżćçčċñńņň“”‘’-]+$");
     }
 
     private ValidationResult validateDate(final String[] dateComponents, final boolean isMandatory) {
