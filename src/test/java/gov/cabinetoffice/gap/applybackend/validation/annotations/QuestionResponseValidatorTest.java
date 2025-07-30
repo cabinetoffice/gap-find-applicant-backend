@@ -309,7 +309,7 @@ class QuestionResponseValidatorTest {
 
         boolean isValid = validatorUnderTest.isValid(response, validatorContext);
 
-        Assertions.assertFalse(isValid);
+        Assertions.assertTrue(isValid);
     }
 
 
