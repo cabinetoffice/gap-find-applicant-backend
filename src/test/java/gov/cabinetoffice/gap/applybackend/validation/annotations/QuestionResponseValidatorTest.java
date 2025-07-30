@@ -156,7 +156,7 @@ class QuestionResponseValidatorTest {
                         , "Answer must only include numeric values/ decimal",
                         SubmissionQuestionValidation.builder()
                                 .greaterThanZero(true)
-                                .build()),
+                                .build())
 
                 // Special characters check should fail
                 /*
