@@ -3,6 +3,7 @@ package gov.cabinetoffice.gap.applybackend.web;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import gov.cabinetoffice.gap.applybackend.constants.APIConstants;
 import gov.cabinetoffice.gap.applybackend.dto.api.CreateQuestionResponseDto;
+import gov.cabinetoffice.gap.applybackend.dto.api.CreateSubmissionRequestDto;
 import gov.cabinetoffice.gap.applybackend.dto.api.CreateSubmissionResponseDto;
 import gov.cabinetoffice.gap.applybackend.dto.api.GetNavigationParamsDto;
 import gov.cabinetoffice.gap.applybackend.dto.api.GetQuestionDto;
@@ -712,30 +713,41 @@ class SubmissionControllerTest {
             @Test
             void createApplication__submissionNotPublished_ThrowException() {
                 when(grantApplicationService.isGrantApplicationPublished(1)).thenReturn(false);
-                GrantApplicationNotPublishedException result = assertThrows(GrantApplicationNotPublishedException.class, () -> controllerUnderTest.createApplication(1));
+                GrantApplicationNotPublishedException result = assertThrows(GrantApplicationNotPublishedException.class, () -> controllerUnderTest.createApplication(1, null));
 
                 assertTrue(result.getMessage().contains(String.format("Grant Application %s is not been published yet.", 1)));
             }
 
             @Test
-            void returnSubmission__IfsubmissionAlreadyExists() throws JsonProcessingException {
+            void createApplication__createsNewSubmission_EvenIfOneExists() throws JsonProcessingException {
+                final UUID submissionId = UUID.fromString("1c2eabf0-b33c-433a-b00f-e73d8efca929");
+                final ApplicationDefinition applicationDefinition = new ApplicationDefinition();
+                final GrantScheme grantScheme = new GrantScheme();
+                final GrantApplication grantApplication = GrantApplication.builder().id(1)
+                        .applicationName("Test Application")
+                        .definition(applicationDefinition)
+                        .grantScheme(grantScheme)
+                        .version(1)
+                        .build();
+                final CreateSubmissionResponseDto createSubmissionResponseDto = CreateSubmissionResponseDto.builder()
+                        .submissionCreated(true)
+                        .submissionId(submissionId)
+                        .build();
                 when(securityContext.getAuthentication()).thenReturn(authentication);
-
                 SecurityContextHolder.setContext(securityContext);
                 JwtPayload jwtPayload = JwtPayload.builder().sub(APPLICANT_USER_ID).build();
-
+                final String applicantId = jwtPayload.getSub();
+                final GrantApplicant grantApplicant = GrantApplicant.builder().userId(applicantId).build();
                 when(SecurityContextHolder.getContext().getAuthentication().getPrincipal()).thenReturn(jwtPayload);
                 when(grantApplicationService.isGrantApplicationPublished(1)).thenReturn(true);
-                when(grantApplicationService.getGrantApplicationById(1)).thenReturn(application);
-                when(grantApplicantService.getApplicantById(grantApplicant.getUserId())).thenReturn(grantApplicant);
-                when(submissionService.getSubmissionByApplicantAndApplicationId(grantApplicant, application))
-                        .thenReturn(Optional.of(submission));
+                when(grantApplicationService.getGrantApplicationById(1)).thenReturn(grantApplication);
+                when(grantApplicantService.getApplicantById(applicantId)).thenReturn(grantApplicant);
+                when(submissionService.createSubmissionFromApplication(APPLICANT_USER_ID, grantApplicant, grantApplication, null)).thenReturn(createSubmissionResponseDto);
 
-                ResponseEntity<CreateSubmissionResponseDto> response = controllerUnderTest.createApplication(1);
+                ResponseEntity<CreateSubmissionResponseDto> response = controllerUnderTest.createApplication(1, null);
 
-                assertEquals(response, new ResponseEntity<>(CreateSubmissionResponseDto.builder().submissionCreated(false)
-                        .submissionId(submission.getId())
-                        .build(), HttpStatus.OK));
+                assertEquals(HttpStatus.OK, response.getStatusCode());
+                assertEquals(createSubmissionResponseDto, response.getBody());
             }
 
             @Test
@@ -764,9 +776,9 @@ class SubmissionControllerTest {
                 when(grantApplicationService.isGrantApplicationPublished(1)).thenReturn(true);
                 when(grantApplicationService.getGrantApplicationById(1)).thenReturn(grantApplication);
                 when(grantApplicantService.getApplicantById(applicantId)).thenReturn(grantApplicant);
-                when(submissionService.createSubmissionFromApplication(APPLICANT_USER_ID, grantApplicant, grantApplication)).thenReturn(createSubmissionResponseDto);
+                when(submissionService.createSubmissionFromApplication(APPLICANT_USER_ID, grantApplicant, grantApplication, null)).thenReturn(createSubmissionResponseDto);
 
-                ResponseEntity<CreateSubmissionResponseDto> response = controllerUnderTest.createApplication(1);
+                ResponseEntity<CreateSubmissionResponseDto> response = controllerUnderTest.createApplication(1, null);
 
 
                 assertEquals(HttpStatus.OK, response.getStatusCode());

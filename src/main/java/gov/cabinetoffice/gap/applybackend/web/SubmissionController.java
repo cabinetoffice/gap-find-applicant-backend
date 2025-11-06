@@ -4,6 +4,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import gov.cabinetoffice.gap.applybackend.annotations.LambdasHeaderValidator;
 import gov.cabinetoffice.gap.applybackend.constants.APIConstants;
 import gov.cabinetoffice.gap.applybackend.dto.api.CreateQuestionResponseDto;
+import gov.cabinetoffice.gap.applybackend.dto.api.CreateSubmissionRequestDto;
 import gov.cabinetoffice.gap.applybackend.dto.api.CreateSubmissionResponseDto;
 import gov.cabinetoffice.gap.applybackend.dto.api.GetNavigationParamsDto;
 import gov.cabinetoffice.gap.applybackend.dto.api.GetQuestionDto;
@@ -243,7 +244,9 @@ public class SubmissionController {
     }
 
     @PostMapping("/createSubmission/{applicationId}")
-    public ResponseEntity<CreateSubmissionResponseDto> createApplication(@PathVariable final int applicationId)
+    public ResponseEntity<CreateSubmissionResponseDto> createApplication(
+            @PathVariable final int applicationId,
+            @RequestBody(required = false) final CreateSubmissionRequestDto requestDto)
             throws JsonProcessingException {
         final String applicantId = getUserIdFromSecurityContext();
         final boolean isGrantApplicationPublished = grantApplicationService.isGrantApplicationPublished(applicationId);
@@ -255,17 +258,12 @@ public class SubmissionController {
         final GrantApplication grantApplication = grantApplicationService.getGrantApplicationById(applicationId);
         final GrantApplicant grantApplicant = grantApplicantService.getApplicantById(applicantId);
 
-        Optional<Submission> existingSubmission =
-                submissionService.getSubmissionByApplicantAndApplicationId(grantApplicant, grantApplication);
+        final String submissionName = requestDto != null && requestDto.getSubmissionName() != null 
+                ? requestDto.getSubmissionName() 
+                : null;
 
-        if (existingSubmission.isPresent()) {
-            logger.info("Grant Submission for {} already exists.", applicationId);
-            return ResponseEntity.ok(CreateSubmissionResponseDto.builder()
-                    .submissionCreated(false)
-                    .submissionId(existingSubmission.get().getId())
-                    .build());
-        }
-        CreateSubmissionResponseDto submissionResponseDto = submissionService.createSubmissionFromApplication(applicantId, grantApplicant, grantApplication);
+        CreateSubmissionResponseDto submissionResponseDto = submissionService.createSubmissionFromApplication(
+                applicantId, grantApplicant, grantApplication, submissionName);
         logSubmissionEvent(EventType.SUBMISSION_CREATED, submissionResponseDto.getSubmissionId().toString());
 
         return ResponseEntity.ok(submissionResponseDto);

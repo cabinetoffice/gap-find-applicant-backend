@@ -1454,7 +1454,7 @@ class SubmissionServiceTest {
 
             when(submissionRepository.save(submission)).thenReturn(submission);
             CreateSubmissionResponseDto response = serviceUnderTest.createSubmissionFromApplication(userId, grantApplicant,
-                    grantApplication);
+                    grantApplication, null);
             CreateSubmissionResponseDto expected = CreateSubmissionResponseDto.builder()
                     .submissionCreated(true)
                     .submissionId(submission.getId())
