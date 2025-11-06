@@ -20,6 +20,7 @@ public class GetSubmissionDto {
     private Integer grantApplicationId;
     private UUID grantSubmissionId;
     private String applicationName;
+    private String submissionName;
     private SubmissionStatus submissionStatus;
     private ZonedDateTime submittedDate;
     @Builder.Default

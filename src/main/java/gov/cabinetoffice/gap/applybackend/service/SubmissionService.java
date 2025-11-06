@@ -435,7 +435,8 @@ public class SubmissionService {
                 .createdBy(grantApplicant)
                 .lastUpdated(now)
                 .lastUpdatedBy(grantApplicant)
-                .applicationName(finalSubmissionName)
+                .applicationName(applicationName)
+                .submissionName(finalSubmissionName)
                 .status(SubmissionStatus.IN_PROGRESS)
                 .definition(definition)
                 .build();

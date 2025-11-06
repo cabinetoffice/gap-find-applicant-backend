@@ -456,11 +456,18 @@ public class SubmissionController {
                     .build());
         }
 
+        // Use applicationName from submission, fallback to grant application name if null
+        String applicationName = submission.getApplicationName();
+        if (applicationName == null || applicationName.trim().isEmpty()) {
+            applicationName = submission.getApplication().getApplicationName();
+        }
+
         return GetSubmissionDto.builder()
                 .grantSubmissionId(submission.getId())
                 .grantApplicationId(submission.getApplication().getId())
                 .grantSchemeId(submission.getScheme().getId())
-                .applicationName(submission.getApplicationName())
+                .applicationName(applicationName)
+                .submissionName(submission.getSubmissionName())
                 .submissionStatus(submission.getStatus())
                 .submittedDate(submission.getSubmittedDate())
                 .sections(sections)
