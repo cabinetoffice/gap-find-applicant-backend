@@ -1429,6 +1429,7 @@ class SubmissionServiceTest {
         void createSubmissionFromApplication__returnCreateSubmissionResponseDto() throws JsonProcessingException {
             final SubmissionDefinition definition = new SubmissionDefinition();
             final GrantApplicant grantApplicant = new GrantApplicant();
+            grantApplicant.setId(1);
             final GrantScheme grantScheme = new GrantScheme();
             final ApplicationDefinition applicationDefinition = new ApplicationDefinition();
             final GrantApplication grantApplication = GrantApplication.builder().id(1)
@@ -1438,6 +1439,11 @@ class SubmissionServiceTest {
                     .version(1)
                     .build();
             final LocalDateTime now = LocalDateTime.now(clock);
+            
+            // Mock findByApplicantId to return empty list (no existing submissions)
+            // This ensures the service uses applicationName as the default submissionName
+            when(submissionRepository.findByApplicantId(grantApplicant.getId())).thenReturn(Collections.emptyList());
+            
             final Submission submission = Submission.builder()
                     .scheme(grantScheme)
                     .application(grantApplication)
@@ -1448,13 +1454,14 @@ class SubmissionServiceTest {
                     .lastUpdated(now)
                     .lastUpdatedBy(grantApplicant)
                     .applicationName(grantApplication.getApplicationName())
+                    .submissionName(grantApplication.getApplicationName()) // Service sets this when submissionName param is null
                     .status(SubmissionStatus.IN_PROGRESS)
                     .definition(definition)
                     .build();
 
-            when(submissionRepository.save(submission)).thenReturn(submission);
+            when(submissionRepository.save(any(Submission.class))).thenReturn(submission);
             CreateSubmissionResponseDto response = serviceUnderTest.createSubmissionFromApplication(userId, grantApplicant,
-                    grantApplication);
+                    grantApplication, null);
             CreateSubmissionResponseDto expected = CreateSubmissionResponseDto.builder()
                     .submissionCreated(true)
                     .submissionId(submission.getId())

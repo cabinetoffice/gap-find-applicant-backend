@@ -81,6 +81,9 @@ public class Submission extends BaseEntity {
     @Column
     private String applicationName;
 
+    @Column(name = "submission_name")
+    private String submissionName;
+
     @Column
     @Enumerated(EnumType.STRING)
     private SubmissionStatus status;
