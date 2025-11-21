@@ -397,10 +397,31 @@ public class SubmissionService {
 
     public CreateSubmissionResponseDto createSubmissionFromApplication(final String userId,
                                                                        final GrantApplicant grantApplicant,
-                                                                       final GrantApplication grantApplication) throws JsonProcessingException {
+                                                                       final GrantApplication grantApplication,
+                                                                       final String submissionName) throws JsonProcessingException {
         final GrantScheme grantScheme = grantApplication.getGrantScheme();
         final int version = grantApplication.getVersion();
         final String applicationName = grantApplication.getApplicationName();
+        
+        // Determine the submission name to use
+        String finalSubmissionName;
+        if (submissionName != null && !submissionName.trim().isEmpty()) {
+            finalSubmissionName = submissionName.trim();
+        } else {
+            // Default to grant application name, or generate a unique name if multiple submissions exist
+            final List<Submission> existingSubmissions = submissionRepository.findByApplicantId(grantApplicant.getId())
+                    .stream()
+                    .filter(s -> s.getApplication().getId().equals(grantApplication.getId()))
+                    .toList();
+            
+            if (existingSubmissions.isEmpty()) {
+                finalSubmissionName = applicationName;
+            } else {
+                // Generate a unique name by appending a number
+                finalSubmissionName = applicationName + " (" + (existingSubmissions.size() + 1) + ")";
+            }
+        }
+        
         final SubmissionDefinition definition = this.transformApplicationDefinitionToSubmissionDefinition(grantApplication.getDefinition(), grantScheme.getVersion());
 
         final LocalDateTime now = LocalDateTime.now(clock);
@@ -415,6 +436,7 @@ public class SubmissionService {
                 .lastUpdated(now)
                 .lastUpdatedBy(grantApplicant)
                 .applicationName(applicationName)
+                .submissionName(finalSubmissionName)
                 .status(SubmissionStatus.IN_PROGRESS)
                 .definition(definition)
                 .build();
