@@ -1391,12 +1391,12 @@ class SubmissionServiceTest {
 
         @Test
         void submit_SubmitsTheApplicationFormAndGeneratesID() {
-            final LocalDate currentDate = LocalDate.now();
-            final DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyyMMdd");
-            final String date = currentDate.format(formatter);
+            final LocalDateTime currentDateTime = LocalDateTime.now();
+            final DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyyMMddHHmm");
+            final String dateTime = currentDateTime.format(formatter);
 
             final String emailAddress = "test@email.com";
-            final String gapId = "GAP-LOCAL-" + date + "-12-1";
+            final String gapId = "GAP-LOCAL-" + dateTime + "-12-1";
             final ArgumentCaptor<Submission> submissionCaptor = ArgumentCaptor.forClass(Submission.class);
             final GrantApplicant grantApplicant = GrantApplicant.builder()
                     .userId(userId)
