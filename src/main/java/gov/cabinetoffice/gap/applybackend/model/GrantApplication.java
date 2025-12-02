@@ -47,6 +47,9 @@ public class GrantApplication extends BaseEntity {
     @Enumerated(EnumType.STRING)
     private GrantApplicationStatus applicationStatus;
 
+    @Column(name = "allows_multiple_submissions")
+    private Boolean allowsMultipleSubmissions;
+
     @Column(name = "definition", nullable = false, columnDefinition = "json")
     @Type(type = "json")
     private ApplicationDefinition definition;
