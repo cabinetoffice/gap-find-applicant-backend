@@ -16,5 +16,6 @@ public class GetGrantApplicationDto {
     private Instant lastUpdated;
     private Integer lastUpdatedBy;
     private String applicationName;
+    private boolean allowsMultipleSubmissions;
     private GrantApplicationStatus applicationStatus;
 }
