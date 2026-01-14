@@ -397,10 +397,39 @@ public class SubmissionService {
 
     public CreateSubmissionResponseDto createSubmissionFromApplication(final String userId,
                                                                        final GrantApplicant grantApplicant,
-                                                                       final GrantApplication grantApplication) throws JsonProcessingException {
+                                                                       final GrantApplication grantApplication,
+                                                                       final String submissionName) throws JsonProcessingException {
         final GrantScheme grantScheme = grantApplication.getGrantScheme();
         final int version = grantApplication.getVersion();
         final String applicationName = grantApplication.getApplicationName();
+        
+        // Determine the submission name to use
+        String finalSubmissionName;
+        if (submissionName != null && !submissionName.trim().isEmpty()) {
+            finalSubmissionName = submissionName.trim();
+            
+            // Check if this name already exists and make it unique if needed
+            final List<Submission> existingSubmissions = submissionRepository.findByApplicantId(grantApplicant.getId())
+                    .stream()
+                    .filter(s -> s.getApplication().getId().equals(grantApplication.getId()))
+                    .toList();
+            
+            finalSubmissionName = ensureUniqueSubmissionName(finalSubmissionName, existingSubmissions);
+        } else {
+            // Default to grant application name, or generate a unique name if multiple submissions exist
+            final List<Submission> existingSubmissions = submissionRepository.findByApplicantId(grantApplicant.getId())
+                    .stream()
+                    .filter(s -> s.getApplication().getId().equals(grantApplication.getId()))
+                    .toList();
+            
+            if (existingSubmissions.isEmpty()) {
+                finalSubmissionName = applicationName;
+            } else {
+                // Generate a unique name by appending a number
+                finalSubmissionName = applicationName + " (" + (existingSubmissions.size() + 1) + ")";
+            }
+        }
+        
         final SubmissionDefinition definition = this.transformApplicationDefinitionToSubmissionDefinition(grantApplication.getDefinition(), grantScheme.getVersion());
 
         final LocalDateTime now = LocalDateTime.now(clock);
@@ -415,6 +444,7 @@ public class SubmissionService {
                 .lastUpdated(now)
                 .lastUpdatedBy(grantApplicant)
                 .applicationName(applicationName)
+                .submissionName(finalSubmissionName)
                 .status(SubmissionStatus.IN_PROGRESS)
                 .definition(definition)
                 .build();
@@ -431,6 +461,45 @@ public class SubmissionService {
         }
 
         return submissionResponseDto;
+    }
+
+    /**
+     * Ensures the submission name is unique by appending a number if a duplicate exists.
+     * If the name already exists, it will find the next available number (2), (3), (4), etc.
+     */
+    private String ensureUniqueSubmissionName(String desiredName, List<Submission> existingSubmissions) {
+        // Check if the exact name already exists
+        boolean nameExists = existingSubmissions.stream()
+                .anyMatch(s -> desiredName.equals(s.getSubmissionName()));
+        
+        if (!nameExists) {
+            return desiredName;
+        }
+        
+        // Name exists, find the next available number
+        // Check for existing numbered versions: "Name (2)", "Name (3)", etc.
+        java.util.regex.Pattern pattern = java.util.regex.Pattern.compile("^" + java.util.regex.Pattern.quote(desiredName) + " \\((\\d+)\\)$");
+        
+        int maxNumber = 1; // Start from 1, but we'll increment to 2 for the first duplicate
+        
+        for (Submission submission : existingSubmissions) {
+            String existingName = submission.getSubmissionName();
+            
+            // Check if it's an exact match
+            if (desiredName.equals(existingName)) {
+                continue; // This is the duplicate we're trying to resolve
+            }
+            
+            // Check if it matches the pattern "Name (N)"
+            java.util.regex.Matcher matcher = pattern.matcher(existingName);
+            if (matcher.matches()) {
+                int number = Integer.parseInt(matcher.group(1));
+                maxNumber = Math.max(maxNumber, number);
+            }
+        }
+        
+        // Return the name with the next available number
+        return desiredName + " (" + (maxNumber + 1) + ")";
     }
 
     private void populateEssentialInformation(final String userId, final Submission submission) {

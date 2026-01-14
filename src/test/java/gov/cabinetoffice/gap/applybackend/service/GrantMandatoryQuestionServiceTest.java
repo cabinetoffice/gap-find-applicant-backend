@@ -23,6 +23,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.stream.Stream;
@@ -403,9 +404,9 @@ class GrantMandatoryQuestionServiceTest {
         void updateMandatoryQuestion_UpdatesExpectedMandatoryQuestionsAndSetsGapId() {
             final UUID mandatoryQuestionsId = UUID.randomUUID();
 
-            final LocalDate currentDate = LocalDate.now();
-            final DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyyMMdd");
-            final String date = currentDate.format(formatter);
+            final LocalDateTime currentDateTime = LocalDateTime.now();
+            final DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyyMMddHHmm");
+            final String dateTime = currentDateTime.format(formatter);
 
             final GrantMandatoryQuestions grantMandatoryQuestions = GrantMandatoryQuestions
                     .builder()
@@ -425,8 +426,8 @@ class GrantMandatoryQuestionServiceTest {
             verify(grantMandatoryQuestionRepository).save(grantMandatoryQuestions);
             assertThat(methodResponse).isEqualTo(grantMandatoryQuestions);
 
-            //GAP ID Should be GAP-{environment}-{date}-{version}{recordNumber}-{userId}
-            assertThat(methodResponse.getGapId()).isEqualTo("GAP-" + "local" + "-" + date + "-22-1");
+            //GAP ID Should be GAP-{environment}-{dateTime}-{version}{recordNumber}-{userId}
+            assertThat(methodResponse.getGapId()).isEqualTo("GAP-" + "local" + "-" + dateTime + "-22-1");
             assertThat(methodResponse.getGapId()).isEqualTo(grantMandatoryQuestions.getGapId());
         }
     }
