@@ -35,10 +35,21 @@ public class GrantApplicantOrganisationProfileController {
     @GetMapping("/{organisationId}")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Organisation found", content = @Content(mediaType = "application/json", schema = @Schema(implementation = GetGrantApplicantOrganisationProfileDto.class))),
+            @ApiResponse(responseCode = "403", description = "User does not own this organisation", content = @Content(mediaType = "application/json")),
             @ApiResponse(responseCode = "404", description = "No Organisation found", content = @Content(mediaType = "application/json")),
     })
     public ResponseEntity<GetGrantApplicantOrganisationProfileDto> getOrganisationById(@PathVariable long organisationId) {
-        GrantApplicantOrganisationProfile profile = grantApplicantOrganisationProfileService.getProfileById(organisationId);
+        // Get authenticated user from JWT
+        final JwtPayload jwtPayload = (JwtPayload) SecurityContextHolder.getContext()
+                .getAuthentication().getPrincipal();
+        
+        // Validate ownership before returning data (prevents IDOR vulnerability)
+        GrantApplicantOrganisationProfile profile = 
+                grantApplicantOrganisationProfileService.getProfileByIdAndUserId(
+                        organisationId, 
+                        jwtPayload.getSub()
+                );
+        
         GetGrantApplicantOrganisationProfileDto organisationDto = modelMapper.map(profile, GetGrantApplicantOrganisationProfileDto.class);
         return ResponseEntity.ok(organisationDto);
     }
@@ -52,11 +63,22 @@ public class GrantApplicantOrganisationProfileController {
     @PatchMapping("/{organisationId}")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Organisation updated", content = @Content(mediaType = "application/json", schema = @Schema(implementation = String.class))),
+            @ApiResponse(responseCode = "403", description = "User does not own this organisation", content = @Content(mediaType = "application/json")),
             @ApiResponse(responseCode = "404", description = "No Organisation found", content = @Content(mediaType = "application/json")),
     })
     public ResponseEntity<String> updateOrganisation(@PathVariable long organisationId,
                                                      @RequestBody @Valid UpdateGrantApplicantOrganisationProfileDto organisation) {
-        GrantApplicantOrganisationProfile grantApplicantOrganisationProfile = grantApplicantOrganisationProfileService.getProfileById(organisationId);
+        // Get authenticated user from JWT
+        final JwtPayload jwtPayload = (JwtPayload) SecurityContextHolder.getContext()
+                .getAuthentication().getPrincipal();
+        
+        // Validate ownership before allowing update (prevents IDOR vulnerability)
+        GrantApplicantOrganisationProfile grantApplicantOrganisationProfile = 
+                grantApplicantOrganisationProfileService.getProfileByIdAndUserId(
+                        organisationId, 
+                        jwtPayload.getSub()
+                );
+        
         modelMapper.map(organisation, grantApplicantOrganisationProfile);
         grantApplicantOrganisationProfile.setId(organisationId);
         grantApplicantOrganisationProfileService.updateOrganisation(grantApplicantOrganisationProfile);
