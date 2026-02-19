@@ -9,6 +9,7 @@ import gov.cabinetoffice.gap.applybackend.exception.NotFoundException;
 import gov.cabinetoffice.gap.applybackend.mapper.GrantApplicantOrganisationProfileMapper;
 import gov.cabinetoffice.gap.applybackend.model.*;
 import gov.cabinetoffice.gap.applybackend.repository.GrantMandatoryQuestionRepository;
+import gov.cabinetoffice.gap.applybackend.repository.SubmissionRepository;
 import gov.cabinetoffice.gap.applybackend.utils.GapIdGenerator;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -23,6 +24,7 @@ import static java.util.Optional.ofNullable;
 @Slf4j
 public class GrantMandatoryQuestionService {
     private final GrantMandatoryQuestionRepository grantMandatoryQuestionRepository;
+    private final SubmissionRepository submissionRepository;
     private final GrantApplicantOrganisationProfileMapper organisationProfileMapper;
     private final EnvironmentProperties envProperties;
 
@@ -42,8 +44,23 @@ public class GrantMandatoryQuestionService {
         These methods should not require an applicant ID to be passed in to confirm ownership.  
      */
     public GrantMandatoryQuestions getGrantMandatoryQuestionBySubmissionIdAndApplicantSub(UUID submissionId, String applicantSub) {
-        final Optional<GrantMandatoryQuestions> grantMandatoryQuestion = ofNullable(grantMandatoryQuestionRepository.findBySubmissionId(submissionId)
-                .orElseThrow(() -> new NotFoundException(String.format("No Mandatory Question with submission id %s was found", submissionId))));
+        Optional<GrantMandatoryQuestions> grantMandatoryQuestion = grantMandatoryQuestionRepository.findBySubmissionId(submissionId);
+
+        if (grantMandatoryQuestion.isEmpty()) {
+            // Fallback for multi-app schemes: the MQ record may still be linked to a previous
+            // submission. Look up the submission to get the scheme, then find the MQ that way.
+            final Integer schemeId = submissionRepository
+                    .findByIdAndApplicantUserId(submissionId, applicantSub)
+                    .orElseThrow(() -> new NotFoundException(String.format("No Mandatory Question with submission id %s was found", submissionId)))
+                    .getScheme()
+                    .getId();
+
+            grantMandatoryQuestion = grantMandatoryQuestionRepository.findByGrantScheme_IdAndCreatedBy_UserId(schemeId, applicantSub);
+
+            if (grantMandatoryQuestion.isEmpty()) {
+                throw new NotFoundException(String.format("No Mandatory Question with submission id %s was found", submissionId));
+            }
+        }
 
         if (!grantMandatoryQuestion.get().getCreatedBy().getUserId().equals(applicantSub)) {
             throw new ForbiddenException(String.format("Mandatory Question with id %s and submission ID %s was not created by %s", grantMandatoryQuestion.get().getId(), submissionId, applicantSub));
