@@ -9,6 +9,7 @@ import gov.cabinetoffice.gap.applybackend.exception.NotFoundException;
 import gov.cabinetoffice.gap.applybackend.mapper.GrantApplicantOrganisationProfileMapper;
 import gov.cabinetoffice.gap.applybackend.model.*;
 import gov.cabinetoffice.gap.applybackend.repository.GrantMandatoryQuestionRepository;
+import gov.cabinetoffice.gap.applybackend.repository.SubmissionRepository;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -51,6 +52,8 @@ class GrantMandatoryQuestionServiceTest {
             .build();
     @Mock
     private GrantMandatoryQuestionRepository grantMandatoryQuestionRepository;
+    @Mock
+    private SubmissionRepository submissionRepository;
     @Mock
     private GrantApplicantOrganisationProfileMapper organisationProfileMapper;
     @Mock
@@ -173,6 +176,45 @@ class GrantMandatoryQuestionServiceTest {
             final GrantMandatoryQuestions methodResponse = serviceUnderTest.getGrantMandatoryQuestionBySubmissionIdAndApplicantSub(submissionId, applicantUserId);
 
             assertThat(methodResponse).isEqualTo(mandatoryQuestions.get());
+        }
+
+        @Test
+        void getGrantMandatoryQuestionBySubmissionId_FallsBackToSchemeWhenNotLinkedToSubmission() {
+            // Multi-app: MQ exists but is linked to a different (earlier) submission
+            final UUID submissionId = UUID.randomUUID();
+            final Integer schemeId = 1;
+
+            final GrantApplicant applicant = GrantApplicant.builder().userId(applicantUserId).build();
+            final GrantScheme scheme = GrantScheme.builder().id(schemeId).build();
+            final Submission submission = Submission.builder().scheme(scheme).build();
+
+            final Optional<GrantMandatoryQuestions> mandatoryQuestions = Optional.of(GrantMandatoryQuestions
+                    .builder()
+                    .createdBy(applicant)
+                    .build());
+
+            when(grantMandatoryQuestionRepository.findBySubmissionId(submissionId)).thenReturn(Optional.empty());
+            when(submissionRepository.findByIdAndApplicantUserId(submissionId, applicantUserId)).thenReturn(Optional.of(submission));
+            when(grantMandatoryQuestionRepository.findByGrantScheme_IdAndCreatedBy_UserId(schemeId, applicantUserId)).thenReturn(mandatoryQuestions);
+
+            final GrantMandatoryQuestions methodResponse = serviceUnderTest.getGrantMandatoryQuestionBySubmissionIdAndApplicantSub(submissionId, applicantUserId);
+
+            assertThat(methodResponse).isEqualTo(mandatoryQuestions.get());
+        }
+
+        @Test
+        void getGrantMandatoryQuestionBySubmissionId_ThrowsNotFoundWhenFallbackAlsoFindsNothing() {
+            final UUID submissionId = UUID.randomUUID();
+            final Integer schemeId = 1;
+
+            final GrantScheme scheme = GrantScheme.builder().id(schemeId).build();
+            final Submission submission = Submission.builder().scheme(scheme).build();
+
+            when(grantMandatoryQuestionRepository.findBySubmissionId(submissionId)).thenReturn(Optional.empty());
+            when(submissionRepository.findByIdAndApplicantUserId(submissionId, applicantUserId)).thenReturn(Optional.of(submission));
+            when(grantMandatoryQuestionRepository.findByGrantScheme_IdAndCreatedBy_UserId(schemeId, applicantUserId)).thenReturn(Optional.empty());
+
+            assertThrows(NotFoundException.class, () -> serviceUnderTest.getGrantMandatoryQuestionBySubmissionIdAndApplicantSub(submissionId, applicantUserId));
         }
     }
 

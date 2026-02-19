@@ -1067,7 +1067,7 @@ class SubmissionControllerTest {
                 when(grantApplicantService.getEmailById(any(), any())).thenReturn("mock@example.com");
                 when(submissionService.getSubmissionById(any())).thenReturn(mockSubmission);
                 when(submissionService.getSubmissionExport(any(), any(), any()))
-                        .thenThrow(new ForbiddenException());
+                        .thenThrow(new ForbiddenException("Access denied"));
 
                 RuntimeException runtimeException = assertThrows(RuntimeException.class, () -> controllerUnderTest
                         .exportSingleSubmission(submissionId, mockRequest));
@@ -1101,7 +1101,7 @@ class SubmissionControllerTest {
                 UUID submissionID = UUID.randomUUID();
                 final MockHttpServletRequest request = new MockHttpServletRequest();
                 when(submissionService.getSubmissionExport(Mockito.any(), Mockito.anyString(), Mockito.anyString()))
-                        .thenThrow(new ForbiddenException());
+                        .thenThrow(new ForbiddenException("Access denied"));
 
                 assertThrows(RuntimeException.class, () -> controllerUnderTest.exportSingleSubmission(submissionID, request));
             }

@@ -32,6 +32,7 @@ jobs:
           args: >
             --enableRetired
             --disableOssIndex true
+            --disableCentral
       - name: Upload Test results
         uses: actions/upload-artifact@v4
         with:
