@@ -48,6 +48,20 @@ public class ControllerExceptionHandler {
                 .build();
     }
 
+    @ExceptionHandler(value = {
+            ForbiddenException.class
+    })
+    @ResponseStatus(value = HttpStatus.FORBIDDEN)
+    public ErrorMessage handle403s(ForbiddenException ex, WebRequest request) {
+        log.error("Authorization failed: {}", ex.getMessage());
+        return ErrorMessage.builder()
+                .status(HttpStatus.FORBIDDEN)
+                .date(ZonedDateTime.now(clock))
+                .message(ex.getMessage())
+                .description(null)
+                .build();
+    }
+
     @ResponseStatus(HttpStatus.BAD_REQUEST)
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ErrorResponseBody handleValidationExceptions(

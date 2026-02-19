@@ -4,6 +4,7 @@ import gov.cabinetoffice.gap.applybackend.dto.api.CreateGrantApplicantOrganisati
 import gov.cabinetoffice.gap.applybackend.dto.api.GetGrantApplicantOrganisationProfileDto;
 import gov.cabinetoffice.gap.applybackend.dto.api.JwtPayload;
 import gov.cabinetoffice.gap.applybackend.dto.api.UpdateGrantApplicantOrganisationProfileDto;
+import gov.cabinetoffice.gap.applybackend.exception.ForbiddenException;
 import gov.cabinetoffice.gap.applybackend.model.GrantApplicantOrganisationProfile;
 import gov.cabinetoffice.gap.applybackend.service.GrantApplicantOrganisationProfileService;
 import org.junit.jupiter.api.Nested;
@@ -21,7 +22,10 @@ import org.springframework.security.core.context.SecurityContextHolder;
 
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -66,14 +70,19 @@ class GrantApplicantOrganisationProfileControllerTest {
                 .county("Renfrewshire")
                 .build();
 
-        when(grantApplicantOrganisationProfileService.getProfileById(PROFILE_ID))
+        final JwtPayload jwtPayload = JwtPayload.builder().sub(APPLICANT_USER_ID).build();
+        when(securityContext.getAuthentication()).thenReturn(authentication);
+        SecurityContextHolder.setContext(securityContext);
+        when(SecurityContextHolder.getContext().getAuthentication().getPrincipal()).thenReturn(jwtPayload);
+        
+        when(grantApplicantOrganisationProfileService.getProfileByIdAndUserId(PROFILE_ID, APPLICANT_USER_ID))
                 .thenReturn(grantApplicantOrganisationProfile);
         when(modelMapper.map(grantApplicantOrganisationProfile, GetGrantApplicantOrganisationProfileDto.class))
                 .thenReturn(getGrantApplicantOrganisationProfileDto);
 
         ResponseEntity<GetGrantApplicantOrganisationProfileDto> response = controllerUnderTest.getOrganisationById(PROFILE_ID);
 
-        verify(grantApplicantOrganisationProfileService).getProfileById(PROFILE_ID);
+        verify(grantApplicantOrganisationProfileService).getProfileByIdAndUserId(PROFILE_ID, APPLICANT_USER_ID);
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertEquals(response.getBody(), getGrantApplicantOrganisationProfileDto);
     }
@@ -143,7 +152,12 @@ class GrantApplicantOrganisationProfileControllerTest {
                 .postcode("G2 1QQ")
                 .build();
 
-        when(grantApplicantOrganisationProfileService.getProfileById(PROFILE_ID))
+        final JwtPayload jwtPayload = JwtPayload.builder().sub(APPLICANT_USER_ID).build();
+        when(securityContext.getAuthentication()).thenReturn(authentication);
+        SecurityContextHolder.setContext(securityContext);
+        when(SecurityContextHolder.getContext().getAuthentication().getPrincipal()).thenReturn(jwtPayload);
+        
+        when(grantApplicantOrganisationProfileService.getProfileByIdAndUserId(PROFILE_ID, APPLICANT_USER_ID))
                 .thenReturn(grantApplicantOrganisationProfile);
         doNothing().when(modelMapper).map(updateGrantApplicantOrganisationProfileDto, grantApplicantOrganisationProfile);
         ResponseEntity<String> methodResponse = controllerUnderTest.updateOrganisation(PROFILE_ID, updateGrantApplicantOrganisationProfileDto);
@@ -184,6 +198,103 @@ class GrantApplicantOrganisationProfileControllerTest {
             verify(grantApplicantOrganisationProfileService).isOrganisationComplete(APPLICANT_USER_ID);
             assertEquals(HttpStatus.OK, response.getStatusCode());
             assertEquals(response.getBody(), false);
+        }
+    }
+
+    @Nested
+    class SecurityTests {
+        private final String ATTACKER_USER_ID = "attacker-user-id-12345";
+        private final long VICTIM_ORG_ID = 999L;
+
+        @Test
+        void updateOrganisation_ThrowsForbiddenWhenUserDoesNotOwnOrganisation() {
+            final UpdateGrantApplicantOrganisationProfileDto updateDto = UpdateGrantApplicantOrganisationProfileDto.builder()
+                    .legalName("Malicious Update")
+                    .build();
+
+            final JwtPayload attackerJwt = JwtPayload.builder().sub(ATTACKER_USER_ID).build();
+            when(securityContext.getAuthentication()).thenReturn(authentication);
+            SecurityContextHolder.setContext(securityContext);
+            when(SecurityContextHolder.getContext().getAuthentication().getPrincipal()).thenReturn(attackerJwt);
+
+            when(grantApplicantOrganisationProfileService.getProfileByIdAndUserId(VICTIM_ORG_ID, ATTACKER_USER_ID))
+                    .thenThrow(new ForbiddenException("You do not have permission to access this organisation"));
+
+            assertThrows(ForbiddenException.class, () -> {
+                controllerUnderTest.updateOrganisation(VICTIM_ORG_ID, updateDto);
+            });
+
+            // Verify that update was never called (attack was blocked)
+            verify(grantApplicantOrganisationProfileService, never()).updateOrganisation(any());
+        }
+
+        @Test
+        void getOrganisationById_ThrowsForbiddenWhenUserDoesNotOwnOrganisation() {
+            final JwtPayload attackerJwt = JwtPayload.builder().sub(ATTACKER_USER_ID).build();
+            when(securityContext.getAuthentication()).thenReturn(authentication);
+            SecurityContextHolder.setContext(securityContext);
+            when(SecurityContextHolder.getContext().getAuthentication().getPrincipal()).thenReturn(attackerJwt);
+
+            when(grantApplicantOrganisationProfileService.getProfileByIdAndUserId(VICTIM_ORG_ID, ATTACKER_USER_ID))
+                    .thenThrow(new ForbiddenException("You do not have permission to access this organisation"));
+
+            assertThrows(ForbiddenException.class, () -> {
+                controllerUnderTest.getOrganisationById(VICTIM_ORG_ID);
+            });
+        }
+
+        @Test
+        void updateOrganisation_SucceedsWhenUserOwnsOrganisation() {
+            final UpdateGrantApplicantOrganisationProfileDto updateDto = UpdateGrantApplicantOrganisationProfileDto.builder()
+                    .legalName("Legitimate Update")
+                    .build();
+
+            final GrantApplicantOrganisationProfile profile = GrantApplicantOrganisationProfile.builder()
+                    .id(PROFILE_ID)
+                    .legalName("Original Name")
+                    .build();
+
+            final JwtPayload jwtPayload = JwtPayload.builder().sub(APPLICANT_USER_ID).build();
+            when(securityContext.getAuthentication()).thenReturn(authentication);
+            SecurityContextHolder.setContext(securityContext);
+            when(SecurityContextHolder.getContext().getAuthentication().getPrincipal()).thenReturn(jwtPayload);
+
+            when(grantApplicantOrganisationProfileService.getProfileByIdAndUserId(PROFILE_ID, APPLICANT_USER_ID))
+                    .thenReturn(profile);
+            doNothing().when(modelMapper).map(updateDto, profile);
+
+            ResponseEntity<String> response = controllerUnderTest.updateOrganisation(PROFILE_ID, updateDto);
+
+            assertEquals(HttpStatus.OK, response.getStatusCode());
+            verify(grantApplicantOrganisationProfileService).updateOrganisation(profile);
+        }
+
+        @Test
+        void getOrganisationById_SucceedsWhenUserOwnsOrganisation() {
+            final GrantApplicantOrganisationProfile profile = GrantApplicantOrganisationProfile.builder()
+                    .id(PROFILE_ID)
+                    .legalName("My Organisation")
+                    .build();
+
+            final GetGrantApplicantOrganisationProfileDto profileDto = GetGrantApplicantOrganisationProfileDto.builder()
+                    .id(PROFILE_ID)
+                    .legalName("My Organisation")
+                    .build();
+
+            final JwtPayload jwtPayload = JwtPayload.builder().sub(APPLICANT_USER_ID).build();
+            when(securityContext.getAuthentication()).thenReturn(authentication);
+            SecurityContextHolder.setContext(securityContext);
+            when(SecurityContextHolder.getContext().getAuthentication().getPrincipal()).thenReturn(jwtPayload);
+
+            when(grantApplicantOrganisationProfileService.getProfileByIdAndUserId(PROFILE_ID, APPLICANT_USER_ID))
+                    .thenReturn(profile);
+            when(modelMapper.map(profile, GetGrantApplicantOrganisationProfileDto.class))
+                    .thenReturn(profileDto);
+
+            ResponseEntity<GetGrantApplicantOrganisationProfileDto> response = controllerUnderTest.getOrganisationById(PROFILE_ID);
+
+            assertEquals(HttpStatus.OK, response.getStatusCode());
+            assertEquals(profileDto, response.getBody());
         }
     }
 }
