@@ -154,28 +154,52 @@ public class GrantMandatoryQuestionService {
     public void addMandatoryQuestionsToSubmissionObject(final GrantMandatoryQuestions mandatoryQuestions) {
         final Submission submission = mandatoryQuestions.getSubmission();
 
-        if (submission != null && submission.getScheme().getVersion() > 1) {
-
-            log.info("Adding mandatory question responses to submission " + submission.getId());
-
-            final SubmissionSectionStatus organisationDetailsSectionStatus = submission.getSection("ORGANISATION_DETAILS").getSectionStatus();
-            final SubmissionSectionStatus fundingDetailsSectionStatus = submission.getSection("FUNDING_DETAILS").getSectionStatus();
-
-            final SubmissionSection updatedOrgDetails = buildOrganisationDetailsSubmissionSection(mandatoryQuestions, organisationDetailsSectionStatus);
-            final SubmissionSection updatedFundingDetails = buildFundingDetailsSubmissionSection(mandatoryQuestions, fundingDetailsSectionStatus);
-
-            submission.removeSection("ORGANISATION_DETAILS");
-            submission.removeSection("FUNDING_DETAILS");
-
-            /*
-                Wouldn't usually access encapsulated collections this way, but I don't want to write
-                a method on the Submission object to add a section which requires the array index to be specified
-             */
-            submission.getDefinition().getSections().add(1, updatedOrgDetails);
-            submission.getDefinition().getSections().add(2, updatedFundingDetails);
-
-            log.info(submission.getDefinition().toString());
+        if (submission == null || submission.getScheme().getVersion() <= 1) {
+            return;
         }
+
+        // Update the submission linked to the MQ (saved via cascade when the MQ is saved)
+        applyMandatoryQuestionsToSubmission(submission, mandatoryQuestions);
+
+        // In multi-app schemes there may be other submissions for this applicant+scheme whose
+        // stored sections need to be kept in sync with the shared MQ record.
+        final GrantApplicant createdBy = mandatoryQuestions.getCreatedBy();
+        if (createdBy != null) {
+            submissionRepository.findByApplicant_IdAndScheme_Id(createdBy.getId(), submission.getScheme().getId())
+                    .stream()
+                    .filter(s -> !s.getId().equals(submission.getId()))
+                    .forEach(s -> {
+                        applyMandatoryQuestionsToSubmission(s, mandatoryQuestions);
+                        submissionRepository.save(s);
+                    });
+        }
+    }
+
+    private void applyMandatoryQuestionsToSubmission(final Submission submission,
+            final GrantMandatoryQuestions mandatoryQuestions) {
+        log.info("Adding mandatory question responses to submission {}", submission.getId());
+
+        final SubmissionSectionStatus organisationDetailsSectionStatus = submission.getSection("ORGANISATION_DETAILS")
+                .getSectionStatus();
+        final SubmissionSectionStatus fundingDetailsSectionStatus = submission.getSection("FUNDING_DETAILS")
+                .getSectionStatus();
+
+        final SubmissionSection updatedOrgDetails = buildOrganisationDetailsSubmissionSection(mandatoryQuestions,
+                organisationDetailsSectionStatus);
+        final SubmissionSection updatedFundingDetails = buildFundingDetailsSubmissionSection(mandatoryQuestions,
+                fundingDetailsSectionStatus);
+
+        submission.removeSection("ORGANISATION_DETAILS");
+        submission.removeSection("FUNDING_DETAILS");
+
+        /*
+            Wouldn't usually access encapsulated collections this way, but I don't want to write
+            a method on the Submission object to add a section which requires the array index to be specified
+         */
+        submission.getDefinition().getSections().add(1, updatedOrgDetails);
+        submission.getDefinition().getSections().add(2, updatedFundingDetails);
+
+        log.info(submission.getDefinition().toString());
     }
 
     public SubmissionSection buildOrganisationDetailsSubmissionSection(final GrantMandatoryQuestions mandatoryQuestions, final SubmissionSectionStatus sectionStatus) {

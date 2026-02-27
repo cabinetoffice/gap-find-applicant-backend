@@ -722,6 +722,70 @@ class GrantMandatoryQuestionServiceTest {
             verify(serviceUnderTest).buildOrganisationDetailsSubmissionSection(Mockito.any(), Mockito.any());
             verify(serviceUnderTest).buildFundingDetailsSubmissionSection(Mockito.any(), Mockito.any());
         }
+
+        @Test
+        void updatesAllSubmissionsForScheme_InMultiAppScheme() {
+            final GrantApplicant applicant = GrantApplicant.builder().id(1L).build();
+            final GrantScheme scheme = GrantScheme.builder().id(10).version(2).build();
+
+            final UUID submission1Id = UUID.randomUUID();
+            final SubmissionDefinition definition1 = SubmissionDefinition.builder()
+                    .sections(new ArrayList<>(List.of(
+                            SubmissionSection.builder().sectionId("ELIGIBILITY").build(),
+                            SubmissionSection.builder().sectionId("ORGANISATION_DETAILS").build(),
+                            SubmissionSection.builder().sectionId("FUNDING_DETAILS").build()
+                    )))
+                    .build();
+            final Submission submission1 = Submission.builder()
+                    .id(submission1Id)
+                    .definition(definition1)
+                    .scheme(scheme)
+                    .build();
+
+            final UUID submission2Id = UUID.randomUUID();
+            final SubmissionDefinition definition2 = SubmissionDefinition.builder()
+                    .sections(new ArrayList<>(List.of(
+                            SubmissionSection.builder().sectionId("ELIGIBILITY").build(),
+                            SubmissionSection.builder().sectionId("ORGANISATION_DETAILS").build(),
+                            SubmissionSection.builder().sectionId("FUNDING_DETAILS").build()
+                    )))
+                    .build();
+            final Submission submission2 = Submission.builder()
+                    .id(submission2Id)
+                    .definition(definition2)
+                    .scheme(scheme)
+                    .build();
+
+            final GrantMandatoryQuestions mandatoryQuestions = GrantMandatoryQuestions.builder()
+                    .submission(submission1)
+                    .createdBy(applicant)
+                    .name("AND Digital")
+                    .addressLine1("215 Bothwell Street")
+                    .city("Glasgow")
+                    .postcode("G2 7EZ")
+                    .orgType(GrantMandatoryQuestionOrgType.LIMITED_COMPANY)
+                    .fundingAmount(BigDecimal.valueOf(150000))
+                    .fundingLocation(new GrantMandatoryQuestionFundingLocation[]{
+                            GrantMandatoryQuestionFundingLocation.SCOTLAND
+                    })
+                    .companiesHouseNumber("1234567")
+                    .charityCommissionNumber("22135")
+                    .build();
+
+            when(submissionRepository.findByApplicant_IdAndScheme_Id(applicant.getId(), scheme.getId()))
+                    .thenReturn(List.of(submission1, submission2));
+
+            serviceUnderTest.addMandatoryQuestionsToSubmissionObject(mandatoryQuestions);
+
+            // Both submissions' sections should be rebuilt from the MQ
+            verify(serviceUnderTest, times(2)).buildOrganisationDetailsSubmissionSection(Mockito.any(), Mockito.any());
+            verify(serviceUnderTest, times(2)).buildFundingDetailsSubmissionSection(Mockito.any(), Mockito.any());
+
+            // submission2 (not linked to the MQ) must be saved explicitly
+            verify(submissionRepository).save(submission2);
+            // submission1 (linked to the MQ) is saved via cascade — must NOT be saved directly
+            verify(submissionRepository, never()).save(submission1);
+        }
     }
 
     @Nested

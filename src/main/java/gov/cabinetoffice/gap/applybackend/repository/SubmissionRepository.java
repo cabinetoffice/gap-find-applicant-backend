@@ -11,4 +11,6 @@ public interface SubmissionRepository extends JpaRepository<Submission, UUID> {
     List<Submission> findByApplicantId(long applicantId);
     Optional<Submission> findByApplicantIdAndApplicationId(long applicantId, Integer applicationId);
     Optional<Submission> findByIdAndApplicantUserId(UUID id, String userId);
+
+    List<Submission> findByApplicant_IdAndScheme_Id(long applicantId, Integer schemeId);
 }
