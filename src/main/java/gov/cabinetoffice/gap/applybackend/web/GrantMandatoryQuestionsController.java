@@ -77,6 +77,22 @@ public class GrantMandatoryQuestionsController {
         return ResponseEntity.ok(getGrantMandatoryQuestionDto);
     }
 
+    @PostMapping("/new-submission/{submissionId}")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Grant Mandatory question created for submission", content = @Content(mediaType = "application/json", schema = @Schema(implementation = GetGrantMandatoryQuestionDto.class))),
+            @ApiResponse(responseCode = "404", description = "No submission found", content = @Content(mediaType = "application/json")),
+    })
+    public ResponseEntity<GetGrantMandatoryQuestionDto> createMandatoryQuestionForNewSubmission(@PathVariable final UUID submissionId) {
+        final JwtPayload jwtPayload = (JwtPayload) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+
+        final GrantMandatoryQuestions grantMandatoryQuestions = grantMandatoryQuestionService
+                .createMandatoryQuestionForNewSubmission(submissionId, jwtPayload.getSub());
+        log.info("Mandatory question with ID {} has been created for submission {}.", grantMandatoryQuestions.getId(), submissionId);
+
+        final GetGrantMandatoryQuestionDto getGrantMandatoryQuestionDto = grantMandatoryQuestionMapper.mapGrantMandatoryQuestionToGetGrantMandatoryQuestionDTO(grantMandatoryQuestions);
+        return ResponseEntity.ok(getGrantMandatoryQuestionDto);
+    }
+
     @GetMapping("/{mandatoryQuestionId}")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Grant Mandatory found", content = @Content(mediaType = "application/json", schema = @Schema(implementation = GrantMandatoryQuestions.class))),
