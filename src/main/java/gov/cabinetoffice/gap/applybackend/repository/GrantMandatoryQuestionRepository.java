@@ -14,7 +14,9 @@ public interface GrantMandatoryQuestionRepository extends JpaRepository<GrantMan
 
     Optional<GrantMandatoryQuestions> findBySubmissionId(UUID submissionId);
 
-    Optional<GrantMandatoryQuestions> findByGrantScheme_IdAndCreatedBy_UserId(Integer schemeId, String sub);
+    // Multi-app schemes can have several MQ records per scheme+applicant (one per submission),
+    // so always resolve to the applicant's most recent MQ for the scheme.
+    Optional<GrantMandatoryQuestions> findFirstByGrantScheme_IdAndCreatedBy_UserIdOrderByCreatedDesc(Integer schemeId, String sub);
 
     boolean existsByGrantScheme_IdAndCreatedBy_Id(Integer schemeId, long applicantId);
 }
