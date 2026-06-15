@@ -15,6 +15,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
+import java.math.BigDecimal;
 import java.util.*;
 
 import static java.util.Optional.ofNullable;
@@ -164,6 +165,109 @@ public class GrantMandatoryQuestionService {
         submissionRepository.save(submission);
 
         return saved;
+    }
+
+    /**
+     * Ensures the given submission owns its own mandatory-questions record before it is edited (copy-on-write).
+     * <p>
+     * Legacy multi-application submissions could share a single MQ record. Editing such a submission's
+     * organisation or funding details would otherwise land on whichever submission the shared record happened
+     * to point at, silently altering a sibling. This guarantees the submission being edited owns its MQ: if one
+     * is already linked it is returned unchanged; otherwise a new record is created, seeded from the submission's
+     * own definition (its source of truth, so the figures stay isolated), and linked to it. The shared record is
+     * never re-pointed. Submitted submissions are immutable and left untouched - those are handled by the
+     * separate remediation job - as are version 1 schemes, which do not use MQ-backed sections.
+     */
+    public GrantMandatoryQuestions ensureMandatoryQuestionForSubmission(final UUID submissionId, final String applicantSub) {
+        final Submission submission = submissionRepository.findByIdAndApplicantUserId(submissionId, applicantSub)
+                .orElseThrow(() -> new NotFoundException(String.format("No submission with id %s was found for the current applicant", submissionId)));
+
+        final Optional<GrantMandatoryQuestions> ownMandatoryQuestion = grantMandatoryQuestionRepository.findBySubmissionId(submissionId);
+        if (ownMandatoryQuestion.isPresent()) {
+            return ownMandatoryQuestion.get();
+        }
+
+        if (SubmissionStatus.SUBMITTED.equals(submission.getStatus()) || submission.getScheme().getVersion() <= 1) {
+            return getGrantMandatoryQuestionBySubmissionIdAndApplicantSub(submissionId, applicantSub);
+        }
+
+        log.info("Submission {} has no mandatory question of its own; creating one seeded from its definition", submissionId);
+
+        final GrantMandatoryQuestions perSubmissionMandatoryQuestion = buildMandatoryQuestionFromSubmissionDefinition(submission);
+        perSubmissionMandatoryQuestion.setStatus(GrantMandatoryQuestionStatus.IN_PROGRESS);
+        perSubmissionMandatoryQuestion.setGapId(null);
+        perSubmissionMandatoryQuestion.setGrantScheme(submission.getScheme());
+        perSubmissionMandatoryQuestion.setCreatedBy(submission.getApplicant());
+        perSubmissionMandatoryQuestion.setSubmission(submission);
+
+        return grantMandatoryQuestionRepository.save(perSubmissionMandatoryQuestion);
+    }
+
+    private GrantMandatoryQuestions buildMandatoryQuestionFromSubmissionDefinition(final Submission submission) {
+        final GrantMandatoryQuestions mandatoryQuestions = GrantMandatoryQuestions.builder().build();
+
+        findSubmissionQuestion(submission, MandatoryQuestionConstants.ORGANISATION_DETAILS_SECTION_ID,
+                MandatoryQuestionConstants.SUBMISSION_QUESTION_IDS.APPLICANT_TYPE.toString())
+                .map(SubmissionQuestion::getResponse)
+                .map(GrantMandatoryQuestionOrgType::valueOfName)
+                .ifPresent(mandatoryQuestions::setOrgType);
+
+        findSubmissionQuestion(submission, MandatoryQuestionConstants.ORGANISATION_DETAILS_SECTION_ID,
+                MandatoryQuestionConstants.SUBMISSION_QUESTION_IDS.APPLICANT_ORG_NAME.toString())
+                .map(SubmissionQuestion::getResponse)
+                .ifPresent(mandatoryQuestions::setName);
+
+        findSubmissionQuestion(submission, MandatoryQuestionConstants.ORGANISATION_DETAILS_SECTION_ID,
+                MandatoryQuestionConstants.SUBMISSION_QUESTION_IDS.APPLICANT_ORG_ADDRESS.toString())
+                .map(SubmissionQuestion::getMultiResponse)
+                .ifPresent(address -> {
+                    mandatoryQuestions.setAddressLine1(elementOrNull(address, 0));
+                    mandatoryQuestions.setAddressLine2(elementOrNull(address, 1));
+                    mandatoryQuestions.setCity(elementOrNull(address, 2));
+                    mandatoryQuestions.setCounty(elementOrNull(address, 3));
+                    mandatoryQuestions.setPostcode(elementOrNull(address, 4));
+                });
+
+        findSubmissionQuestion(submission, MandatoryQuestionConstants.ORGANISATION_DETAILS_SECTION_ID,
+                MandatoryQuestionConstants.SUBMISSION_QUESTION_IDS.APPLICANT_ORG_CHARITY_NUMBER.toString())
+                .map(SubmissionQuestion::getResponse)
+                .ifPresent(mandatoryQuestions::setCharityCommissionNumber);
+
+        findSubmissionQuestion(submission, MandatoryQuestionConstants.ORGANISATION_DETAILS_SECTION_ID,
+                MandatoryQuestionConstants.SUBMISSION_QUESTION_IDS.APPLICANT_ORG_COMPANIES_HOUSE.toString())
+                .map(SubmissionQuestion::getResponse)
+                .ifPresent(mandatoryQuestions::setCompaniesHouseNumber);
+
+        findSubmissionQuestion(submission, MandatoryQuestionConstants.FUNDING_DETAILS_SECTION_ID,
+                MandatoryQuestionConstants.SUBMISSION_QUESTION_IDS.APPLICANT_AMOUNT.toString())
+                .map(SubmissionQuestion::getResponse)
+                .filter(response -> !response.isBlank())
+                .map(BigDecimal::new)
+                .ifPresent(mandatoryQuestions::setFundingAmount);
+
+        findSubmissionQuestion(submission, MandatoryQuestionConstants.FUNDING_DETAILS_SECTION_ID,
+                MandatoryQuestionConstants.SUBMISSION_QUESTION_IDS.BENEFITIARY_LOCATION.toString())
+                .map(SubmissionQuestion::getMultiResponse)
+                .ifPresent(locations -> mandatoryQuestions.setFundingLocation(
+                        Arrays.stream(locations)
+                                .map(GrantMandatoryQuestionFundingLocation::valueOfName)
+                                .filter(Objects::nonNull)
+                                .toArray(GrantMandatoryQuestionFundingLocation[]::new)));
+
+        return mandatoryQuestions;
+    }
+
+    private Optional<SubmissionQuestion> findSubmissionQuestion(final Submission submission, final String sectionId, final String questionId) {
+        return submission.getDefinition().getSections().stream()
+                .filter(section -> sectionId.equals(section.getSectionId()))
+                .filter(section -> section.getQuestions() != null)
+                .flatMap(section -> section.getQuestions().stream())
+                .filter(question -> questionId.equals(question.getQuestionId()))
+                .findFirst();
+    }
+
+    private static String elementOrNull(final String[] array, final int index) {
+        return array != null && array.length > index ? array[index] : null;
     }
 
 

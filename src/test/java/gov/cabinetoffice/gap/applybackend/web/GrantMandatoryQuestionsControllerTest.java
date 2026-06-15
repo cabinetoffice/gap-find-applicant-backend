@@ -163,6 +163,28 @@ class GrantMandatoryQuestionsControllerTest {
     }
 
     @Test
+    void ensureMandatoryQuestionForSubmission_DelegatesToService_AndReturnsDto() {
+        final UUID submissionId = UUID.randomUUID();
+        final GrantMandatoryQuestions mandatoryQuestions = GrantMandatoryQuestions.builder()
+                .id(MANDATORY_QUESTION_ID)
+                .build();
+        final GetGrantMandatoryQuestionDto dto = GetGrantMandatoryQuestionDto.builder()
+                .id(MANDATORY_QUESTION_ID)
+                .build();
+
+        when(grantMandatoryQuestionService.ensureMandatoryQuestionForSubmission(submissionId, applicantUserId))
+                .thenReturn(mandatoryQuestions);
+        when(grantMandatoryQuestionMapper.mapGrantMandatoryQuestionToGetGrantMandatoryQuestionDTO(mandatoryQuestions))
+                .thenReturn(dto);
+
+        final ResponseEntity<GetGrantMandatoryQuestionDto> methodResponse = controllerUnderTest.ensureMandatoryQuestionForSubmission(submissionId);
+
+        verify(grantMandatoryQuestionService).ensureMandatoryQuestionForSubmission(submissionId, applicantUserId);
+        assertThat(methodResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(methodResponse.getBody()).isEqualTo(dto);
+    }
+
+    @Test
     void createMandatoryQuestion_AdvertIsNotPublished_CreatesMandatoryQuestionEntry_AndReturnsItsID() {
 
         final GrantMandatoryQuestions emptyMandatoryQuestions = GrantMandatoryQuestions.builder()
