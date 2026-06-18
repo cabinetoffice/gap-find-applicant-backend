@@ -632,7 +632,7 @@ class GrantMandatoryQuestionServiceTest {
         }
 
         @Test
-        void createsPerSubmissionMandatoryQuestionSeededFromDefinition_WhenNoneExists() {
+        void createsPerSubmissionMandatoryQuestion_SeedsOrgButBlanksFunding_WhenNoneExists() {
             final UUID submissionId = UUID.randomUUID();
             final GrantScheme scheme = GrantScheme.builder().id(10).version(2).build();
             final GrantApplicant applicant = GrantApplicant.builder().id(1L).userId(applicantUserId).build();
@@ -647,7 +647,7 @@ class GrantMandatoryQuestionServiceTest {
 
             final GrantMandatoryQuestions result = serviceUnderTest.ensureMandatoryQuestionForSubmission(submissionId, applicantUserId);
 
-            // Organisation + funding details are seeded from the submission's own definition (its source of truth)
+            // Organisation details are seeded from the submission's own definition (its source of truth)
             assertThat(result.getOrgType()).isEqualTo(GrantMandatoryQuestionOrgType.LIMITED_COMPANY);
             assertThat(result.getName()).isEqualTo("AND Digital");
             assertThat(result.getAddressLine1()).isEqualTo("215 Bothwell Street");
@@ -657,10 +657,10 @@ class GrantMandatoryQuestionServiceTest {
             assertThat(result.getPostcode()).isEqualTo("G2 7EZ");
             assertThat(result.getCompaniesHouseNumber()).isEqualTo("1234567");
             assertThat(result.getCharityCommissionNumber()).isEqualTo("22135");
-            assertThat(result.getFundingAmount()).isEqualByComparingTo(BigDecimal.valueOf(150000));
-            assertThat(result.getFundingLocation()).containsExactly(
-                    GrantMandatoryQuestionFundingLocation.SCOTLAND,
-                    GrantMandatoryQuestionFundingLocation.WALES);
+
+            // Funding is deliberately blanked so the applicant must re-confirm it for this submission
+            assertThat(result.getFundingAmount()).isNull();
+            assertThat(result.getFundingLocation()).isNull();
 
             // Linked to this submission, set in progress, with a fresh (null) gapId
             assertThat(result.getSubmission()).isEqualTo(submission);
@@ -669,7 +669,18 @@ class GrantMandatoryQuestionServiceTest {
             assertThat(result.getStatus()).isEqualTo(GrantMandatoryQuestionStatus.IN_PROGRESS);
             assertThat(result.getGapId()).isNull();
 
+            // The blanked funding is projected into this submission and its funding section is reopened
             verify(grantMandatoryQuestionRepository).save(Mockito.any());
+            verify(serviceUnderTest).addMandatoryQuestionsToSubmissionObject(result);
+            verify(submissionRepository).save(submission);
+
+            final SubmissionSection fundingSection = submission.getDefinition().getSections().stream()
+                    .filter(section -> "FUNDING_DETAILS".equals(section.getSectionId()))
+                    .findFirst().orElseThrow();
+            assertThat(fundingSection.getSectionStatus()).isEqualTo(SubmissionSectionStatus.IN_PROGRESS);
+            assertThat(fundingSection.getQuestions().stream()
+                    .filter(question -> "APPLICANT_AMOUNT".equals(question.getQuestionId()))
+                    .findFirst().orElseThrow().getResponse()).isNull();
         }
 
         @Test

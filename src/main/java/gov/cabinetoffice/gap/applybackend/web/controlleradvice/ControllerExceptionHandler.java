@@ -150,6 +150,20 @@ public class ControllerExceptionHandler {
     }
 
     @ResponseStatus(HttpStatus.BAD_REQUEST)
+    @ExceptionHandler(SectionNotReadyException.class)
+    public ErrorResponseBody handleSectionNotReady(SectionNotReadyException ex) {
+        log.error("SectionNotReadyException thrown: {}", ex.getMessage());
+        return ErrorResponseBody.builder()
+                .responseAccepted(Boolean.FALSE)
+                .message("Validation failure")
+                .errors(List.of(Error.builder()
+                        .fieldName("isComplete")
+                        .errorMessage(ex.getMessage())
+                        .build()))
+                .build();
+    }
+
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
     @ExceptionHandler({
             SubmissionNotReadyException.class,
     })
