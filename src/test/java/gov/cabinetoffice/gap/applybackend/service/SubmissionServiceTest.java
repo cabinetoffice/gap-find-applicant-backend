@@ -12,6 +12,7 @@ import gov.cabinetoffice.gap.applybackend.enums.SubmissionSectionStatus;
 import gov.cabinetoffice.gap.applybackend.enums.SubmissionStatus;
 import gov.cabinetoffice.gap.applybackend.exception.ForbiddenException;
 import gov.cabinetoffice.gap.applybackend.exception.NotFoundException;
+import gov.cabinetoffice.gap.applybackend.exception.SectionNotReadyException;
 import gov.cabinetoffice.gap.applybackend.exception.SubmissionAlreadySubmittedException;
 import gov.cabinetoffice.gap.applybackend.exception.SubmissionNotReadyException;
 import gov.cabinetoffice.gap.applybackend.model.*;
@@ -1421,6 +1422,46 @@ class SubmissionServiceTest {
 
             assertThat(capturedSubmission.getGapId()).isEqualTo(gapId);
         }
+
+        @Test
+        void submit_MintsGapIdAndWritesItBackToMandatoryQuestion_WhenMandatoryQuestionHasNoGapId() {
+            final String emailAddress = "test@email.com";
+            final ArgumentCaptor<Submission> submissionCaptor = ArgumentCaptor.forClass(Submission.class);
+            final ArgumentCaptor<GrantMandatoryQuestions> mandatoryQuestionCaptor =
+                    ArgumentCaptor.forClass(GrantMandatoryQuestions.class);
+            final GrantApplicant grantApplicant = GrantApplicant.builder()
+                    .userId(userId)
+                    .id(1)
+                    .build();
+            final GrantScheme scheme = GrantScheme.builder()
+                    .version(2)
+                    .build();
+
+            // A lazily-healed per-submission mandatory question exists but has never been completed, so its gapId is null.
+            final GrantMandatoryQuestions grantMandatoryQuestions = GrantMandatoryQuestions.builder()
+                    .id(UUID.randomUUID())
+                    .gapId(null)
+                    .build();
+
+            submission.setScheme(scheme);
+
+            when(grantMandatoryQuestionRepository.findBySubmissionId(submission.getId()))
+                    .thenReturn(Optional.of(grantMandatoryQuestions));
+            when(diligenceCheckRepository.countDistinctByApplicationNumberContains(any())).thenReturn(1L);
+            doReturn(true).when(serviceUnderTest).isSubmissionReadyToBeSubmitted(userId, SUBMISSION_ID);
+
+            serviceUnderTest.submit(submission, grantApplicant, emailAddress);
+
+            verify(submissionRepository).save(submissionCaptor.capture());
+            final Submission capturedSubmission = submissionCaptor.getValue();
+
+            assertThat(capturedSubmission.getGapId()).isNotBlank();
+            assertThat(capturedSubmission.getGapId()).startsWith("GAP-LOCAL-");
+
+            verify(grantMandatoryQuestionRepository).save(mandatoryQuestionCaptor.capture());
+            assertThat(mandatoryQuestionCaptor.getValue().getGapId())
+                    .isEqualTo(capturedSubmission.getGapId());
+        }
     }
 
     @Nested
@@ -1574,6 +1615,41 @@ class SubmissionServiceTest {
             verify(submissionRepository).save(submissionCaptor.capture());
             final Submission capturedSubmission = submissionCaptor.getValue();
             assertTrue(capturedSubmission.getMandatorySectionsCompleted());
+        }
+
+        @Test
+        void handleSectionReview_throwsAndDoesNotComplete_WhenMandatoryQuestionUnanswered() {
+            final SubmissionQuestionValidation mandatory = SubmissionQuestionValidation.builder()
+                    .mandatory(true)
+                    .build();
+            final SubmissionQuestion unansweredAmount = SubmissionQuestion.builder()
+                    .questionId("APPLICANT_AMOUNT")
+                    .validation(mandatory)
+                    .build();
+            final SubmissionQuestion unansweredLocation = SubmissionQuestion.builder()
+                    .questionId("BENEFITIARY_LOCATION")
+                    .validation(mandatory)
+                    .build();
+            final Submission submissionWithEmptyFunding = Submission.builder()
+                    .id(SUBMISSION_ID)
+                    .definition(SubmissionDefinition.builder()
+                            .sections(List.of(
+                                    SubmissionSection.builder()
+                                            .sectionId("FUNDING_DETAILS")
+                                            .sectionStatus(SubmissionSectionStatus.IN_PROGRESS)
+                                            .questions(List.of(unansweredAmount, unansweredLocation))
+                                            .build()
+                            ))
+                            .build())
+                    .build();
+
+            doReturn(submissionWithEmptyFunding).when(serviceUnderTest)
+                    .getSubmissionFromDatabaseBySubmissionId(userId, SUBMISSION_ID);
+
+            assertThrows(SectionNotReadyException.class,
+                    () -> serviceUnderTest.handleSectionReview(userId, SUBMISSION_ID, "FUNDING_DETAILS", true));
+
+            verify(submissionRepository, never()).save(any());
         }
     }
 

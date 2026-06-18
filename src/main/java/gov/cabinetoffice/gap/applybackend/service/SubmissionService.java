@@ -13,6 +13,7 @@ import gov.cabinetoffice.gap.applybackend.enums.SubmissionSectionStatus;
 import gov.cabinetoffice.gap.applybackend.enums.SubmissionStatus;
 import gov.cabinetoffice.gap.applybackend.exception.ForbiddenException;
 import gov.cabinetoffice.gap.applybackend.exception.NotFoundException;
+import gov.cabinetoffice.gap.applybackend.exception.SectionNotReadyException;
 import gov.cabinetoffice.gap.applybackend.exception.SubmissionAlreadySubmittedException;
 import gov.cabinetoffice.gap.applybackend.exception.SubmissionNotReadyException;
 import gov.cabinetoffice.gap.applybackend.model.*;
@@ -247,10 +248,14 @@ public class SubmissionService {
         final int version = submission.getScheme().getVersion();
 
         final Optional<GrantMandatoryQuestions> grantMandatoryQuestion = grantMandatoryQuestionRepository.findBySubmissionId(submission.getId());
+        final String existingGapId = grantMandatoryQuestion.map(GrantMandatoryQuestions::getGapId).orElse(null);
         final String gapId;
-        if (grantMandatoryQuestion.isPresent()) {
-            gapId = grantMandatoryQuestion.get().getGapId();
+        if (existingGapId != null && !existingGapId.isBlank()) {
+            gapId = existingGapId;
         } else {
+            // A per-submission mandatory question created by copy-on-write has no gapId of its own (it is only minted
+            // when the MQ journey is marked complete). Mint one at submit time so we never freeze a null reference onto
+            // the submission, its diligence check or its grant beneficiary record.
             gapId = GapIdGenerator.generateGapId(
                     grantApplicant.getId(),
                     envProperties.getEnvironmentName(),
@@ -261,6 +266,7 @@ public class SubmissionService {
         submission.setGapId(gapId);
 
         submitApplication(submission);
+        setMandatoryQuestionsGapId(submission);
         notifyClient.sendConfirmationEmail(emailAddress, submission);
         createDiligenceCheckFromSubmission(submission);
         createGrantBeneficiary(submission);
@@ -576,19 +582,43 @@ public class SubmissionService {
                                                        final String sectionId,
                                                        final boolean isComplete) {
         final Submission submission = getSubmissionFromDatabaseBySubmissionId(userId, submissionId);
-        final SubmissionSectionStatus sectionStatus = isComplete ? SubmissionSectionStatus.COMPLETED : SubmissionSectionStatus.IN_PROGRESS;
-        submission.getDefinition()
+        final SubmissionSection section = submission.getDefinition()
                 .getSections()
                 .stream()
                 .filter(submissionSection -> submissionSection.getSectionId().equals(sectionId))
                 .findFirst()
-                .orElseThrow(() -> new NotFoundException(String.format("No section with ID %s was found", sectionId)))
-                .setSectionStatus(sectionStatus);
+                .orElseThrow(() -> new NotFoundException(String.format("No section with ID %s was found", sectionId)));
+
+        // A section can only be marked complete once every mandatory question in it has an answer. Without this guard a
+        // section whose funding details were left blank (e.g. a freshly created per-submission mandatory question) could
+        // show as COMPLETED on the UI even though the submission can never actually be submitted, which confuses applicants.
+        if (isComplete && !areAllMandatoryQuestionsAnswered(section)) {
+            throw new SectionNotReadyException(
+                    "You must answer every question in this section before you can mark it as completed.");
+        }
+
+        final SubmissionSectionStatus sectionStatus = isComplete ? SubmissionSectionStatus.COMPLETED : SubmissionSectionStatus.IN_PROGRESS;
+        section.setSectionStatus(sectionStatus);
 
         updateMandatorySectionsCompletedFlag(submission);
 
         submissionRepository.save(submission);
         return sectionStatus;
+    }
+
+    private boolean areAllMandatoryQuestionsAnswered(final SubmissionSection section) {
+        if (section.getQuestions() == null) {
+            return true;
+        }
+        return section.getQuestions().stream()
+                .filter(question -> question.getValidation() != null && question.getValidation().isMandatory())
+                .allMatch(question -> {
+                    final boolean responseIsEmptyOrNull = question.getResponse() == null
+                            || question.getResponse().isBlank();
+                    final boolean multiResponseArrayIsEmptyOrNull = question.getMultiResponse() == null
+                            || question.getMultiResponse().length < 1;
+                    return !(responseIsEmptyOrNull && multiResponseArrayIsEmptyOrNull);
+                });
     }
 
     private void updateMandatorySectionsCompletedFlag(final Submission submission) {

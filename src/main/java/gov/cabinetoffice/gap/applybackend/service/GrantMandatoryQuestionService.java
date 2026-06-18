@@ -173,10 +173,13 @@ public class GrantMandatoryQuestionService {
      * Legacy multi-application submissions could share a single MQ record. Editing such a submission's
      * organisation or funding details would otherwise land on whichever submission the shared record happened
      * to point at, silently altering a sibling. This guarantees the submission being edited owns its MQ: if one
-     * is already linked it is returned unchanged; otherwise a new record is created, seeded from the submission's
-     * own definition (its source of truth, so the figures stay isolated), and linked to it. The shared record is
-     * never re-pointed. Submitted submissions are immutable and left untouched - those are handled by the
-     * separate remediation job - as are version 1 schemes, which do not use MQ-backed sections.
+     * is already linked it is returned unchanged; otherwise a new record is created, with organisation details
+     * seeded from the submission's own definition but funding deliberately blanked - because the funding figures
+     * may have been corrupted by a shared record, the applicant must re-confirm them. The blanked funding is
+     * projected back into the submission and its funding section reopened so it cannot be completed or submitted
+     * until re-entered. The shared record is never re-pointed. Submitted submissions are immutable and left
+     * untouched - those are handled by the separate remediation job - as are version 1 schemes, which do not use
+     * MQ-backed sections.
      */
     public GrantMandatoryQuestions ensureMandatoryQuestionForSubmission(final UUID submissionId, final String applicantSub) {
         final Submission submission = submissionRepository.findByIdAndApplicantUserId(submissionId, applicantSub)
@@ -191,16 +194,30 @@ public class GrantMandatoryQuestionService {
             return getGrantMandatoryQuestionBySubmissionIdAndApplicantSub(submissionId, applicantSub);
         }
 
-        log.info("Submission {} has no mandatory question of its own; creating one seeded from its definition", submissionId);
+        log.info("Submission {} has no mandatory question of its own; creating one and reopening its funding", submissionId);
 
         final GrantMandatoryQuestions perSubmissionMandatoryQuestion = buildMandatoryQuestionFromSubmissionDefinition(submission);
         perSubmissionMandatoryQuestion.setStatus(GrantMandatoryQuestionStatus.IN_PROGRESS);
         perSubmissionMandatoryQuestion.setGapId(null);
+        // This submission was relying on a sibling's mandatory question, so the funding figures in its definition may
+        // have been overwritten by that sibling and cannot be trusted. Blank them (mirroring a brand-new submission) so
+        // the applicant must re-confirm funding for this submission before its funding section can be completed or submitted.
+        perSubmissionMandatoryQuestion.setFundingAmount(null);
+        perSubmissionMandatoryQuestion.setFundingLocation(null);
         perSubmissionMandatoryQuestion.setGrantScheme(submission.getScheme());
         perSubmissionMandatoryQuestion.setCreatedBy(submission.getApplicant());
         perSubmissionMandatoryQuestion.setSubmission(submission);
 
-        return grantMandatoryQuestionRepository.save(perSubmissionMandatoryQuestion);
+        final GrantMandatoryQuestions savedMandatoryQuestion = grantMandatoryQuestionRepository.save(perSubmissionMandatoryQuestion);
+
+        // Project the blanked funding into this submission's definition and reopen its funding section so the existing
+        // section-completion and submit-readiness checks force the applicant to re-enter funding for this submission.
+        addMandatoryQuestionsToSubmissionObject(savedMandatoryQuestion);
+        submission.getSection(MandatoryQuestionConstants.FUNDING_DETAILS_SECTION_ID)
+                .setSectionStatus(SubmissionSectionStatus.IN_PROGRESS);
+        submissionRepository.save(submission);
+
+        return savedMandatoryQuestion;
     }
 
     private GrantMandatoryQuestions buildMandatoryQuestionFromSubmissionDefinition(final Submission submission) {
