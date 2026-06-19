@@ -221,6 +221,13 @@ public class SubmissionController {
         final Submission submission = submissionService.getSubmissionFromDatabaseBySubmissionId(grantApplicant.getUserId(), applicationSubmission.getSubmissionId());
         final GrantScheme scheme = submission.getScheme();
 
+        // Backstop heal: guarantee this submission owns its own mandatory question before it is finalised. If it was
+        // relying on a sibling submission's record, this creates its own and blanks the funding details, so the
+        // readiness check inside submit() rejects it until funding is re-entered. This closes the gap where a direct
+        // POST to /submit bypasses the heal performed on the application pages. No-op when the submission already
+        // owns its mandatory question.
+        mandatoryQuestionService.ensureMandatoryQuestionForSubmission(submission.getId(), grantApplicant.getUserId());
+
         submissionService.submit(submission, grantApplicant, jwtPayload.getEmail());
 
         if (scheme.getVersion() > 1) {

@@ -407,9 +407,9 @@ class GrantMandatoryQuestionServiceTest {
     }
 
     @Nested
-    class createMandatoryQuestionForNewSubmission {
+    class ensureMandatoryQuestionForSubmission {
 
-        private Submission buildVersionTwoSubmission(final UUID submissionId, final GrantScheme scheme, final GrantApplicant applicant) {
+        private Submission buildNewSubmissionWithoutOrgInDefinition(final UUID submissionId, final GrantScheme scheme, final GrantApplicant applicant) {
             final SubmissionDefinition definition = SubmissionDefinition.builder()
                     .sections(new ArrayList<>(List.of(
                             SubmissionSection.builder().sectionId("ELIGIBILITY").build(),
@@ -426,150 +426,6 @@ class GrantMandatoryQuestionServiceTest {
                     .build();
         }
 
-        @Test
-        void copiesOrgDetailsButBlanksFunding_AndProjectsIntoSubmission() {
-            final UUID submissionId = UUID.randomUUID();
-            final GrantScheme scheme = GrantScheme.builder().id(10).version(2).build();
-            final GrantApplicant applicant = GrantApplicant.builder().id(1L).userId(applicantUserId).build();
-            final Submission submission = buildVersionTwoSubmission(submissionId, scheme, applicant);
-
-            final GrantMandatoryQuestions source = GrantMandatoryQuestions.builder()
-                    .name("AND Digital")
-                    .addressLine1("215 Bothwell Street")
-                    .addressLine2("Floor 2")
-                    .city("Glasgow")
-                    .county("Lanarkshire")
-                    .postcode("G2 7EZ")
-                    .orgType(GrantMandatoryQuestionOrgType.LIMITED_COMPANY)
-                    .companiesHouseNumber("1234567")
-                    .charityCommissionNumber("22135")
-                    .fundingAmount(BigDecimal.valueOf(150000))
-                    .fundingLocation(new GrantMandatoryQuestionFundingLocation[]{
-                            GrantMandatoryQuestionFundingLocation.SCOTLAND
-                    })
-                    .gapId("GAP-LL-20240101-1")
-                    .build();
-
-            when(submissionRepository.findByIdAndApplicantUserId(submissionId, applicantUserId))
-                    .thenReturn(Optional.of(submission));
-            when(grantMandatoryQuestionRepository.findBySubmissionId(submissionId))
-                    .thenReturn(Optional.empty());
-            when(grantMandatoryQuestionRepository.findFirstByGrantScheme_IdAndCreatedBy_UserIdOrderByCreatedDesc(scheme.getId(), applicantUserId))
-                    .thenReturn(Optional.of(source));
-            when(grantMandatoryQuestionRepository.save(Mockito.any()))
-                    .thenAnswer(invocation -> invocation.getArgument(0));
-
-            final GrantMandatoryQuestions result = serviceUnderTest.createMandatoryQuestionForNewSubmission(submissionId, applicantUserId);
-
-            // Organisation/address details are copied from the most recent MQ
-            assertThat(result.getName()).isEqualTo("AND Digital");
-            assertThat(result.getAddressLine1()).isEqualTo("215 Bothwell Street");
-            assertThat(result.getAddressLine2()).isEqualTo("Floor 2");
-            assertThat(result.getCity()).isEqualTo("Glasgow");
-            assertThat(result.getCounty()).isEqualTo("Lanarkshire");
-            assertThat(result.getPostcode()).isEqualTo("G2 7EZ");
-            assertThat(result.getOrgType()).isEqualTo(GrantMandatoryQuestionOrgType.LIMITED_COMPANY);
-            assertThat(result.getCompaniesHouseNumber()).isEqualTo("1234567");
-            assertThat(result.getCharityCommissionNumber()).isEqualTo("22135");
-
-            // Funding + gapId are deliberately blanked for the new submission
-            assertThat(result.getFundingAmount()).isNull();
-            assertThat(result.getFundingLocation()).isNull();
-            assertThat(result.getGapId()).isNull();
-
-            // Linked to the new submission and set in progress
-            assertThat(result.getStatus()).isEqualTo(GrantMandatoryQuestionStatus.IN_PROGRESS);
-            assertThat(result.getSubmission()).isEqualTo(submission);
-            assertThat(result.getGrantScheme()).isEqualTo(scheme);
-            assertThat(result.getCreatedBy()).isEqualTo(applicant);
-
-            // The new MQ is saved and projected into its own submission
-            verify(grantMandatoryQuestionRepository).save(Mockito.any());
-            verify(submissionRepository).save(submission);
-            verify(serviceUnderTest).addMandatoryQuestionsToSubmissionObject(result);
-        }
-
-        @Test
-        void fallsBackToOrgProfile_WhenNoPreviousMandatoryQuestionExists() {
-            final UUID submissionId = UUID.randomUUID();
-            final GrantScheme scheme = GrantScheme.builder().id(10).version(2).build();
-            final GrantApplicant applicant = GrantApplicant.builder()
-                    .id(1L)
-                    .userId(applicantUserId)
-                    .organisationProfile(organisationProfile)
-                    .build();
-            final Submission submission = buildVersionTwoSubmission(submissionId, scheme, applicant);
-
-            final GrantMandatoryQuestions fromProfile = GrantMandatoryQuestions.builder()
-                    .name(organisationProfile.getLegalName())
-                    .addressLine1(organisationProfile.getAddressLine1())
-                    .city(organisationProfile.getTown())
-                    .postcode(organisationProfile.getPostcode())
-                    .orgType(GrantMandatoryQuestionOrgType.LIMITED_COMPANY)
-                    .build();
-
-            when(submissionRepository.findByIdAndApplicantUserId(submissionId, applicantUserId))
-                    .thenReturn(Optional.of(submission));
-            when(grantMandatoryQuestionRepository.findBySubmissionId(submissionId))
-                    .thenReturn(Optional.empty());
-            when(grantMandatoryQuestionRepository.findFirstByGrantScheme_IdAndCreatedBy_UserIdOrderByCreatedDesc(scheme.getId(), applicantUserId))
-                    .thenReturn(Optional.empty());
-            when(organisationProfileMapper.mapOrgProfileToGrantMandatoryQuestion(organisationProfile))
-                    .thenReturn(fromProfile);
-            when(grantMandatoryQuestionRepository.save(Mockito.any()))
-                    .thenAnswer(invocation -> invocation.getArgument(0));
-
-            final GrantMandatoryQuestions result = serviceUnderTest.createMandatoryQuestionForNewSubmission(submissionId, applicantUserId);
-
-            verify(organisationProfileMapper).mapOrgProfileToGrantMandatoryQuestion(organisationProfile);
-            assertThat(result.getName()).isEqualTo(organisationProfile.getLegalName());
-            assertThat(result.getFundingAmount()).isNull();
-            assertThat(result.getFundingLocation()).isNull();
-            assertThat(result.getSubmission()).isEqualTo(submission);
-        }
-
-        @Test
-        void isIdempotent_ReturnsExistingMandatoryQuestionForSubmission() {
-            final UUID submissionId = UUID.randomUUID();
-            final GrantScheme scheme = GrantScheme.builder().id(10).version(2).build();
-            final GrantApplicant applicant = GrantApplicant.builder().id(1L).userId(applicantUserId).build();
-            final Submission submission = buildVersionTwoSubmission(submissionId, scheme, applicant);
-
-            final GrantMandatoryQuestions existing = GrantMandatoryQuestions.builder()
-                    .id(UUID.randomUUID())
-                    .submission(submission)
-                    .build();
-
-            when(submissionRepository.findByIdAndApplicantUserId(submissionId, applicantUserId))
-                    .thenReturn(Optional.of(submission));
-            when(grantMandatoryQuestionRepository.findBySubmissionId(submissionId))
-                    .thenReturn(Optional.of(existing));
-
-            final GrantMandatoryQuestions result = serviceUnderTest.createMandatoryQuestionForNewSubmission(submissionId, applicantUserId);
-
-            assertThat(result).isEqualTo(existing);
-            verify(grantMandatoryQuestionRepository, never()).save(Mockito.any());
-            verify(grantMandatoryQuestionRepository, never())
-                    .findFirstByGrantScheme_IdAndCreatedBy_UserIdOrderByCreatedDesc(Mockito.anyInt(), Mockito.anyString());
-        }
-
-        @Test
-        void throwsNotFound_WhenSubmissionDoesNotExistForApplicant() {
-            final UUID submissionId = UUID.randomUUID();
-
-            when(submissionRepository.findByIdAndApplicantUserId(submissionId, applicantUserId))
-                    .thenReturn(Optional.empty());
-
-            assertThrows(NotFoundException.class,
-                    () -> serviceUnderTest.createMandatoryQuestionForNewSubmission(submissionId, applicantUserId));
-
-            verify(grantMandatoryQuestionRepository, never()).save(Mockito.any());
-        }
-    }
-
-    @Nested
-    class ensureMandatoryQuestionForSubmission {
-
         private Submission buildBrokenSiblingSubmission(final UUID submissionId, final GrantScheme scheme,
                 final GrantApplicant applicant, final SubmissionStatus status) {
             final SubmissionSection organisationDetails = SubmissionSection.builder()
@@ -585,6 +441,7 @@ class GrantMandatoryQuestionServiceTest {
                     .build();
             final SubmissionSection fundingDetails = SubmissionSection.builder()
                     .sectionId("FUNDING_DETAILS")
+                    .sectionStatus(SubmissionSectionStatus.COMPLETED)
                     .questions(new ArrayList<>(List.of(
                             SubmissionQuestion.builder().questionId("APPLICANT_AMOUNT").response("150000").build(),
                             SubmissionQuestion.builder().questionId("BENEFITIARY_LOCATION")
@@ -740,6 +597,103 @@ class GrantMandatoryQuestionServiceTest {
                     () -> serviceUnderTest.ensureMandatoryQuestionForSubmission(submissionId, applicantUserId));
 
             verify(grantMandatoryQuestionRepository, never()).save(Mockito.any());
+        }
+
+        @Test
+        void seedsOrgFromMostRecentMandatoryQuestion_WhenSubmissionDefinitionHasNoOrg() {
+            final UUID submissionId = UUID.randomUUID();
+            final GrantScheme scheme = GrantScheme.builder().id(10).version(2).build();
+            final GrantApplicant applicant = GrantApplicant.builder().id(1L).userId(applicantUserId).build();
+            final Submission submission = buildNewSubmissionWithoutOrgInDefinition(submissionId, scheme, applicant);
+
+            final GrantMandatoryQuestions source = GrantMandatoryQuestions.builder()
+                    .name("AND Digital")
+                    .addressLine1("215 Bothwell Street")
+                    .addressLine2("Floor 2")
+                    .city("Glasgow")
+                    .county("Lanarkshire")
+                    .postcode("G2 7EZ")
+                    .orgType(GrantMandatoryQuestionOrgType.LIMITED_COMPANY)
+                    .companiesHouseNumber("1234567")
+                    .charityCommissionNumber("22135")
+                    .fundingAmount(BigDecimal.valueOf(150000))
+                    .fundingLocation(new GrantMandatoryQuestionFundingLocation[]{
+                            GrantMandatoryQuestionFundingLocation.SCOTLAND
+                    })
+                    .gapId("GAP-LL-20240101-1")
+                    .build();
+
+            when(submissionRepository.findByIdAndApplicantUserId(submissionId, applicantUserId))
+                    .thenReturn(Optional.of(submission));
+            when(grantMandatoryQuestionRepository.findBySubmissionId(submissionId))
+                    .thenReturn(Optional.empty());
+            when(grantMandatoryQuestionRepository.findFirstByGrantScheme_IdAndCreatedBy_UserIdOrderByCreatedDesc(scheme.getId(), applicantUserId))
+                    .thenReturn(Optional.of(source));
+            when(grantMandatoryQuestionRepository.save(Mockito.any()))
+                    .thenAnswer(invocation -> invocation.getArgument(0));
+
+            final GrantMandatoryQuestions result = serviceUnderTest.ensureMandatoryQuestionForSubmission(submissionId, applicantUserId);
+
+            // Organisation/address details are seeded from the applicant's most recent MQ (the definition had none)
+            assertThat(result.getName()).isEqualTo("AND Digital");
+            assertThat(result.getAddressLine1()).isEqualTo("215 Bothwell Street");
+            assertThat(result.getOrgType()).isEqualTo(GrantMandatoryQuestionOrgType.LIMITED_COMPANY);
+            assertThat(result.getCompaniesHouseNumber()).isEqualTo("1234567");
+            assertThat(result.getCharityCommissionNumber()).isEqualTo("22135");
+
+            // Funding + gapId are deliberately blanked for the new submission
+            assertThat(result.getFundingAmount()).isNull();
+            assertThat(result.getFundingLocation()).isNull();
+            assertThat(result.getGapId()).isNull();
+
+            assertThat(result.getStatus()).isEqualTo(GrantMandatoryQuestionStatus.IN_PROGRESS);
+            assertThat(result.getSubmission()).isEqualTo(submission);
+            assertThat(result.getGrantScheme()).isEqualTo(scheme);
+            assertThat(result.getCreatedBy()).isEqualTo(applicant);
+
+            verify(grantMandatoryQuestionRepository).save(Mockito.any());
+            verify(submissionRepository).save(submission);
+            verify(serviceUnderTest).addMandatoryQuestionsToSubmissionObject(result);
+        }
+
+        @Test
+        void fallsBackToOrgProfile_WhenNoOrgInDefinitionAndNoPreviousMandatoryQuestion() {
+            final UUID submissionId = UUID.randomUUID();
+            final GrantScheme scheme = GrantScheme.builder().id(10).version(2).build();
+            final GrantApplicant applicant = GrantApplicant.builder()
+                    .id(1L)
+                    .userId(applicantUserId)
+                    .organisationProfile(organisationProfile)
+                    .build();
+            final Submission submission = buildNewSubmissionWithoutOrgInDefinition(submissionId, scheme, applicant);
+
+            final GrantMandatoryQuestions fromProfile = GrantMandatoryQuestions.builder()
+                    .name(organisationProfile.getLegalName())
+                    .addressLine1(organisationProfile.getAddressLine1())
+                    .city(organisationProfile.getTown())
+                    .postcode(organisationProfile.getPostcode())
+                    .orgType(GrantMandatoryQuestionOrgType.LIMITED_COMPANY)
+                    .build();
+
+            when(submissionRepository.findByIdAndApplicantUserId(submissionId, applicantUserId))
+                    .thenReturn(Optional.of(submission));
+            when(grantMandatoryQuestionRepository.findBySubmissionId(submissionId))
+                    .thenReturn(Optional.empty());
+            when(grantMandatoryQuestionRepository.findFirstByGrantScheme_IdAndCreatedBy_UserIdOrderByCreatedDesc(scheme.getId(), applicantUserId))
+                    .thenReturn(Optional.empty());
+            when(organisationProfileMapper.mapOrgProfileToGrantMandatoryQuestion(organisationProfile))
+                    .thenReturn(fromProfile);
+            when(grantMandatoryQuestionRepository.save(Mockito.any()))
+                    .thenAnswer(invocation -> invocation.getArgument(0));
+
+            final GrantMandatoryQuestions result = serviceUnderTest.ensureMandatoryQuestionForSubmission(submissionId, applicantUserId);
+
+            verify(organisationProfileMapper).mapOrgProfileToGrantMandatoryQuestion(organisationProfile);
+            assertThat(result.getName()).isEqualTo(organisationProfile.getLegalName());
+            assertThat(result.getOrgType()).isEqualTo(GrantMandatoryQuestionOrgType.LIMITED_COMPANY);
+            assertThat(result.getFundingAmount()).isNull();
+            assertThat(result.getFundingLocation()).isNull();
+            assertThat(result.getSubmission()).isEqualTo(submission);
         }
     }
 

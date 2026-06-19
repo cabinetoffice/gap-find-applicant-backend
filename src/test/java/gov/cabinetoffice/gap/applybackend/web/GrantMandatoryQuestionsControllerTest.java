@@ -141,28 +141,6 @@ class GrantMandatoryQuestionsControllerTest {
     }
 
     @Test
-    void createMandatoryQuestionForNewSubmission_DelegatesToService_AndReturnsDto() {
-        final UUID submissionId = UUID.randomUUID();
-        final GrantMandatoryQuestions mandatoryQuestions = GrantMandatoryQuestions.builder()
-                .id(MANDATORY_QUESTION_ID)
-                .build();
-        final GetGrantMandatoryQuestionDto dto = GetGrantMandatoryQuestionDto.builder()
-                .id(MANDATORY_QUESTION_ID)
-                .build();
-
-        when(grantMandatoryQuestionService.createMandatoryQuestionForNewSubmission(submissionId, applicantUserId))
-                .thenReturn(mandatoryQuestions);
-        when(grantMandatoryQuestionMapper.mapGrantMandatoryQuestionToGetGrantMandatoryQuestionDTO(mandatoryQuestions))
-                .thenReturn(dto);
-
-        final ResponseEntity<GetGrantMandatoryQuestionDto> methodResponse = controllerUnderTest.createMandatoryQuestionForNewSubmission(submissionId);
-
-        verify(grantMandatoryQuestionService).createMandatoryQuestionForNewSubmission(submissionId, applicantUserId);
-        assertThat(methodResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
-        assertThat(methodResponse.getBody()).isEqualTo(dto);
-    }
-
-    @Test
     void ensureMandatoryQuestionForSubmission_DelegatesToService_AndReturnsDto() {
         final UUID submissionId = UUID.randomUUID();
         final GrantMandatoryQuestions mandatoryQuestions = GrantMandatoryQuestions.builder()
