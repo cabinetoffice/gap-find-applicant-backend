@@ -462,6 +462,7 @@ class GrantMandatoryQuestionServiceTest {
                     .status(status)
                     .scheme(scheme)
                     .applicant(applicant)
+                    .mandatorySectionsCompleted(true)
                     .build();
         }
 
@@ -538,6 +539,9 @@ class GrantMandatoryQuestionServiceTest {
             assertThat(fundingSection.getQuestions().stream()
                     .filter(question -> "APPLICANT_AMOUNT".equals(question.getQuestionId()))
                     .findFirst().orElseThrow().getResponse()).isNull();
+
+            // Blanking funding clears the submission's cached "mandatory sections completed" flag
+            assertThat(submission.getMandatorySectionsCompleted()).isFalse();
         }
 
         @Test

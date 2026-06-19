@@ -167,6 +167,9 @@ public class GrantMandatoryQuestionService {
         if (SubmissionSectionStatus.COMPLETED.equals(fundingSection.getSectionStatus())) {
             fundingSection.setSectionStatus(SubmissionSectionStatus.IN_PROGRESS);
         }
+        // Blanking funding means the mandatory sections are no longer all complete. This cached flag is only otherwise
+        // recomputed during section review, so clear it here to keep it consistent with the now-incomplete funding.
+        submission.setMandatorySectionsCompleted(false);
         submissionRepository.save(submission);
 
         return savedMandatoryQuestion;
