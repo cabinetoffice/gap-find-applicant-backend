@@ -258,6 +258,56 @@ class GrantMandatoryQuestionServiceTest {
             assertThat(methodResponse).isEqualTo(mandatoryQuestions);
         }
 
+        @Test
+        void getMandatoryQuestionByScheme_PrefersMostRecentCompletedMandatoryQuestion() {
+            final String applicantSub = "valid-applicant-id";
+
+            final GrantApplicant createdByValidUser = GrantApplicant.builder().userId(applicantSub).build();
+            final GrantMandatoryQuestions completedMandatoryQuestion = GrantMandatoryQuestions.builder()
+                    .createdBy(createdByValidUser)
+                    .status(GrantMandatoryQuestionStatus.COMPLETED)
+                    .build();
+
+            when(grantMandatoryQuestionRepository.findFirstByGrantScheme_IdAndCreatedBy_UserIdAndStatusOrderByCreatedDesc(
+                    1, applicantSub, GrantMandatoryQuestionStatus.COMPLETED))
+                    .thenReturn(Optional.of(completedMandatoryQuestion));
+
+            final GrantMandatoryQuestions methodResponse = serviceUnderTest.getMandatoryQuestionBySchemeId(1, applicantSub);
+
+            assertThat(methodResponse).isEqualTo(completedMandatoryQuestion);
+            // A completed MQ wins outright: the submission-linked and most-recent-overall lookups must not be reached.
+            verify(grantMandatoryQuestionRepository, never())
+                    .findFirstByGrantScheme_IdAndCreatedBy_UserIdAndSubmissionIsNotNullOrderByCreatedDesc(Mockito.anyInt(), Mockito.anyString());
+            verify(grantMandatoryQuestionRepository, never())
+                    .findFirstByGrantScheme_IdAndCreatedBy_UserIdOrderByCreatedDesc(Mockito.anyInt(), Mockito.anyString());
+        }
+
+        @Test
+        void getMandatoryQuestionByScheme_FallsBackToSubmissionLinkedWhenNoCompletedExists() {
+            final String applicantSub = "valid-applicant-id";
+
+            final GrantApplicant createdByValidUser = GrantApplicant.builder().userId(applicantSub).build();
+            final GrantMandatoryQuestions submissionLinkedMandatoryQuestion = GrantMandatoryQuestions.builder()
+                    .createdBy(createdByValidUser)
+                    .status(GrantMandatoryQuestionStatus.IN_PROGRESS)
+                    .submission(Submission.builder().build())
+                    .build();
+
+            when(grantMandatoryQuestionRepository.findFirstByGrantScheme_IdAndCreatedBy_UserIdAndStatusOrderByCreatedDesc(
+                    1, applicantSub, GrantMandatoryQuestionStatus.COMPLETED))
+                    .thenReturn(Optional.empty());
+            when(grantMandatoryQuestionRepository.findFirstByGrantScheme_IdAndCreatedBy_UserIdAndSubmissionIsNotNullOrderByCreatedDesc(
+                    1, applicantSub))
+                    .thenReturn(Optional.of(submissionLinkedMandatoryQuestion));
+
+            final GrantMandatoryQuestions methodResponse = serviceUnderTest.getMandatoryQuestionBySchemeId(1, applicantSub);
+
+            assertThat(methodResponse).isEqualTo(submissionLinkedMandatoryQuestion);
+            // With no completed MQ but a submission-linked one, the most-recent-overall lookup must not be reached.
+            verify(grantMandatoryQuestionRepository, never())
+                    .findFirstByGrantScheme_IdAndCreatedBy_UserIdOrderByCreatedDesc(Mockito.anyInt(), Mockito.anyString());
+        }
+
     }
 
     @Nested

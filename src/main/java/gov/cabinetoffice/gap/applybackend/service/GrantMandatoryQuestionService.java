@@ -71,16 +71,23 @@ public class GrantMandatoryQuestionService {
     }
 
     public GrantMandatoryQuestions getMandatoryQuestionBySchemeId(Integer schemeId, String applicantSub) {
-        final Optional<GrantMandatoryQuestions> grantMandatoryQuestion = ofNullable(grantMandatoryQuestionRepository
-                .findFirstByGrantScheme_IdAndCreatedBy_UserIdOrderByCreatedDesc(schemeId, applicantSub)
-                .orElseThrow(() -> new NotFoundException(String.format("No Mandatory Question with scheme id  %s was found", schemeId))));
+        // Resolve the MQ that best represents the applicant's established organisation details for this scheme.
+        // Prefer the most recent COMPLETED record (their details are fully entered), then the most recent record that
+        // already belongs to a submission (organisation details established via a submission), and finally the most
+        // recent record of any kind. With the per-submission model the newest record is often an in-progress draft, so
+        // picking the newest overall would wrongly send applicants back through the full mandatory questions journey.
+        final GrantMandatoryQuestions grantMandatoryQuestion = grantMandatoryQuestionRepository
+                .findFirstByGrantScheme_IdAndCreatedBy_UserIdAndStatusOrderByCreatedDesc(schemeId, applicantSub, GrantMandatoryQuestionStatus.COMPLETED)
+                .or(() -> grantMandatoryQuestionRepository.findFirstByGrantScheme_IdAndCreatedBy_UserIdAndSubmissionIsNotNullOrderByCreatedDesc(schemeId, applicantSub))
+                .or(() -> grantMandatoryQuestionRepository.findFirstByGrantScheme_IdAndCreatedBy_UserIdOrderByCreatedDesc(schemeId, applicantSub))
+                .orElseThrow(() -> new NotFoundException(String.format("No Mandatory Question with scheme id  %s was found", schemeId)));
 
-        if (!grantMandatoryQuestion.get().getCreatedBy().getUserId().equals(applicantSub)) {
+        if (!grantMandatoryQuestion.getCreatedBy().getUserId().equals(applicantSub)) {
             throw new ForbiddenException(String.format("Mandatory Question with id %s and scheme ID %s was not created by %s",
-                    grantMandatoryQuestion.get().getId(), schemeId, applicantSub));
+                    grantMandatoryQuestion.getId(), schemeId, applicantSub));
         }
 
-        return grantMandatoryQuestion.get();
+        return grantMandatoryQuestion;
     }
 
     public GrantMandatoryQuestions createMandatoryQuestion(GrantScheme scheme, GrantApplicant applicant, boolean isForInternalApplication) {

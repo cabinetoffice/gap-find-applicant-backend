@@ -1,5 +1,6 @@
 package gov.cabinetoffice.gap.applybackend.repository;
 
+import gov.cabinetoffice.gap.applybackend.enums.GrantMandatoryQuestionStatus;
 import gov.cabinetoffice.gap.applybackend.model.GrantApplicant;
 import gov.cabinetoffice.gap.applybackend.model.GrantMandatoryQuestions;
 import gov.cabinetoffice.gap.applybackend.model.GrantScheme;
@@ -17,6 +18,14 @@ public interface GrantMandatoryQuestionRepository extends JpaRepository<GrantMan
     // Multi-app schemes can have several MQ records per scheme+applicant (one per submission),
     // so always resolve to the applicant's most recent MQ for the scheme.
     Optional<GrantMandatoryQuestions> findFirstByGrantScheme_IdAndCreatedBy_UserIdOrderByCreatedDesc(Integer schemeId, String sub);
+
+    // Most recent MQ of a given status (e.g. COMPLETED) for the scheme+applicant. Used so routing can prefer a
+    // fully-entered previous MQ over a newer in-progress per-submission draft.
+    Optional<GrantMandatoryQuestions> findFirstByGrantScheme_IdAndCreatedBy_UserIdAndStatusOrderByCreatedDesc(Integer schemeId, String sub, GrantMandatoryQuestionStatus status);
+
+    // Most recent MQ that already belongs to a submission for the scheme+applicant. Used as a fallback when no MQ has
+    // reached COMPLETED but the applicant has nonetheless established their organisation details via a submission.
+    Optional<GrantMandatoryQuestions> findFirstByGrantScheme_IdAndCreatedBy_UserIdAndSubmissionIsNotNullOrderByCreatedDesc(Integer schemeId, String sub);
 
     boolean existsByGrantScheme_IdAndCreatedBy_Id(Integer schemeId, long applicantId);
 }
