@@ -9,6 +9,7 @@ import gov.cabinetoffice.gap.applybackend.dto.api.CreateQuestionResponseDto;
 import gov.cabinetoffice.gap.applybackend.dto.api.CreateSubmissionResponseDto;
 import gov.cabinetoffice.gap.applybackend.dto.api.GetNavigationParamsDto;
 import gov.cabinetoffice.gap.applybackend.enums.GrantApplicationStatus;
+import gov.cabinetoffice.gap.applybackend.enums.GrantMandatoryQuestionStatus;
 import gov.cabinetoffice.gap.applybackend.enums.SubmissionSectionStatus;
 import gov.cabinetoffice.gap.applybackend.enums.SubmissionStatus;
 import gov.cabinetoffice.gap.applybackend.exception.ForbiddenException;
@@ -287,6 +288,11 @@ public class SubmissionService {
             final Optional<GrantMandatoryQuestions> grantMandatoryQuestion = ofNullable(grantMandatoryQuestionRepository.findBySubmissionId(submissionId)
                     .orElseThrow(() -> new NotFoundException(String.format("No mandatory questions with submission id %s was found", submissionId))));
             grantMandatoryQuestion.get().setGapId(submission.getGapId());
+            // Safety net for any per-submission mandatory question that never reached the section-review completion (e.g.
+            // a legacy draft whose sections were marked complete before that logic existed): it would otherwise stay
+            // IN_PROGRESS after submission and be excluded from the admin due-diligence / Spotlight exports. A
+            // single-application MQ is already COMPLETED by this point, so this is a no-op for it.
+            grantMandatoryQuestion.get().setStatus(GrantMandatoryQuestionStatus.COMPLETED);
             grantMandatoryQuestionRepository.save(grantMandatoryQuestion.get());
 
         } catch (NotFoundException e) {
@@ -600,10 +606,60 @@ public class SubmissionService {
         final SubmissionSectionStatus sectionStatus = isComplete ? SubmissionSectionStatus.COMPLETED : SubmissionSectionStatus.IN_PROGRESS;
         section.setSectionStatus(sectionStatus);
 
+        if (isComplete && isMandatoryQuestionSection(sectionId)) {
+            completeMandatoryQuestionForSubmissionIfSectionsFinished(submission);
+        }
+
         updateMandatorySectionsCompletedFlag(submission);
 
         submissionRepository.save(submission);
         return sectionStatus;
+    }
+
+    private boolean isMandatoryQuestionSection(final String sectionId) {
+        return ORGANISATION_DETAILS.equals(sectionId) || FUNDING_DETAILS.equals(sectionId);
+    }
+
+    /**
+     * Marks a submission's per-submission mandatory-questions record as completed once both of its backing sections
+     * (organisation and funding details) have been completed.
+     * <p>
+     * Multi-application / lazy-healed submissions own an MQ record that is created {@code IN_PROGRESS} and never passes
+     * through the mandatory-questions "check your answers" step (the step that completes a single-application MQ and
+     * mints its gapId). Left alone it stays {@code IN_PROGRESS} forever, which hides it from the admin due-diligence /
+     * Spotlight exports (they only include {@code COMPLETED} records).
+     * <p>
+     * This is a deliberately one-way transition guarded on the MQ not already being {@code COMPLETED}: a
+     * single-application MQ is already completed (with a gapId) before its sections are reviewed, so it is left entirely
+     * untouched here - no re-completion, no gapId churn and, crucially, no flip back to {@code IN_PROGRESS} if a section
+     * is later re-opened. The gapId is only minted when absent, so an existing single-application gapId is never replaced.
+     */
+    private void completeMandatoryQuestionForSubmissionIfSectionsFinished(final Submission submission) {
+        if (!isSectionComplete(submission, ORGANISATION_DETAILS) || !isSectionComplete(submission, FUNDING_DETAILS)) {
+            return;
+        }
+
+        grantMandatoryQuestionRepository.findBySubmissionId(submission.getId())
+                .filter(mandatoryQuestion -> mandatoryQuestion.getStatus() != GrantMandatoryQuestionStatus.COMPLETED)
+                .ifPresent(mandatoryQuestion -> {
+                    mandatoryQuestion.setStatus(GrantMandatoryQuestionStatus.COMPLETED);
+                    if (mandatoryQuestion.getGapId() == null || mandatoryQuestion.getGapId().isBlank()) {
+                        mandatoryQuestion.setGapId(GapIdGenerator.generateGapId(
+                                submission.getApplicant().getId(),
+                                envProperties.getEnvironmentName(),
+                                grantMandatoryQuestionRepository.count(),
+                                submission.getScheme().getVersion()));
+                    }
+                    grantMandatoryQuestionRepository.save(mandatoryQuestion);
+                });
+    }
+
+    private boolean isSectionComplete(final Submission submission, final String sectionId) {
+        return submission.getDefinition().getSections().stream()
+                .filter(section -> section.getSectionId().equals(sectionId))
+                .findFirst()
+                .map(section -> section.getSectionStatus() == SubmissionSectionStatus.COMPLETED)
+                .orElse(false);
     }
 
     private boolean areAllMandatoryQuestionsAnswered(final SubmissionSection section) {
