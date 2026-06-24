@@ -523,9 +523,15 @@ public class GrantMandatoryQuestionService {
                 .mandatory(true)
                 .build();
 
+        final boolean isIndividual = Objects.equals(mandatoryQuestions.getOrgType().toString(),
+                GrantMandatoryQuestionOrgType.INDIVIDUAL.toString());
+        final String title = isIndividual
+                ? MandatoryQuestionConstants.APPLICANT_INDIVIDUAL_AMOUNT_TITLE
+                : MandatoryQuestionConstants.APPLICANT_AMOUNT_TITLE;
+
         return SubmissionQuestion.builder()
                 .questionId(MandatoryQuestionConstants.SUBMISSION_QUESTION_IDS.APPLICANT_AMOUNT.toString())
-                .fieldTitle(MandatoryQuestionConstants.APPLICANT_AMOUNT_TITLE)
+                .fieldTitle(title)
                 .hintText(MandatoryQuestionConstants.APPLICANT_AMOUNT_HINT_TEXT)
                 .adminSummary(MandatoryQuestionConstants.APPLICANT_AMOUNT_ADMIN_SUMMARY)
                 .fieldPrefix(MandatoryQuestionConstants.APPLICANT_AMOUNT_PREFIX)

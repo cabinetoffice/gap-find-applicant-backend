@@ -58,6 +58,7 @@ public class MandatoryQuestionConstants {
     public static final String COMPANIES_HOUSE_NUMBER_VALID_INPUT = "alphanumeric-nospace";
 
     public static final String APPLICANT_AMOUNT_TITLE = "How much does your organisation require as a grant?";
+    public static final String APPLICANT_INDIVIDUAL_AMOUNT_TITLE = "How much do you require as a grant?";
     public static final String APPLICANT_AMOUNT_HINT_TEXT = "Please enter whole pounds only";
     public static final String APPLICANT_AMOUNT_PREFIX = "£";
     public static final String APPLICANT_AMOUNT_ADMIN_SUMMARY = "amount of funding required";
