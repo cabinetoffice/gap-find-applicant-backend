@@ -88,7 +88,7 @@ public class GrantMandatoryQuestions extends BaseEntity {
 
     @Column(name = "status", nullable = false)
     @Enumerated(EnumType.STRING)
-    @ColumnTransformer(write = "?::grant_mandatory_question_status")
+    @ColumnTransformer(read = "status::text", write = "?::grant_mandatory_question_status")
     @Builder.Default
     private GrantMandatoryQuestionStatus status = GrantMandatoryQuestionStatus.NOT_STARTED;
 

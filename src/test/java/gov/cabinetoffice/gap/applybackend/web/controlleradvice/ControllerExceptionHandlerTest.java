@@ -279,6 +279,28 @@ class ControllerExceptionHandlerTest {
     }
 
     @Test
+    void handleSectionNotReady_ReturnsExpectedResponseBody() {
+
+        final String errorMessage = "You must answer every question in this section before you can mark it as completed.";
+        final Error validationError = Error.builder()
+                .fieldName("isComplete")
+                .errorMessage(errorMessage)
+                .build();
+
+        final ErrorResponseBody expectedResponse = ErrorResponseBody.builder()
+                .errors(List.of(validationError))
+                .responseAccepted(false)
+                .message("Validation failure")
+                .build();
+
+        final SectionNotReadyException ex = new SectionNotReadyException(errorMessage);
+
+        final ErrorResponseBody methodResponse = exceptionHandlerUnderTest.handleSectionNotReady(ex);
+
+        assertThat(methodResponse).isEqualTo(expectedResponse);
+    }
+
+    @Test
     void handleAttachment_ReturnsExpectedResponseBody() {
 
         final String errorMessage = "File must be of type TXT, CSV, XLSX, DOCX";

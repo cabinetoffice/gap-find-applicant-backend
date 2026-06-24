@@ -8,10 +8,12 @@ import gov.cabinetoffice.gap.applybackend.dto.api.CreateQuestionResponseDto;
 import gov.cabinetoffice.gap.applybackend.dto.api.CreateSubmissionResponseDto;
 import gov.cabinetoffice.gap.applybackend.dto.api.GetNavigationParamsDto;
 import gov.cabinetoffice.gap.applybackend.enums.GrantApplicationStatus;
+import gov.cabinetoffice.gap.applybackend.enums.GrantMandatoryQuestionStatus;
 import gov.cabinetoffice.gap.applybackend.enums.SubmissionSectionStatus;
 import gov.cabinetoffice.gap.applybackend.enums.SubmissionStatus;
 import gov.cabinetoffice.gap.applybackend.exception.ForbiddenException;
 import gov.cabinetoffice.gap.applybackend.exception.NotFoundException;
+import gov.cabinetoffice.gap.applybackend.exception.SectionNotReadyException;
 import gov.cabinetoffice.gap.applybackend.exception.SubmissionAlreadySubmittedException;
 import gov.cabinetoffice.gap.applybackend.exception.SubmissionNotReadyException;
 import gov.cabinetoffice.gap.applybackend.model.*;
@@ -1371,6 +1373,7 @@ class SubmissionServiceTest {
             final GrantMandatoryQuestions grantMandatoryQuestions = GrantMandatoryQuestions.builder()
                     .id(UUID.randomUUID())
                     .gapId(gapId)
+                    .status(GrantMandatoryQuestionStatus.IN_PROGRESS)
                     .build();
 
             submission.setScheme(scheme);
@@ -1387,6 +1390,9 @@ class SubmissionServiceTest {
 
             assertThat(grantMandatoryQuestions.getGapId()).isEqualTo(gapId);
             assertThat(capturedSubmission.getGapId()).isEqualTo(gapId);
+            // Safety net: submitting completes a still-in-progress per-submission mandatory question so it is not hidden
+            // from the admin due-diligence / Spotlight exports.
+            assertThat(grantMandatoryQuestions.getStatus()).isEqualTo(GrantMandatoryQuestionStatus.COMPLETED);
         }
 
         @Test
@@ -1420,6 +1426,51 @@ class SubmissionServiceTest {
             final Submission capturedSubmission = submissionCaptor.getValue();
 
             assertThat(capturedSubmission.getGapId()).isEqualTo(gapId);
+        }
+
+        @Test
+        void submit_MintsGapIdAndWritesItBackToMandatoryQuestion_WhenMandatoryQuestionHasNoGapId() {
+            final String emailAddress = "test@email.com";
+            final ArgumentCaptor<Submission> submissionCaptor = ArgumentCaptor.forClass(Submission.class);
+            final ArgumentCaptor<GrantMandatoryQuestions> mandatoryQuestionCaptor =
+                    ArgumentCaptor.forClass(GrantMandatoryQuestions.class);
+            final GrantApplicant grantApplicant = GrantApplicant.builder()
+                    .userId(userId)
+                    .id(1)
+                    .build();
+            final GrantScheme scheme = GrantScheme.builder()
+                    .version(2)
+                    .build();
+
+            // A lazily-healed per-submission mandatory question exists but has never been completed, so its gapId is null
+            // and its status is still IN_PROGRESS.
+            final GrantMandatoryQuestions grantMandatoryQuestions = GrantMandatoryQuestions.builder()
+                    .id(UUID.randomUUID())
+                    .gapId(null)
+                    .status(GrantMandatoryQuestionStatus.IN_PROGRESS)
+                    .build();
+
+            submission.setScheme(scheme);
+
+            when(grantMandatoryQuestionRepository.findBySubmissionId(submission.getId()))
+                    .thenReturn(Optional.of(grantMandatoryQuestions));
+            when(diligenceCheckRepository.countDistinctByApplicationNumberContains(any())).thenReturn(1L);
+            doReturn(true).when(serviceUnderTest).isSubmissionReadyToBeSubmitted(userId, SUBMISSION_ID);
+
+            serviceUnderTest.submit(submission, grantApplicant, emailAddress);
+
+            verify(submissionRepository).save(submissionCaptor.capture());
+            final Submission capturedSubmission = submissionCaptor.getValue();
+
+            assertThat(capturedSubmission.getGapId()).isNotBlank();
+            assertThat(capturedSubmission.getGapId()).startsWith("GAP-LOCAL-");
+
+            verify(grantMandatoryQuestionRepository).save(mandatoryQuestionCaptor.capture());
+            assertThat(mandatoryQuestionCaptor.getValue().getGapId())
+                    .isEqualTo(capturedSubmission.getGapId());
+            // Safety net also completes the previously in-progress mandatory question.
+            assertThat(mandatoryQuestionCaptor.getValue().getStatus())
+                    .isEqualTo(GrantMandatoryQuestionStatus.COMPLETED);
         }
     }
 
@@ -1574,6 +1625,156 @@ class SubmissionServiceTest {
             verify(submissionRepository).save(submissionCaptor.capture());
             final Submission capturedSubmission = submissionCaptor.getValue();
             assertTrue(capturedSubmission.getMandatorySectionsCompleted());
+        }
+
+        @Test
+        void handleSectionReview_throwsAndDoesNotComplete_WhenMandatoryQuestionUnanswered() {
+            final SubmissionQuestionValidation mandatory = SubmissionQuestionValidation.builder()
+                    .mandatory(true)
+                    .build();
+            final SubmissionQuestion unansweredAmount = SubmissionQuestion.builder()
+                    .questionId("APPLICANT_AMOUNT")
+                    .validation(mandatory)
+                    .build();
+            final SubmissionQuestion unansweredLocation = SubmissionQuestion.builder()
+                    .questionId("BENEFITIARY_LOCATION")
+                    .validation(mandatory)
+                    .build();
+            final Submission submissionWithEmptyFunding = Submission.builder()
+                    .id(SUBMISSION_ID)
+                    .definition(SubmissionDefinition.builder()
+                            .sections(List.of(
+                                    SubmissionSection.builder()
+                                            .sectionId("FUNDING_DETAILS")
+                                            .sectionStatus(SubmissionSectionStatus.IN_PROGRESS)
+                                            .questions(List.of(unansweredAmount, unansweredLocation))
+                                            .build()
+                            ))
+                            .build())
+                    .build();
+
+            doReturn(submissionWithEmptyFunding).when(serviceUnderTest)
+                    .getSubmissionFromDatabaseBySubmissionId(userId, SUBMISSION_ID);
+
+            assertThrows(SectionNotReadyException.class,
+                    () -> serviceUnderTest.handleSectionReview(userId, SUBMISSION_ID, "FUNDING_DETAILS", true));
+
+            verify(submissionRepository, never()).save(any());
+        }
+
+        @Test
+        void handleSectionReview_completesMandatoryQuestionAndMintsGapId_whenBothMqSectionsComplete() {
+            final Submission submission = buildSubmissionWithMandatoryQuestionSections(
+                    SubmissionSectionStatus.COMPLETED, SubmissionSectionStatus.IN_PROGRESS);
+            final GrantMandatoryQuestions mandatoryQuestion = GrantMandatoryQuestions.builder()
+                    .id(UUID.randomUUID())
+                    .status(GrantMandatoryQuestionStatus.IN_PROGRESS)
+                    .gapId(null)
+                    .build();
+            final ArgumentCaptor<GrantMandatoryQuestions> mandatoryQuestionCaptor =
+                    ArgumentCaptor.forClass(GrantMandatoryQuestions.class);
+
+            doReturn(submission).when(serviceUnderTest).getSubmissionFromDatabaseBySubmissionId(userId, SUBMISSION_ID);
+            when(submissionRepository.save(submission)).thenReturn(submission);
+            when(grantMandatoryQuestionRepository.findBySubmissionId(SUBMISSION_ID)).thenReturn(Optional.of(mandatoryQuestion));
+            when(grantMandatoryQuestionRepository.count()).thenReturn(11L);
+
+            serviceUnderTest.handleSectionReview(userId, SUBMISSION_ID, "FUNDING_DETAILS", true);
+
+            verify(grantMandatoryQuestionRepository).save(mandatoryQuestionCaptor.capture());
+            final GrantMandatoryQuestions saved = mandatoryQuestionCaptor.getValue();
+            assertThat(saved.getStatus()).isEqualTo(GrantMandatoryQuestionStatus.COMPLETED);
+            assertThat(saved.getGapId()).isNotBlank();
+            assertThat(saved.getGapId()).startsWith("GAP-LOCAL-");
+        }
+
+        @Test
+        void handleSectionReview_leavesAlreadyCompletedMandatoryQuestionUntouched_preservingSingleAppGapId() {
+            final Submission submission = buildSubmissionWithMandatoryQuestionSections(
+                    SubmissionSectionStatus.COMPLETED, SubmissionSectionStatus.IN_PROGRESS);
+            final GrantMandatoryQuestions mandatoryQuestion = GrantMandatoryQuestions.builder()
+                    .id(UUID.randomUUID())
+                    .status(GrantMandatoryQuestionStatus.COMPLETED)
+                    .gapId("GAP-LL-existing-1")
+                    .build();
+
+            doReturn(submission).when(serviceUnderTest).getSubmissionFromDatabaseBySubmissionId(userId, SUBMISSION_ID);
+            when(submissionRepository.save(submission)).thenReturn(submission);
+            when(grantMandatoryQuestionRepository.findBySubmissionId(SUBMISSION_ID)).thenReturn(Optional.of(mandatoryQuestion));
+
+            serviceUnderTest.handleSectionReview(userId, SUBMISSION_ID, "FUNDING_DETAILS", true);
+
+            // An already-completed (single-application) mandatory question is never re-saved or re-minted.
+            verify(grantMandatoryQuestionRepository, never()).save(any());
+            assertThat(mandatoryQuestion.getGapId()).isEqualTo("GAP-LL-existing-1");
+        }
+
+        @Test
+        void handleSectionReview_doesNotCompleteMandatoryQuestion_whenOnlyOneMqSectionComplete() {
+            final Submission submission = buildSubmissionWithMandatoryQuestionSections(
+                    SubmissionSectionStatus.IN_PROGRESS, SubmissionSectionStatus.IN_PROGRESS);
+
+            doReturn(submission).when(serviceUnderTest).getSubmissionFromDatabaseBySubmissionId(userId, SUBMISSION_ID);
+            when(submissionRepository.save(submission)).thenReturn(submission);
+
+            // Only FUNDING_DETAILS is being completed; ORGANISATION_DETAILS is still in progress.
+            serviceUnderTest.handleSectionReview(userId, SUBMISSION_ID, "FUNDING_DETAILS", true);
+
+            verify(grantMandatoryQuestionRepository, never()).save(any());
+        }
+
+        @Test
+        void handleSectionReview_doesNotTouchMandatoryQuestion_whenSectionReopened() {
+            final Submission submission = buildSubmissionWithMandatoryQuestionSections(
+                    SubmissionSectionStatus.COMPLETED, SubmissionSectionStatus.COMPLETED);
+
+            doReturn(submission).when(serviceUnderTest).getSubmissionFromDatabaseBySubmissionId(userId, SUBMISSION_ID);
+            when(submissionRepository.save(submission)).thenReturn(submission);
+
+            // Re-opening a section is a one-way no-op for the mandatory question (no flip back to IN_PROGRESS).
+            serviceUnderTest.handleSectionReview(userId, SUBMISSION_ID, "FUNDING_DETAILS", false);
+
+            verify(grantMandatoryQuestionRepository, never()).save(any());
+        }
+
+        private Submission buildSubmissionWithMandatoryQuestionSections(
+                final SubmissionSectionStatus organisationStatus,
+                final SubmissionSectionStatus fundingStatus) {
+            final SubmissionQuestionValidation mandatory = SubmissionQuestionValidation.builder()
+                    .mandatory(true)
+                    .build();
+            final SubmissionSection organisationSection = SubmissionSection.builder()
+                    .sectionId("ORGANISATION_DETAILS")
+                    .sectionStatus(organisationStatus)
+                    .questions(List.of(SubmissionQuestion.builder()
+                            .questionId("APPLICANT_ORG_NAME")
+                            .response(orgName)
+                            .validation(mandatory)
+                            .build()))
+                    .build();
+            final SubmissionSection fundingSection = SubmissionSection.builder()
+                    .sectionId("FUNDING_DETAILS")
+                    .sectionStatus(fundingStatus)
+                    .questions(List.of(
+                            SubmissionQuestion.builder()
+                                    .questionId("APPLICANT_AMOUNT")
+                                    .response(amount)
+                                    .validation(mandatory)
+                                    .build(),
+                            SubmissionQuestion.builder()
+                                    .questionId("BENEFITIARY_LOCATION")
+                                    .multiResponse(beneficiaryLocation)
+                                    .validation(mandatory)
+                                    .build()))
+                    .build();
+            return Submission.builder()
+                    .id(SUBMISSION_ID)
+                    .applicant(GrantApplicant.builder().id(1).userId(userId).build())
+                    .scheme(GrantScheme.builder().version(2).build())
+                    .definition(SubmissionDefinition.builder()
+                            .sections(new ArrayList<>(List.of(organisationSection, fundingSection)))
+                            .build())
+                    .build();
         }
     }
 
