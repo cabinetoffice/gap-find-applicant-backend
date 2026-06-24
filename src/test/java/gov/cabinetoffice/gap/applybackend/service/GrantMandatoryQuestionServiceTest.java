@@ -195,7 +195,7 @@ class GrantMandatoryQuestionServiceTest {
 
             when(grantMandatoryQuestionRepository.findBySubmissionId(submissionId)).thenReturn(Optional.empty());
             when(submissionRepository.findByIdAndApplicantUserId(submissionId, applicantUserId)).thenReturn(Optional.of(submission));
-            when(grantMandatoryQuestionRepository.findByGrantScheme_IdAndCreatedBy_UserId(schemeId, applicantUserId)).thenReturn(mandatoryQuestions);
+            when(grantMandatoryQuestionRepository.findFirstByGrantScheme_IdAndCreatedBy_UserIdOrderByCreatedDesc(schemeId, applicantUserId)).thenReturn(mandatoryQuestions);
 
             final GrantMandatoryQuestions methodResponse = serviceUnderTest.getGrantMandatoryQuestionBySubmissionIdAndApplicantSub(submissionId, applicantUserId);
 
@@ -212,7 +212,7 @@ class GrantMandatoryQuestionServiceTest {
 
             when(grantMandatoryQuestionRepository.findBySubmissionId(submissionId)).thenReturn(Optional.empty());
             when(submissionRepository.findByIdAndApplicantUserId(submissionId, applicantUserId)).thenReturn(Optional.of(submission));
-            when(grantMandatoryQuestionRepository.findByGrantScheme_IdAndCreatedBy_UserId(schemeId, applicantUserId)).thenReturn(Optional.empty());
+            when(grantMandatoryQuestionRepository.findFirstByGrantScheme_IdAndCreatedBy_UserIdOrderByCreatedDesc(schemeId, applicantUserId)).thenReturn(Optional.empty());
 
             assertThrows(NotFoundException.class, () -> serviceUnderTest.getGrantMandatoryQuestionBySubmissionIdAndApplicantSub(submissionId, applicantUserId));
         }
@@ -224,7 +224,7 @@ class GrantMandatoryQuestionServiceTest {
         void getMandatoryQuestionByScheme_ThrowsNotFoundException() {
             final String applicantSub = "valid-applicant-id";
 
-            when(grantMandatoryQuestionRepository.findByGrantScheme_IdAndCreatedBy_UserId(1, applicantSub))
+            when(grantMandatoryQuestionRepository.findFirstByGrantScheme_IdAndCreatedBy_UserIdOrderByCreatedDesc(1, applicantSub))
                     .thenReturn(Optional.empty());
 
             assertThrows(NotFoundException.class, () -> serviceUnderTest.getMandatoryQuestionBySchemeId(1, applicantSub));
@@ -237,7 +237,7 @@ class GrantMandatoryQuestionServiceTest {
             final GrantApplicant createdByOtherUser = GrantApplicant.builder().userId("other-user-id").build();
             final GrantMandatoryQuestions mandatoryQuestions = GrantMandatoryQuestions.builder().createdBy(createdByOtherUser).build();
 
-            when(grantMandatoryQuestionRepository.findByGrantScheme_IdAndCreatedBy_UserId(1, applicantSub))
+            when(grantMandatoryQuestionRepository.findFirstByGrantScheme_IdAndCreatedBy_UserIdOrderByCreatedDesc(1, applicantSub))
                     .thenReturn(Optional.of(mandatoryQuestions));
 
             assertThrows(ForbiddenException.class, () -> serviceUnderTest.getMandatoryQuestionBySchemeId(1, applicantSub));
@@ -250,12 +250,62 @@ class GrantMandatoryQuestionServiceTest {
             final GrantApplicant createdByValidUser = GrantApplicant.builder().userId(applicantSub).build();
             final GrantMandatoryQuestions mandatoryQuestions = GrantMandatoryQuestions.builder().createdBy(createdByValidUser).build();
 
-            when(grantMandatoryQuestionRepository.findByGrantScheme_IdAndCreatedBy_UserId(1, applicantSub))
+            when(grantMandatoryQuestionRepository.findFirstByGrantScheme_IdAndCreatedBy_UserIdOrderByCreatedDesc(1, applicantSub))
                     .thenReturn(Optional.of(mandatoryQuestions));
 
             final GrantMandatoryQuestions methodResponse = serviceUnderTest.getMandatoryQuestionBySchemeId(1, applicantSub);
 
             assertThat(methodResponse).isEqualTo(mandatoryQuestions);
+        }
+
+        @Test
+        void getMandatoryQuestionByScheme_PrefersMostRecentCompletedMandatoryQuestion() {
+            final String applicantSub = "valid-applicant-id";
+
+            final GrantApplicant createdByValidUser = GrantApplicant.builder().userId(applicantSub).build();
+            final GrantMandatoryQuestions completedMandatoryQuestion = GrantMandatoryQuestions.builder()
+                    .createdBy(createdByValidUser)
+                    .status(GrantMandatoryQuestionStatus.COMPLETED)
+                    .build();
+
+            when(grantMandatoryQuestionRepository.findFirstByGrantScheme_IdAndCreatedBy_UserIdAndStatusOrderByCreatedDesc(
+                    1, applicantSub, GrantMandatoryQuestionStatus.COMPLETED))
+                    .thenReturn(Optional.of(completedMandatoryQuestion));
+
+            final GrantMandatoryQuestions methodResponse = serviceUnderTest.getMandatoryQuestionBySchemeId(1, applicantSub);
+
+            assertThat(methodResponse).isEqualTo(completedMandatoryQuestion);
+            // A completed MQ wins outright: the submission-linked and most-recent-overall lookups must not be reached.
+            verify(grantMandatoryQuestionRepository, never())
+                    .findFirstByGrantScheme_IdAndCreatedBy_UserIdAndSubmissionIsNotNullOrderByCreatedDesc(Mockito.anyInt(), Mockito.anyString());
+            verify(grantMandatoryQuestionRepository, never())
+                    .findFirstByGrantScheme_IdAndCreatedBy_UserIdOrderByCreatedDesc(Mockito.anyInt(), Mockito.anyString());
+        }
+
+        @Test
+        void getMandatoryQuestionByScheme_FallsBackToSubmissionLinkedWhenNoCompletedExists() {
+            final String applicantSub = "valid-applicant-id";
+
+            final GrantApplicant createdByValidUser = GrantApplicant.builder().userId(applicantSub).build();
+            final GrantMandatoryQuestions submissionLinkedMandatoryQuestion = GrantMandatoryQuestions.builder()
+                    .createdBy(createdByValidUser)
+                    .status(GrantMandatoryQuestionStatus.IN_PROGRESS)
+                    .submission(Submission.builder().build())
+                    .build();
+
+            when(grantMandatoryQuestionRepository.findFirstByGrantScheme_IdAndCreatedBy_UserIdAndStatusOrderByCreatedDesc(
+                    1, applicantSub, GrantMandatoryQuestionStatus.COMPLETED))
+                    .thenReturn(Optional.empty());
+            when(grantMandatoryQuestionRepository.findFirstByGrantScheme_IdAndCreatedBy_UserIdAndSubmissionIsNotNullOrderByCreatedDesc(
+                    1, applicantSub))
+                    .thenReturn(Optional.of(submissionLinkedMandatoryQuestion));
+
+            final GrantMandatoryQuestions methodResponse = serviceUnderTest.getMandatoryQuestionBySchemeId(1, applicantSub);
+
+            assertThat(methodResponse).isEqualTo(submissionLinkedMandatoryQuestion);
+            // With no completed MQ but a submission-linked one, the most-recent-overall lookup must not be reached.
+            verify(grantMandatoryQuestionRepository, never())
+                    .findFirstByGrantScheme_IdAndCreatedBy_UserIdOrderByCreatedDesc(Mockito.anyInt(), Mockito.anyString());
         }
 
     }
@@ -404,6 +454,301 @@ class GrantMandatoryQuestionServiceTest {
             assertThat(methodResponse.getCompaniesHouseNumber()).isNull();
         }
 
+    }
+
+    @Nested
+    class ensureMandatoryQuestionForSubmission {
+
+        private Submission buildNewSubmissionWithoutOrgInDefinition(final UUID submissionId, final GrantScheme scheme, final GrantApplicant applicant) {
+            final SubmissionDefinition definition = SubmissionDefinition.builder()
+                    .sections(new ArrayList<>(List.of(
+                            SubmissionSection.builder().sectionId("ELIGIBILITY").build(),
+                            SubmissionSection.builder().sectionId("ORGANISATION_DETAILS").build(),
+                            SubmissionSection.builder().sectionId("FUNDING_DETAILS").build()
+                    )))
+                    .build();
+            return Submission.builder()
+                    .id(submissionId)
+                    .definition(definition)
+                    .version(2)
+                    .scheme(scheme)
+                    .applicant(applicant)
+                    .build();
+        }
+
+        private Submission buildBrokenSiblingSubmission(final UUID submissionId, final GrantScheme scheme,
+                final GrantApplicant applicant, final SubmissionStatus status) {
+            final SubmissionSection organisationDetails = SubmissionSection.builder()
+                    .sectionId("ORGANISATION_DETAILS")
+                    .questions(new ArrayList<>(List.of(
+                            SubmissionQuestion.builder().questionId("APPLICANT_TYPE").response("Limited company").build(),
+                            SubmissionQuestion.builder().questionId("APPLICANT_ORG_NAME").response("AND Digital").build(),
+                            SubmissionQuestion.builder().questionId("APPLICANT_ORG_ADDRESS")
+                                    .multiResponse(new String[]{"215 Bothwell Street", "Floor 2", "Glasgow", "Lanarkshire", "G2 7EZ"}).build(),
+                            SubmissionQuestion.builder().questionId("APPLICANT_ORG_COMPANIES_HOUSE").response("1234567").build(),
+                            SubmissionQuestion.builder().questionId("APPLICANT_ORG_CHARITY_NUMBER").response("22135").build()
+                    )))
+                    .build();
+            final SubmissionSection fundingDetails = SubmissionSection.builder()
+                    .sectionId("FUNDING_DETAILS")
+                    .sectionStatus(SubmissionSectionStatus.COMPLETED)
+                    .questions(new ArrayList<>(List.of(
+                            SubmissionQuestion.builder().questionId("APPLICANT_AMOUNT").response("150000").build(),
+                            SubmissionQuestion.builder().questionId("BENEFITIARY_LOCATION")
+                                    .multiResponse(new String[]{"Scotland", "Wales"}).build()
+                    )))
+                    .build();
+            final SubmissionDefinition definition = SubmissionDefinition.builder()
+                    .sections(new ArrayList<>(List.of(
+                            SubmissionSection.builder().sectionId("ELIGIBILITY").build(),
+                            organisationDetails,
+                            fundingDetails
+                    )))
+                    .build();
+            return Submission.builder()
+                    .id(submissionId)
+                    .definition(definition)
+                    .version(2)
+                    .status(status)
+                    .scheme(scheme)
+                    .applicant(applicant)
+                    .mandatorySectionsCompleted(true)
+                    .build();
+        }
+
+        @Test
+        void returnsExistingMandatoryQuestion_WhenSubmissionAlreadyOwnsOne() {
+            final UUID submissionId = UUID.randomUUID();
+            final GrantScheme scheme = GrantScheme.builder().id(10).version(2).build();
+            final GrantApplicant applicant = GrantApplicant.builder().id(1L).userId(applicantUserId).build();
+            final Submission submission = buildBrokenSiblingSubmission(submissionId, scheme, applicant, SubmissionStatus.IN_PROGRESS);
+
+            final GrantMandatoryQuestions existing = GrantMandatoryQuestions.builder()
+                    .id(UUID.randomUUID())
+                    .submission(submission)
+                    .build();
+
+            when(submissionRepository.findByIdAndApplicantUserId(submissionId, applicantUserId))
+                    .thenReturn(Optional.of(submission));
+            when(grantMandatoryQuestionRepository.findBySubmissionId(submissionId))
+                    .thenReturn(Optional.of(existing));
+
+            final GrantMandatoryQuestions result = serviceUnderTest.ensureMandatoryQuestionForSubmission(submissionId, applicantUserId);
+
+            assertThat(result).isEqualTo(existing);
+            verify(grantMandatoryQuestionRepository, never()).save(Mockito.any());
+        }
+
+        @Test
+        void createsPerSubmissionMandatoryQuestion_SeedsOrgButBlanksFunding_WhenNoneExists() {
+            final UUID submissionId = UUID.randomUUID();
+            final GrantScheme scheme = GrantScheme.builder().id(10).version(2).build();
+            final GrantApplicant applicant = GrantApplicant.builder().id(1L).userId(applicantUserId).build();
+            final Submission submission = buildBrokenSiblingSubmission(submissionId, scheme, applicant, SubmissionStatus.IN_PROGRESS);
+
+            when(submissionRepository.findByIdAndApplicantUserId(submissionId, applicantUserId))
+                    .thenReturn(Optional.of(submission));
+            when(grantMandatoryQuestionRepository.findBySubmissionId(submissionId))
+                    .thenReturn(Optional.empty());
+            when(grantMandatoryQuestionRepository.save(Mockito.any()))
+                    .thenAnswer(invocation -> invocation.getArgument(0));
+
+            final GrantMandatoryQuestions result = serviceUnderTest.ensureMandatoryQuestionForSubmission(submissionId, applicantUserId);
+
+            // Organisation details are seeded from the submission's own definition (its source of truth)
+            assertThat(result.getOrgType()).isEqualTo(GrantMandatoryQuestionOrgType.LIMITED_COMPANY);
+            assertThat(result.getName()).isEqualTo("AND Digital");
+            assertThat(result.getAddressLine1()).isEqualTo("215 Bothwell Street");
+            assertThat(result.getAddressLine2()).isEqualTo("Floor 2");
+            assertThat(result.getCity()).isEqualTo("Glasgow");
+            assertThat(result.getCounty()).isEqualTo("Lanarkshire");
+            assertThat(result.getPostcode()).isEqualTo("G2 7EZ");
+            assertThat(result.getCompaniesHouseNumber()).isEqualTo("1234567");
+            assertThat(result.getCharityCommissionNumber()).isEqualTo("22135");
+
+            // Funding is deliberately blanked so the applicant must re-confirm it for this submission
+            assertThat(result.getFundingAmount()).isNull();
+            assertThat(result.getFundingLocation()).isNull();
+
+            // Linked to this submission, set in progress, with a fresh (null) gapId
+            assertThat(result.getSubmission()).isEqualTo(submission);
+            assertThat(result.getGrantScheme()).isEqualTo(scheme);
+            assertThat(result.getCreatedBy()).isEqualTo(applicant);
+            assertThat(result.getStatus()).isEqualTo(GrantMandatoryQuestionStatus.IN_PROGRESS);
+            assertThat(result.getGapId()).isNull();
+
+            // The blanked funding is projected into this submission and its funding section is reopened
+            verify(grantMandatoryQuestionRepository).save(Mockito.any());
+            verify(serviceUnderTest).addMandatoryQuestionsToSubmissionObject(result);
+            verify(submissionRepository).save(submission);
+
+            final SubmissionSection fundingSection = submission.getDefinition().getSections().stream()
+                    .filter(section -> "FUNDING_DETAILS".equals(section.getSectionId()))
+                    .findFirst().orElseThrow();
+            assertThat(fundingSection.getSectionStatus()).isEqualTo(SubmissionSectionStatus.IN_PROGRESS);
+            assertThat(fundingSection.getQuestions().stream()
+                    .filter(question -> "APPLICANT_AMOUNT".equals(question.getQuestionId()))
+                    .findFirst().orElseThrow().getResponse()).isNull();
+
+            // Blanking funding clears the submission's cached "mandatory sections completed" flag
+            assertThat(submission.getMandatorySectionsCompleted()).isFalse();
+        }
+
+        @Test
+        void doesNotRePointSharedMandatoryQuestion_WhenHealingSibling() {
+            final UUID submissionId = UUID.randomUUID();
+            final GrantScheme scheme = GrantScheme.builder().id(10).version(2).build();
+            final GrantApplicant applicant = GrantApplicant.builder().id(1L).userId(applicantUserId).build();
+            final Submission submission = buildBrokenSiblingSubmission(submissionId, scheme, applicant, SubmissionStatus.IN_PROGRESS);
+
+            when(submissionRepository.findByIdAndApplicantUserId(submissionId, applicantUserId))
+                    .thenReturn(Optional.of(submission));
+            when(grantMandatoryQuestionRepository.findBySubmissionId(submissionId))
+                    .thenReturn(Optional.empty());
+            when(grantMandatoryQuestionRepository.save(Mockito.any()))
+                    .thenAnswer(invocation -> invocation.getArgument(0));
+
+            serviceUnderTest.ensureMandatoryQuestionForSubmission(submissionId, applicantUserId);
+
+            // Only the freshly created per-submission record is saved - no shared record is fetched or re-pointed.
+            verify(grantMandatoryQuestionRepository, never())
+                    .findFirstByGrantScheme_IdAndCreatedBy_UserIdOrderByCreatedDesc(Mockito.anyInt(), Mockito.anyString());
+        }
+
+        @Test
+        void doesNotCreate_WhenSubmissionAlreadySubmitted() {
+            final UUID submissionId = UUID.randomUUID();
+            final GrantScheme scheme = GrantScheme.builder().id(10).version(2).build();
+            final GrantApplicant applicant = GrantApplicant.builder().id(1L).userId(applicantUserId).build();
+            final Submission submission = buildBrokenSiblingSubmission(submissionId, scheme, applicant, SubmissionStatus.SUBMITTED);
+
+            final GrantMandatoryQuestions resolved = GrantMandatoryQuestions.builder()
+                    .id(UUID.randomUUID())
+                    .createdBy(applicant)
+                    .build();
+
+            when(submissionRepository.findByIdAndApplicantUserId(submissionId, applicantUserId))
+                    .thenReturn(Optional.of(submission));
+            when(grantMandatoryQuestionRepository.findBySubmissionId(submissionId))
+                    .thenReturn(Optional.empty());
+            doReturn(resolved).when(serviceUnderTest)
+                    .getGrantMandatoryQuestionBySubmissionIdAndApplicantSub(submissionId, applicantUserId);
+
+            final GrantMandatoryQuestions result = serviceUnderTest.ensureMandatoryQuestionForSubmission(submissionId, applicantUserId);
+
+            assertThat(result).isEqualTo(resolved);
+            verify(grantMandatoryQuestionRepository, never()).save(Mockito.any());
+        }
+
+        @Test
+        void throwsNotFound_WhenSubmissionDoesNotExistForApplicant() {
+            final UUID submissionId = UUID.randomUUID();
+
+            when(submissionRepository.findByIdAndApplicantUserId(submissionId, applicantUserId))
+                    .thenReturn(Optional.empty());
+
+            assertThrows(NotFoundException.class,
+                    () -> serviceUnderTest.ensureMandatoryQuestionForSubmission(submissionId, applicantUserId));
+
+            verify(grantMandatoryQuestionRepository, never()).save(Mockito.any());
+        }
+
+        @Test
+        void seedsOrgFromMostRecentMandatoryQuestion_WhenSubmissionDefinitionHasNoOrg() {
+            final UUID submissionId = UUID.randomUUID();
+            final GrantScheme scheme = GrantScheme.builder().id(10).version(2).build();
+            final GrantApplicant applicant = GrantApplicant.builder().id(1L).userId(applicantUserId).build();
+            final Submission submission = buildNewSubmissionWithoutOrgInDefinition(submissionId, scheme, applicant);
+
+            final GrantMandatoryQuestions source = GrantMandatoryQuestions.builder()
+                    .name("AND Digital")
+                    .addressLine1("215 Bothwell Street")
+                    .addressLine2("Floor 2")
+                    .city("Glasgow")
+                    .county("Lanarkshire")
+                    .postcode("G2 7EZ")
+                    .orgType(GrantMandatoryQuestionOrgType.LIMITED_COMPANY)
+                    .companiesHouseNumber("1234567")
+                    .charityCommissionNumber("22135")
+                    .fundingAmount(BigDecimal.valueOf(150000))
+                    .fundingLocation(new GrantMandatoryQuestionFundingLocation[]{
+                            GrantMandatoryQuestionFundingLocation.SCOTLAND
+                    })
+                    .gapId("GAP-LL-20240101-1")
+                    .build();
+
+            when(submissionRepository.findByIdAndApplicantUserId(submissionId, applicantUserId))
+                    .thenReturn(Optional.of(submission));
+            when(grantMandatoryQuestionRepository.findBySubmissionId(submissionId))
+                    .thenReturn(Optional.empty());
+            when(grantMandatoryQuestionRepository.findFirstByGrantScheme_IdAndCreatedBy_UserIdOrderByCreatedDesc(scheme.getId(), applicantUserId))
+                    .thenReturn(Optional.of(source));
+            when(grantMandatoryQuestionRepository.save(Mockito.any()))
+                    .thenAnswer(invocation -> invocation.getArgument(0));
+
+            final GrantMandatoryQuestions result = serviceUnderTest.ensureMandatoryQuestionForSubmission(submissionId, applicantUserId);
+
+            // Organisation/address details are seeded from the applicant's most recent MQ (the definition had none)
+            assertThat(result.getName()).isEqualTo("AND Digital");
+            assertThat(result.getAddressLine1()).isEqualTo("215 Bothwell Street");
+            assertThat(result.getOrgType()).isEqualTo(GrantMandatoryQuestionOrgType.LIMITED_COMPANY);
+            assertThat(result.getCompaniesHouseNumber()).isEqualTo("1234567");
+            assertThat(result.getCharityCommissionNumber()).isEqualTo("22135");
+
+            // Funding + gapId are deliberately blanked for the new submission
+            assertThat(result.getFundingAmount()).isNull();
+            assertThat(result.getFundingLocation()).isNull();
+            assertThat(result.getGapId()).isNull();
+
+            assertThat(result.getStatus()).isEqualTo(GrantMandatoryQuestionStatus.IN_PROGRESS);
+            assertThat(result.getSubmission()).isEqualTo(submission);
+            assertThat(result.getGrantScheme()).isEqualTo(scheme);
+            assertThat(result.getCreatedBy()).isEqualTo(applicant);
+
+            verify(grantMandatoryQuestionRepository).save(Mockito.any());
+            verify(submissionRepository).save(submission);
+            verify(serviceUnderTest).addMandatoryQuestionsToSubmissionObject(result);
+        }
+
+        @Test
+        void fallsBackToOrgProfile_WhenNoOrgInDefinitionAndNoPreviousMandatoryQuestion() {
+            final UUID submissionId = UUID.randomUUID();
+            final GrantScheme scheme = GrantScheme.builder().id(10).version(2).build();
+            final GrantApplicant applicant = GrantApplicant.builder()
+                    .id(1L)
+                    .userId(applicantUserId)
+                    .organisationProfile(organisationProfile)
+                    .build();
+            final Submission submission = buildNewSubmissionWithoutOrgInDefinition(submissionId, scheme, applicant);
+
+            final GrantMandatoryQuestions fromProfile = GrantMandatoryQuestions.builder()
+                    .name(organisationProfile.getLegalName())
+                    .addressLine1(organisationProfile.getAddressLine1())
+                    .city(organisationProfile.getTown())
+                    .postcode(organisationProfile.getPostcode())
+                    .orgType(GrantMandatoryQuestionOrgType.LIMITED_COMPANY)
+                    .build();
+
+            when(submissionRepository.findByIdAndApplicantUserId(submissionId, applicantUserId))
+                    .thenReturn(Optional.of(submission));
+            when(grantMandatoryQuestionRepository.findBySubmissionId(submissionId))
+                    .thenReturn(Optional.empty());
+            when(grantMandatoryQuestionRepository.findFirstByGrantScheme_IdAndCreatedBy_UserIdOrderByCreatedDesc(scheme.getId(), applicantUserId))
+                    .thenReturn(Optional.empty());
+            when(organisationProfileMapper.mapOrgProfileToGrantMandatoryQuestion(organisationProfile))
+                    .thenReturn(fromProfile);
+            when(grantMandatoryQuestionRepository.save(Mockito.any()))
+                    .thenAnswer(invocation -> invocation.getArgument(0));
+
+            final GrantMandatoryQuestions result = serviceUnderTest.ensureMandatoryQuestionForSubmission(submissionId, applicantUserId);
+
+            verify(organisationProfileMapper).mapOrgProfileToGrantMandatoryQuestion(organisationProfile);
+            assertThat(result.getName()).isEqualTo(organisationProfile.getLegalName());
+            assertThat(result.getOrgType()).isEqualTo(GrantMandatoryQuestionOrgType.LIMITED_COMPANY);
+            assertThat(result.getFundingAmount()).isNull();
+            assertThat(result.getFundingLocation()).isNull();
+            assertThat(result.getSubmission()).isEqualTo(submission);
+        }
     }
 
     @Nested
@@ -724,7 +1069,7 @@ class GrantMandatoryQuestionServiceTest {
         }
 
         @Test
-        void updatesAllSubmissionsForScheme_InMultiAppScheme() {
+        void doesNotPropagateToOtherSubmissionsForScheme_InMultiAppScheme() {
             final GrantApplicant applicant = GrantApplicant.builder().id(1L).build();
             final GrantScheme scheme = GrantScheme.builder().id(10).version(2).build();
 
@@ -772,19 +1117,14 @@ class GrantMandatoryQuestionServiceTest {
                     .charityCommissionNumber("22135")
                     .build();
 
-            when(submissionRepository.findByApplicant_IdAndScheme_Id(applicant.getId(), scheme.getId()))
-                    .thenReturn(List.of(submission1, submission2));
-
             serviceUnderTest.addMandatoryQuestionsToSubmissionObject(mandatoryQuestions);
 
-            // Both submissions' sections should be rebuilt from the MQ
-            verify(serviceUnderTest, times(2)).buildOrganisationDetailsSubmissionSection(Mockito.any(), Mockito.any());
-            verify(serviceUnderTest, times(2)).buildFundingDetailsSubmissionSection(Mockito.any(), Mockito.any());
+            // Only the submission linked to the MQ is rebuilt; there is deliberately no propagation.
+            verify(serviceUnderTest, times(1)).buildOrganisationDetailsSubmissionSection(Mockito.any(), Mockito.any());
+            verify(serviceUnderTest, times(1)).buildFundingDetailsSubmissionSection(Mockito.any(), Mockito.any());
 
-            // submission2 (not linked to the MQ) must be saved explicitly
-            verify(submissionRepository).save(submission2);
-            // submission1 (linked to the MQ) is saved via cascade — must NOT be saved directly
-            verify(submissionRepository, never()).save(submission1);
+            // No other submission for the scheme is saved.
+            verify(submissionRepository, never()).save(submission2);
         }
     }
 

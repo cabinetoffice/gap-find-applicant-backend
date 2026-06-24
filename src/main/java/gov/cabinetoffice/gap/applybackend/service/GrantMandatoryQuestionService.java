@@ -15,6 +15,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
+import java.math.BigDecimal;
 import java.util.*;
 
 import static java.util.Optional.ofNullable;
@@ -55,7 +56,7 @@ public class GrantMandatoryQuestionService {
                     .getScheme()
                     .getId();
 
-            grantMandatoryQuestion = grantMandatoryQuestionRepository.findByGrantScheme_IdAndCreatedBy_UserId(schemeId, applicantSub);
+            grantMandatoryQuestion = grantMandatoryQuestionRepository.findFirstByGrantScheme_IdAndCreatedBy_UserIdOrderByCreatedDesc(schemeId, applicantSub);
 
             if (grantMandatoryQuestion.isEmpty()) {
                 throw new NotFoundException(String.format("No Mandatory Question with submission id %s was found", submissionId));
@@ -70,16 +71,23 @@ public class GrantMandatoryQuestionService {
     }
 
     public GrantMandatoryQuestions getMandatoryQuestionBySchemeId(Integer schemeId, String applicantSub) {
-        final Optional<GrantMandatoryQuestions> grantMandatoryQuestion = ofNullable(grantMandatoryQuestionRepository
-                .findByGrantScheme_IdAndCreatedBy_UserId(schemeId, applicantSub)
-                .orElseThrow(() -> new NotFoundException(String.format("No Mandatory Question with scheme id  %s was found", schemeId))));
+        // Resolve the MQ that best represents the applicant's established organisation details for this scheme.
+        // Prefer the most recent COMPLETED record (their details are fully entered), then the most recent record that
+        // already belongs to a submission (organisation details established via a submission), and finally the most
+        // recent record of any kind. With the per-submission model the newest record is often an in-progress draft, so
+        // picking the newest overall would wrongly send applicants back through the full mandatory questions journey.
+        final GrantMandatoryQuestions grantMandatoryQuestion = grantMandatoryQuestionRepository
+                .findFirstByGrantScheme_IdAndCreatedBy_UserIdAndStatusOrderByCreatedDesc(schemeId, applicantSub, GrantMandatoryQuestionStatus.COMPLETED)
+                .or(() -> grantMandatoryQuestionRepository.findFirstByGrantScheme_IdAndCreatedBy_UserIdAndSubmissionIsNotNullOrderByCreatedDesc(schemeId, applicantSub))
+                .or(() -> grantMandatoryQuestionRepository.findFirstByGrantScheme_IdAndCreatedBy_UserIdOrderByCreatedDesc(schemeId, applicantSub))
+                .orElseThrow(() -> new NotFoundException(String.format("No Mandatory Question with scheme id  %s was found", schemeId)));
 
-        if (!grantMandatoryQuestion.get().getCreatedBy().getUserId().equals(applicantSub)) {
+        if (!grantMandatoryQuestion.getCreatedBy().getUserId().equals(applicantSub)) {
             throw new ForbiddenException(String.format("Mandatory Question with id %s and scheme ID %s was not created by %s",
-                    grantMandatoryQuestion.get().getId(), schemeId, applicantSub));
+                    grantMandatoryQuestion.getId(), schemeId, applicantSub));
         }
 
-        return grantMandatoryQuestion.get();
+        return grantMandatoryQuestion;
     }
 
     public GrantMandatoryQuestions createMandatoryQuestion(GrantScheme scheme, GrantApplicant applicant, boolean isForInternalApplication) {
@@ -110,6 +118,166 @@ public class GrantMandatoryQuestionService {
         grantMandatoryQuestions.setCreatedBy(applicant);
 
         return grantMandatoryQuestionRepository.save(grantMandatoryQuestions);
+    }
+
+    /**
+     * Guarantees the given submission owns its own mandatory-questions record (copy-on-write), creating one if needed.
+     * <p>
+     * This is the single entry point for giving a submission its own MQ, covering both a brand-new multi-application
+     * submission and a legacy submission that was sharing a sibling's record. Multi-application schemes must not share
+     * a single MQ across submissions (doing so caused one submission's funding figures to overwrite another's).
+     * <p>
+     * If the submission already owns an MQ it is returned unchanged. Otherwise a new record is created: organisation
+     * details are seeded from the submission's own definition when present (a legacy draft), falling back to the
+     * applicant's most recent MQ for the scheme and then their organisation profile (a brand-new submission whose
+     * definition has no organisation responses yet). Funding amount, funding location and gapId are always blanked so
+     * each submission captures its own funding, and the blanked funding is projected back into the submission. A
+     * funding section that was already COMPLETED (a healed draft) is reopened so it cannot be completed or submitted
+     * until re-entered; a brand-new submission keeps its default funding-section status. The shared record is never
+     * re-pointed. Submitted submissions are immutable and left untouched - those are handled by the separate
+     * remediation job - as are version 1 schemes, which do not use MQ-backed sections.
+     */
+    public GrantMandatoryQuestions ensureMandatoryQuestionForSubmission(final UUID submissionId, final String applicantSub) {
+        final Submission submission = submissionRepository.findByIdAndApplicantUserId(submissionId, applicantSub)
+                .orElseThrow(() -> new NotFoundException(String.format("No submission with id %s was found for the current applicant", submissionId)));
+
+        final Optional<GrantMandatoryQuestions> ownMandatoryQuestion = grantMandatoryQuestionRepository.findBySubmissionId(submissionId);
+        if (ownMandatoryQuestion.isPresent()) {
+            return ownMandatoryQuestion.get();
+        }
+
+        if (SubmissionStatus.SUBMITTED.equals(submission.getStatus()) || submission.getScheme().getVersion() <= 1) {
+            return getGrantMandatoryQuestionBySubmissionIdAndApplicantSub(submissionId, applicantSub);
+        }
+
+        log.info("Submission {} has no mandatory question of its own; creating one and blanking its funding", submissionId);
+
+        final GrantMandatoryQuestions perSubmissionMandatoryQuestion = buildPerSubmissionOrganisationDetails(submission, applicantSub);
+        perSubmissionMandatoryQuestion.setStatus(GrantMandatoryQuestionStatus.IN_PROGRESS);
+        perSubmissionMandatoryQuestion.setGapId(null);
+        // Funding is never inherited: a borrowed sibling record may have overwritten this submission's funding, and a
+        // brand-new submission must capture its own. Blank it so the applicant must (re)confirm funding for this
+        // submission before its funding section can be completed or submitted.
+        perSubmissionMandatoryQuestion.setFundingAmount(null);
+        perSubmissionMandatoryQuestion.setFundingLocation(null);
+        perSubmissionMandatoryQuestion.setGrantScheme(submission.getScheme());
+        perSubmissionMandatoryQuestion.setCreatedBy(submission.getApplicant());
+        perSubmissionMandatoryQuestion.setSubmission(submission);
+
+        final GrantMandatoryQuestions savedMandatoryQuestion = grantMandatoryQuestionRepository.save(perSubmissionMandatoryQuestion);
+
+        // Project the blanked funding into this submission's definition. Only reopen a funding section that was already
+        // COMPLETED (a healed draft) so the section-completion / submit-readiness checks force re-entry; a brand-new
+        // submission keeps its default funding-section status.
+        addMandatoryQuestionsToSubmissionObject(savedMandatoryQuestion);
+        final SubmissionSection fundingSection = submission.getSection(MandatoryQuestionConstants.FUNDING_DETAILS_SECTION_ID);
+        if (SubmissionSectionStatus.COMPLETED.equals(fundingSection.getSectionStatus())) {
+            fundingSection.setSectionStatus(SubmissionSectionStatus.IN_PROGRESS);
+        }
+        // Blanking funding means the mandatory sections are no longer all complete. This cached flag is only otherwise
+        // recomputed during section review, so clear it here to keep it consistent with the now-incomplete funding.
+        submission.setMandatorySectionsCompleted(false);
+        submissionRepository.save(submission);
+
+        return savedMandatoryQuestion;
+    }
+
+    /**
+     * Builds the organisation details for a new per-submission mandatory question. An existing draft carries its
+     * organisation details in its own definition, so they are seeded from there. A brand-new submission has no
+     * organisation responses in its definition yet, so they are seeded from the applicant's most recent mandatory
+     * question for the scheme (their previous submission), falling back to their organisation profile. Funding is
+     * blanked by the caller in every case.
+     */
+    private GrantMandatoryQuestions buildPerSubmissionOrganisationDetails(final Submission submission, final String applicantSub) {
+        final GrantMandatoryQuestions fromDefinition = buildMandatoryQuestionFromSubmissionDefinition(submission);
+        if (fromDefinition.getOrgType() != null) {
+            return fromDefinition;
+        }
+
+        final Integer schemeId = submission.getScheme().getId();
+        return grantMandatoryQuestionRepository
+                .findFirstByGrantScheme_IdAndCreatedBy_UserIdOrderByCreatedDesc(schemeId, applicantSub)
+                .map(source -> GrantMandatoryQuestions.builder()
+                        .orgType(source.getOrgType())
+                        .name(source.getName())
+                        .addressLine1(source.getAddressLine1())
+                        .addressLine2(source.getAddressLine2())
+                        .city(source.getCity())
+                        .county(source.getCounty())
+                        .postcode(source.getPostcode())
+                        .companiesHouseNumber(source.getCompaniesHouseNumber())
+                        .charityCommissionNumber(source.getCharityCommissionNumber())
+                        .build())
+                .orElseGet(() -> organisationProfileMapper
+                        .mapOrgProfileToGrantMandatoryQuestion(submission.getApplicant().getOrganisationProfile()));
+    }
+
+    private GrantMandatoryQuestions buildMandatoryQuestionFromSubmissionDefinition(final Submission submission) {
+        final GrantMandatoryQuestions mandatoryQuestions = GrantMandatoryQuestions.builder().build();
+
+        findSubmissionQuestion(submission, MandatoryQuestionConstants.ORGANISATION_DETAILS_SECTION_ID,
+                MandatoryQuestionConstants.SUBMISSION_QUESTION_IDS.APPLICANT_TYPE.toString())
+                .map(SubmissionQuestion::getResponse)
+                .map(GrantMandatoryQuestionOrgType::valueOfName)
+                .ifPresent(mandatoryQuestions::setOrgType);
+
+        findSubmissionQuestion(submission, MandatoryQuestionConstants.ORGANISATION_DETAILS_SECTION_ID,
+                MandatoryQuestionConstants.SUBMISSION_QUESTION_IDS.APPLICANT_ORG_NAME.toString())
+                .map(SubmissionQuestion::getResponse)
+                .ifPresent(mandatoryQuestions::setName);
+
+        findSubmissionQuestion(submission, MandatoryQuestionConstants.ORGANISATION_DETAILS_SECTION_ID,
+                MandatoryQuestionConstants.SUBMISSION_QUESTION_IDS.APPLICANT_ORG_ADDRESS.toString())
+                .map(SubmissionQuestion::getMultiResponse)
+                .ifPresent(address -> {
+                    mandatoryQuestions.setAddressLine1(elementOrNull(address, 0));
+                    mandatoryQuestions.setAddressLine2(elementOrNull(address, 1));
+                    mandatoryQuestions.setCity(elementOrNull(address, 2));
+                    mandatoryQuestions.setCounty(elementOrNull(address, 3));
+                    mandatoryQuestions.setPostcode(elementOrNull(address, 4));
+                });
+
+        findSubmissionQuestion(submission, MandatoryQuestionConstants.ORGANISATION_DETAILS_SECTION_ID,
+                MandatoryQuestionConstants.SUBMISSION_QUESTION_IDS.APPLICANT_ORG_CHARITY_NUMBER.toString())
+                .map(SubmissionQuestion::getResponse)
+                .ifPresent(mandatoryQuestions::setCharityCommissionNumber);
+
+        findSubmissionQuestion(submission, MandatoryQuestionConstants.ORGANISATION_DETAILS_SECTION_ID,
+                MandatoryQuestionConstants.SUBMISSION_QUESTION_IDS.APPLICANT_ORG_COMPANIES_HOUSE.toString())
+                .map(SubmissionQuestion::getResponse)
+                .ifPresent(mandatoryQuestions::setCompaniesHouseNumber);
+
+        findSubmissionQuestion(submission, MandatoryQuestionConstants.FUNDING_DETAILS_SECTION_ID,
+                MandatoryQuestionConstants.SUBMISSION_QUESTION_IDS.APPLICANT_AMOUNT.toString())
+                .map(SubmissionQuestion::getResponse)
+                .filter(response -> !response.isBlank())
+                .map(BigDecimal::new)
+                .ifPresent(mandatoryQuestions::setFundingAmount);
+
+        findSubmissionQuestion(submission, MandatoryQuestionConstants.FUNDING_DETAILS_SECTION_ID,
+                MandatoryQuestionConstants.SUBMISSION_QUESTION_IDS.BENEFITIARY_LOCATION.toString())
+                .map(SubmissionQuestion::getMultiResponse)
+                .ifPresent(locations -> mandatoryQuestions.setFundingLocation(
+                        Arrays.stream(locations)
+                                .map(GrantMandatoryQuestionFundingLocation::valueOfName)
+                                .filter(Objects::nonNull)
+                                .toArray(GrantMandatoryQuestionFundingLocation[]::new)));
+
+        return mandatoryQuestions;
+    }
+
+    private Optional<SubmissionQuestion> findSubmissionQuestion(final Submission submission, final String sectionId, final String questionId) {
+        return submission.getDefinition().getSections().stream()
+                .filter(section -> sectionId.equals(section.getSectionId()))
+                .filter(section -> section.getQuestions() != null)
+                .flatMap(section -> section.getQuestions().stream())
+                .filter(question -> questionId.equals(question.getQuestionId()))
+                .findFirst();
+    }
+
+    private static String elementOrNull(final String[] array, final int index) {
+        return array != null && array.length > index ? array[index] : null;
     }
 
 
@@ -158,21 +326,10 @@ public class GrantMandatoryQuestionService {
             return;
         }
 
-        // Update the submission linked to the MQ (saved via cascade when the MQ is saved)
+        // Each submission has its own mandatory-questions record, so the responses are applied only to
+        // the submission linked to this MQ. There is deliberately NO cross-submission propagation:
+        // updating one submission's MQ must never alter another submission's funding details.
         applyMandatoryQuestionsToSubmission(submission, mandatoryQuestions);
-
-        // In multi-app schemes there may be other submissions for this applicant+scheme whose
-        // stored sections need to be kept in sync with the shared MQ record.
-        final GrantApplicant createdBy = mandatoryQuestions.getCreatedBy();
-        if (createdBy != null) {
-            submissionRepository.findByApplicant_IdAndScheme_Id(createdBy.getId(), submission.getScheme().getId())
-                    .stream()
-                    .filter(s -> !s.getId().equals(submission.getId()))
-                    .forEach(s -> {
-                        applyMandatoryQuestionsToSubmission(s, mandatoryQuestions);
-                        submissionRepository.save(s);
-                    });
-        }
     }
 
     private void applyMandatoryQuestionsToSubmission(final Submission submission,
@@ -379,15 +536,20 @@ public class GrantMandatoryQuestionService {
                 .adminSummary(MandatoryQuestionConstants.APPLICANT_AMOUNT_ADMIN_SUMMARY)
                 .fieldPrefix(MandatoryQuestionConstants.APPLICANT_AMOUNT_PREFIX)
                 .responseType(SubmissionQuestionResponseType.Numeric)
-                .response(mandatoryQuestions.getFundingAmount().toString())
+                .response(mandatoryQuestions.getFundingAmount() != null
+                        ? mandatoryQuestions.getFundingAmount().toString()
+                        : null)
                 .validation(validation)
                 .build();
     }
 
     private SubmissionQuestion buildFundingLocationQuestion(final GrantMandatoryQuestions mandatoryQuestions) {
-        final String[] locations = Arrays.stream(mandatoryQuestions.getFundingLocation())
-                .map(GrantMandatoryQuestionFundingLocation::getName)
-                .toArray(String[]::new);
+        final GrantMandatoryQuestionFundingLocation[] fundingLocations = mandatoryQuestions.getFundingLocation();
+        final String[] locations = fundingLocations == null
+                ? new String[0]
+                : Arrays.stream(fundingLocations)
+                        .map(GrantMandatoryQuestionFundingLocation::getName)
+                        .toArray(String[]::new);
 
         final SubmissionQuestionValidation validation = SubmissionQuestionValidation.builder()
                 .mandatory(true)
