@@ -13,8 +13,11 @@ import gov.cabinetoffice.gap.applybackend.repository.GrantMandatoryQuestionRepos
 import gov.cabinetoffice.gap.applybackend.repository.SubmissionRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
+import org.springframework.boot.SpringApplication;
+import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
 
@@ -56,9 +59,36 @@ public class MandatoryQuestionBackfillRunner implements ApplicationRunner {
     private final DiligenceCheckRepository diligenceCheckRepository;
     private final GrantBeneficiaryRepository grantBeneficiaryRepository;
     private final GrantMandatoryQuestionRepository grantMandatoryQuestionRepository;
+    private final ApplicationContext applicationContext;
+
+    /**
+     * When true (the default), the application shuts down once the backfill has finished. This is
+     * what you want when running the backfill as a one-off task (for example an ECS RunTask), so the
+     * container exits cleanly rather than continuing to run as a server. Set to false (in
+     * application-backfill.properties) if you would rather the application keep running afterwards,
+     * for example when running locally.
+     */
+    @Value("${backfill.exit-on-complete:true}")
+    private boolean exitOnComplete;
 
     @Override
     public void run(final ApplicationArguments args) {
+        int exitCode = 0;
+        try {
+            runBackfill();
+        } catch (final Exception e) {
+            log.error("Mandatory question backfill failed. No further records will be created.", e);
+            exitCode = 1;
+        } finally {
+            if (exitOnComplete) {
+                log.info("backfill.exit-on-complete is true; shutting the application down.");
+                final int finalExitCode = exitCode;
+                System.exit(SpringApplication.exit(applicationContext, () -> finalExitCode));
+            }
+        }
+    }
+
+    private void runBackfill() {
         final List<Submission> orphanedSubmissions = submissionRepository
                 .findSubmittedMultiSubmissionWithoutMandatoryQuestions();
 
