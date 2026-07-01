@@ -71,6 +71,14 @@ public class MandatoryQuestionBackfillRunner implements ApplicationRunner {
     @Value("${backfill.exit-on-complete:true}")
     private boolean exitOnComplete;
 
+    /**
+     * Maximum number of submissions to process in a single run. Useful for cautious incremental
+     * execution in production — run with backfill.batch-size=1 to process one record, verify it,
+     * then re-run to process the next. Defaults to -1 (process all orphaned submissions).
+     */
+    @Value("${backfill.batch-size:-1}")
+    private int batchSize;
+
     @Override
     public void run(final ApplicationArguments args) {
         int exitCode = 0;
@@ -89,11 +97,15 @@ public class MandatoryQuestionBackfillRunner implements ApplicationRunner {
     }
 
     private void runBackfill() {
-        final List<Submission> orphanedSubmissions = submissionRepository
+        final List<Submission> allOrphaned = submissionRepository
                 .findSubmittedMultiSubmissionWithoutMandatoryQuestions();
 
-        log.info("Mandatory question backfill starting. Found {} submitted submission(s) with no mandatory question record.",
-                orphanedSubmissions.size());
+        final List<Submission> orphanedSubmissions = (batchSize > 0)
+                ? allOrphaned.subList(0, Math.min(batchSize, allOrphaned.size()))
+                : allOrphaned;
+
+        log.info("Mandatory question backfill starting. Found {} submitted submission(s) with no mandatory question record. Processing {}.",
+                allOrphaned.size(), orphanedSubmissions.size());
 
         int created = 0;
         int partial = 0;
@@ -122,6 +134,7 @@ public class MandatoryQuestionBackfillRunner implements ApplicationRunner {
                 .createdBy(submission.getApplicant())
                 .gapId(submission.getGapId())
                 .status(GrantMandatoryQuestionStatus.COMPLETED)
+                .backfillSource(true)
                 .build();
 
         applyDiligenceCheckData(submission, mandatoryQuestions);

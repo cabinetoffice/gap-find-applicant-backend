@@ -29,9 +29,12 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
+import org.springframework.test.util.ReflectionTestUtils;
+
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -112,6 +115,7 @@ class MandatoryQuestionBackfillRunnerTest {
         assertThat(saved.getFundingAmount()).isEqualByComparingTo(BigDecimal.valueOf(500));
         assertThat(saved.getFundingLocation()).containsExactly(GrantMandatoryQuestionFundingLocation.SCOTLAND);
         assertThat(saved.getOrgType()).isEqualTo(GrantMandatoryQuestionOrgType.LIMITED_COMPANY);
+        assertThat(saved.isBackfillSource()).isTrue();
     }
 
     @Test
@@ -137,6 +141,7 @@ class MandatoryQuestionBackfillRunnerTest {
         assertThat(saved.getFundingAmount()).isNull();
         assertThat(saved.getFundingLocation()).isNull();
         assertThat(saved.getOrgType()).isNull();
+        assertThat(saved.isBackfillSource()).isTrue();
     }
 
     @Test
@@ -166,5 +171,23 @@ class MandatoryQuestionBackfillRunnerTest {
         runner.run(null);
 
         verify(grantMandatoryQuestionRepository, never()).save(any());
+    }
+
+    @Test
+    void processesBatchSizeRecordsOnly_WhenBatchSizeIsSet() {
+        final UUID id1 = UUID.randomUUID();
+        final UUID id2 = UUID.randomUUID();
+        final Submission submission1 = buildSubmission(id1, null);
+        final Submission submission2 = buildSubmission(id2, null);
+
+        when(submissionRepository.findSubmittedMultiSubmissionWithoutMandatoryQuestions())
+                .thenReturn(List.of(submission1, submission2));
+        when(diligenceCheckRepository.findBySubmissionId(any())).thenReturn(Optional.empty());
+        when(grantBeneficiaryRepository.findBySubmissionId(any())).thenReturn(Optional.empty());
+
+        ReflectionTestUtils.setField(runner, "batchSize", 1);
+        runner.run(null);
+
+        verify(grantMandatoryQuestionRepository, times(1)).save(any());
     }
 }
