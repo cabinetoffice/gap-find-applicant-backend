@@ -114,4 +114,8 @@ public class GrantMandatoryQuestions extends BaseEntity {
     @Column
     private String gapId;
 
+    @Column(name = "backfill_source", nullable = false)
+    @Builder.Default
+    private boolean backfillSource = false;
+
 }
