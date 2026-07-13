@@ -11,6 +11,6 @@ public interface DiligenceCheckRepository extends JpaRepository<DiligenceCheck, 
     @Query("select count(distinct d) from DiligenceCheck d where d.applicationNumber like concat('%', ?1, '%')")
     long countDistinctByApplicationNumberContains(String applicationNumber);
 
-    Optional<DiligenceCheck> findBySubmissionId(UUID submissionId);
+    Optional<DiligenceCheck> findFirstBySubmissionId(UUID submissionId);
 
 }

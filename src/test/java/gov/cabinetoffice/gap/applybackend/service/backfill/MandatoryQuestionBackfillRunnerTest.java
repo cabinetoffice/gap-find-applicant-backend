@@ -87,7 +87,7 @@ class MandatoryQuestionBackfillRunnerTest {
 
         when(submissionRepository.findSubmittedMultiSubmissionWithoutMandatoryQuestions())
                 .thenReturn(List.of(submission));
-        when(diligenceCheckRepository.findBySubmissionId(submissionId))
+        when(diligenceCheckRepository.findFirstBySubmissionId(submissionId))
                 .thenReturn(Optional.of(DiligenceCheck.builder()
                         .organisationName("AND Digital")
                         .addressStreet("215 Bothwell Street")
@@ -97,7 +97,7 @@ class MandatoryQuestionBackfillRunnerTest {
                         .charityNumber("22135")
                         .applicationAmount("500")
                         .build()));
-        when(grantBeneficiaryRepository.findBySubmissionId(submissionId))
+        when(grantBeneficiaryRepository.findFirstBySubmissionId(submissionId))
                 .thenReturn(Optional.of(GrantBeneficiary.builder()
                         .locationSco(true)
                         .build()));
@@ -125,8 +125,8 @@ class MandatoryQuestionBackfillRunnerTest {
 
         when(submissionRepository.findSubmittedMultiSubmissionWithoutMandatoryQuestions())
                 .thenReturn(List.of(submission));
-        when(diligenceCheckRepository.findBySubmissionId(submissionId)).thenReturn(Optional.empty());
-        when(grantBeneficiaryRepository.findBySubmissionId(submissionId)).thenReturn(Optional.empty());
+        when(diligenceCheckRepository.findFirstBySubmissionId(submissionId)).thenReturn(Optional.empty());
+        when(grantBeneficiaryRepository.findFirstBySubmissionId(submissionId)).thenReturn(Optional.empty());
 
         runner.run(null);
 
@@ -151,9 +151,9 @@ class MandatoryQuestionBackfillRunnerTest {
 
         when(submissionRepository.findSubmittedMultiSubmissionWithoutMandatoryQuestions())
                 .thenReturn(List.of(submission));
-        when(diligenceCheckRepository.findBySubmissionId(submissionId))
+        when(diligenceCheckRepository.findFirstBySubmissionId(submissionId))
                 .thenReturn(Optional.of(DiligenceCheck.builder().applicationAmount("not-a-number").build()));
-        when(grantBeneficiaryRepository.findBySubmissionId(submissionId)).thenReturn(Optional.empty());
+        when(grantBeneficiaryRepository.findFirstBySubmissionId(submissionId)).thenReturn(Optional.empty());
 
         runner.run(null);
 
@@ -182,8 +182,8 @@ class MandatoryQuestionBackfillRunnerTest {
 
         when(submissionRepository.findSubmittedMultiSubmissionWithoutMandatoryQuestions())
                 .thenReturn(List.of(submission1, submission2));
-        when(diligenceCheckRepository.findBySubmissionId(any())).thenReturn(Optional.empty());
-        when(grantBeneficiaryRepository.findBySubmissionId(any())).thenReturn(Optional.empty());
+        when(diligenceCheckRepository.findFirstBySubmissionId(any())).thenReturn(Optional.empty());
+        when(grantBeneficiaryRepository.findFirstBySubmissionId(any())).thenReturn(Optional.empty());
 
         ReflectionTestUtils.setField(runner, "batchSize", 1);
         runner.run(null);
