@@ -7,6 +7,6 @@ import java.util.Optional;
 import java.util.UUID;
 
 public interface GrantBeneficiaryRepository extends JpaRepository<GrantBeneficiary, UUID> {
-    Optional<GrantBeneficiary> findBySubmissionId(UUID submissionId);
+    Optional<GrantBeneficiary> findFirstBySubmissionId(UUID submissionId);
 
 }
