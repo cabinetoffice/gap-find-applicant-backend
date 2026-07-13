@@ -150,7 +150,7 @@ public class MandatoryQuestionBackfillRunner implements ApplicationRunner {
      */
     private void applyDiligenceCheckData(final Submission submission, final GrantMandatoryQuestions mandatoryQuestions) {
         final DiligenceCheck diligenceCheck = diligenceCheckRepository
-                .findBySubmissionId(submission.getId())
+                .findFirstBySubmissionId(submission.getId())
                 .orElse(null);
 
         if (diligenceCheck == null) {
@@ -173,7 +173,7 @@ public class MandatoryQuestionBackfillRunner implements ApplicationRunner {
      */
     private void applyBeneficiaryData(final Submission submission, final GrantMandatoryQuestions mandatoryQuestions) {
         final GrantBeneficiary beneficiary = grantBeneficiaryRepository
-                .findBySubmissionId(submission.getId())
+                .findFirstBySubmissionId(submission.getId())
                 .orElse(null);
 
         if (beneficiary == null) {
