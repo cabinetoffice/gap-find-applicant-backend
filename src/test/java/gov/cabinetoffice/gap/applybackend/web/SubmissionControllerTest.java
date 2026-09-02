@@ -602,11 +602,9 @@ class SubmissionControllerTest {
                 verify(submissionService).getSubmissionFromDatabaseBySubmissionId(APPLICANT_USER_ID, SUBMISSION_ID);
                 verify(submissionService).submit(submission, grantApplicant, emailAddress);
 
-                // Backstop: the submission is healed (so it owns its mandatory question) BEFORE it is submitted.
-                final org.mockito.InOrder inOrder = Mockito.inOrder(mandatoryQuestionService, submissionService);
-                inOrder.verify(mandatoryQuestionService)
+                // Version 1 schemes have no mandatory questions, so the backstop heal must not run for them.
+                verify(mandatoryQuestionService, never())
                         .ensureMandatoryQuestionForSubmission(submission.getId(), grantApplicant.getUserId());
-                inOrder.verify(submissionService).submit(submission, grantApplicant, emailAddress);
 
                 assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
                 assertThat(response.getBody()).isEqualTo("Submitted");
@@ -649,6 +647,12 @@ class SubmissionControllerTest {
                 verify(spotlightService).createSpotlightCheck(mandatoryQuestions, submission.getScheme());
                 verify(submissionService).getSubmissionFromDatabaseBySubmissionId(APPLICANT_USER_ID, SUBMISSION_ID);
                 verify(submissionService).submit(submission, grantApplicant, emailAddress);
+
+                // Backstop: the submission is healed (so it owns its mandatory question) BEFORE it is submitted.
+                final org.mockito.InOrder inOrder = Mockito.inOrder(mandatoryQuestionService, submissionService);
+                inOrder.verify(mandatoryQuestionService)
+                        .ensureMandatoryQuestionForSubmission(submission.getId(), grantApplicant.getUserId());
+                inOrder.verify(submissionService).submit(submission, grantApplicant, emailAddress);
 
                 assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
                 assertThat(response.getBody()).isEqualTo("Submitted");
