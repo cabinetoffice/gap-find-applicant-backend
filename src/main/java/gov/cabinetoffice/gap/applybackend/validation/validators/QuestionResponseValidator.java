@@ -22,6 +22,7 @@ import java.util.Map;
 import java.util.stream.Stream;
 
 import static gov.cabinetoffice.gap.applybackend.utils.SecurityContextHelper.getUserIdFromSecurityContext;
+import static gov.cabinetoffice.gap.applybackend.utils.UnsupportedCharacterHelper.containsUnsupportedCharacters;
 
 
 @RequiredArgsConstructor
@@ -140,10 +141,10 @@ public class QuestionResponseValidator implements ConstraintValidator<ValidQuest
                 }
             }
 
-            /*if (containsSpecialCharacters(submittedQuestion.getResponse())) {
-                result.addError(ValidationConstants.SINGLE_RESPONSE_FIELD, "Answer must only include letters, numbers, and special characters such as hyphens, spaces and apostrophes");
+            if (containsUnsupportedCharacters(submittedQuestion.getResponse())) {
+                result.addError(ValidationConstants.SINGLE_RESPONSE_FIELD, "Answer must not include emojis or unsupported characters");
                 return result;
-            }*/
+            }
         }
 
         result.setValid(Boolean.TRUE);
@@ -199,6 +200,10 @@ public class QuestionResponseValidator implements ConstraintValidator<ValidQuest
         if (fieldValue.length() > maxLength) {
             validationResult.addError(fieldName, String.format("%s must be %s characters or less", fieldDisplayName, maxLength));
         }
+
+        if (containsUnsupportedCharacters(fieldValue)) {
+            validationResult.addError(fieldName, String.format("%s must not include emojis or unsupported characters", fieldDisplayName));
+        }
     }
 
     private String getMandatoryFieldViolationMessage(SubmissionQuestion question) {
@@ -212,11 +217,6 @@ public class QuestionResponseValidator implements ConstraintValidator<ValidQuest
     private int getNumberOfWords(String response) {
         String cleanedResponse = StringUtils.normalizeSpace(response);
         return Strings.isEmpty(cleanedResponse) ? 0 : cleanedResponse.split("\\s").length;
-    }
-
-    private boolean containsSpecialCharacters(String response) {
-        // hyphen must be at the end of regex expression or else it will be treated as a range
-        return !response.matches("^(?![\\s\\S])|^[a-zA-Z0-9à-üÀ-Ü\\s',!@£$%^&*()_+=;./?><:\"{}|`~ß€•¥¢…µèéêëěẽýŷÿùúûüǔũūűìíîïǐĩiòóôöǒàáâäśğźžżćçčċñńņň“”‘’-]+$");
     }
 
     private ValidationResult validateDate(final String[] dateComponents, final boolean isMandatory) {

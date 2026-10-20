@@ -3,6 +3,7 @@ package gov.cabinetoffice.gap.applybackend.service;
 import gov.cabinetoffice.gap.applybackend.model.Submission;
 import gov.cabinetoffice.gap.applybackend.model.SubmissionQuestion;
 import gov.cabinetoffice.gap.applybackend.model.SubmissionSection;
+import gov.cabinetoffice.gap.applybackend.utils.UnsupportedCharacterHelper;
 import org.odftoolkit.odfdom.doc.OdfTextDocument;
 import org.odftoolkit.odfdom.doc.table.OdfTable;
 import org.odftoolkit.odfdom.dom.OdfContentDom;
@@ -22,11 +23,16 @@ import org.odftoolkit.odfdom.incubator.doc.text.OdfTextParagraph;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
+import org.w3c.dom.NamedNodeMap;
+import org.w3c.dom.Node;
+import org.w3c.dom.NodeList;
 
 import java.time.format.DateTimeFormatter;
 import java.util.Arrays;
 import java.util.Objects;
 import java.util.concurrent.atomic.AtomicInteger;
+
+import static gov.cabinetoffice.gap.applybackend.utils.UnsupportedCharacterHelper.containsUnsupportedCharacters;
 
 @Service
 public class OdtService {
@@ -100,11 +106,35 @@ public class OdtService {
                     populateQuestionResponseTable(count, section, documentText, contentDom, odt);
                 }
             });
+
+            stripUnsupportedCharacters(documentText);
+
             logger.info("ODT file generated successfully");
             return odt;
         } catch (Exception e) {
             logger.error("Could not generate ODT for given submission", e);
             throw new RuntimeException(e);
+        }
+    }
+
+    private static void stripUnsupportedCharacters(final Node node) {
+        if (node.getNodeType() == Node.TEXT_NODE && containsUnsupportedCharacters(node.getNodeValue())) {
+            node.setNodeValue(UnsupportedCharacterHelper.stripUnsupportedCharacters(node.getNodeValue()));
+        }
+
+        final NamedNodeMap attributes = node.getAttributes();
+        if (attributes != null) {
+            for (int i = 0; i < attributes.getLength(); i++) {
+                final Node attribute = attributes.item(i);
+                if (containsUnsupportedCharacters(attribute.getNodeValue())) {
+                    attribute.setNodeValue(UnsupportedCharacterHelper.stripUnsupportedCharacters(attribute.getNodeValue()));
+                }
+            }
+        }
+
+        final NodeList children = node.getChildNodes();
+        for (int i = 0; i < children.getLength(); i++) {
+            stripUnsupportedCharacters(children.item(i));
         }
     }
 

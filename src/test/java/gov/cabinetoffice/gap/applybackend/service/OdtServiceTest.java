@@ -1,5 +1,12 @@
 package gov.cabinetoffice.gap.applybackend.service;
 
+import gov.cabinetoffice.gap.applybackend.enums.SubmissionQuestionResponseType;
+import gov.cabinetoffice.gap.applybackend.enums.SubmissionSectionStatus;
+import gov.cabinetoffice.gap.applybackend.model.GrantScheme;
+import gov.cabinetoffice.gap.applybackend.model.Submission;
+import gov.cabinetoffice.gap.applybackend.model.SubmissionDefinition;
+import gov.cabinetoffice.gap.applybackend.model.SubmissionQuestion;
+import gov.cabinetoffice.gap.applybackend.model.SubmissionSection;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -11,7 +18,14 @@ import javax.xml.transform.Transformer;
 import javax.xml.transform.TransformerFactory;
 import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.stream.StreamResult;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.StringWriter;
+import java.nio.charset.StandardCharsets;
+import java.time.ZonedDateTime;
+import java.util.List;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipInputStream;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static gov.cabinetoffice.gap.applybackend.testData.TestData.*;
@@ -206,6 +220,52 @@ class OdtServiceTest {
         assertThat(generatedContent).doesNotContain("V1_CMSN_NO");
         assertThat(generatedContent).doesNotContain("V1_Scotland", "V1_North East England");
         assertThat(generatedContent).doesNotContain("My Custom Section");
+    }
+
+    @Test
+    void generateSingleOdt_stripsUnsupportedCharactersFromSavedDocument() throws Exception {
+        final SubmissionSection customSection = SubmissionSection.builder()
+                .sectionId("26215de2-2211-48e4-9c82-835cd227daad")
+                .sectionTitle("Project details \uD83D\uDE80")
+                .sectionStatus(SubmissionSectionStatus.COMPLETED)
+                .questions(List.of(SubmissionQuestion.builder()
+                        .questionId("PROJECT_SUMMARY")
+                        .fieldTitle("Describe your project")
+                        .responseType(SubmissionQuestionResponseType.LongAnswer)
+                        .response("Our \uD83C\uDF08 project costs £1,000 – café")
+                        .build()))
+                .build();
+
+        final Submission submission = Submission.builder()
+                .scheme(GrantScheme.builder().version(2).name("Emoji Scheme").build())
+                .gapId("GAP-3")
+                .submittedDate(ZonedDateTime.parse("2022-02-15T18:35:24.00Z"))
+                .definition(SubmissionDefinition.builder().sections(List.of(
+                        ELIGIBILITY_SECTION_SUBMISSION,
+                        ORGANISATION_DETAILS_SECTION_SUBMISSION_NON_LIMITED,
+                        FUNDING_DETAILS_SECTION_SUBMISSION,
+                        customSection)).build())
+                .version(2)
+                .build();
+
+        final ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+        odtService.generateSingleOdt(submission, "testEmail").save(outputStream);
+        final String savedContent = readContentXml(outputStream.toByteArray());
+
+        assertThat(savedContent).doesNotContain("&#55356;", "&#55357;", "\uD83C\uDF08", "\uD83D\uDE80");
+        assertThat(savedContent).contains("Project details ", "Our  project costs £1,000 – café");
+    }
+
+    private String readContentXml(byte[] odt) throws Exception {
+        try (ZipInputStream zip = new ZipInputStream(new ByteArrayInputStream(odt))) {
+            ZipEntry entry;
+            while ((entry = zip.getNextEntry()) != null) {
+                if (entry.getName().equals("content.xml")) {
+                    return new String(zip.readAllBytes(), StandardCharsets.UTF_8);
+                }
+            }
+        }
+        throw new IllegalStateException("content.xml not found in ODT");
     }
 
    private String docToString(Document document) throws Exception {
