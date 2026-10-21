@@ -156,20 +156,73 @@ class QuestionResponseValidatorTest {
                         , "Answer must only include numeric values/ decimal",
                         SubmissionQuestionValidation.builder()
                                 .greaterThanZero(true)
-                                .build())
+                                .build()),
 
-                // Special characters check should fail
-                /*
+                // emoji check should fail
+                Arguments.of(
+                        CreateQuestionResponseDto.builder()
+                                .questionId(questionId)
+                                .submissionId(submissionId)
+                                .response("Our project \uD83C\uDF08 helps people")
+                                .build()
+                        , "Answer must not include emojis or unsupported characters",
+                        SubmissionQuestionValidation.builder()
+                                .build()),
+
+                // supplementary plane character check should fail
                 Arguments.of(
                         CreateQuestionResponseDto.builder()
                                 .questionId(questionId)
                                 .submissionId(submissionId)
                                 .response("\uDBFF\uDC05")
                                 .build()
-                        , "Answer must only include letters, numbers, and special characters such as hyphens, spaces and apostrophes",
+                        , "Answer must not include emojis or unsupported characters",
+                        SubmissionQuestionValidation.builder()
+                                .build()),
+
+                // lone surrogate check should fail
+                Arguments.of(
+                        CreateQuestionResponseDto.builder()
+                                .questionId(questionId)
+                                .submissionId(submissionId)
+                                .response("broken \uD83D emoji")
+                                .build()
+                        , "Answer must not include emojis or unsupported characters",
+                        SubmissionQuestionValidation.builder()
+                                .build()),
+
+                // emoji below U+FFFF check should fail
+                Arguments.of(
+                        CreateQuestionResponseDto.builder()
+                                .questionId(questionId)
+                                .submissionId(submissionId)
+                                .response("Milestone reached \u2705")
+                                .build()
+                        , "Answer must not include emojis or unsupported characters",
+                        SubmissionQuestionValidation.builder()
+                                .build()),
+
+                // emoji variation selector check should fail
+                Arguments.of(
+                        CreateQuestionResponseDto.builder()
+                                .questionId(questionId)
+                                .submissionId(submissionId)
+                                .response("We \u2764\uFE0F our community")
+                                .build()
+                        , "Answer must not include emojis or unsupported characters",
+                        SubmissionQuestionValidation.builder()
+                                .build()),
+
+                // control character check should fail
+                Arguments.of(
+                        CreateQuestionResponseDto.builder()
+                                .questionId(questionId)
+                                .submissionId(submissionId)
+                                .response("bad\u0007character")
+                                .build()
+                        , "Answer must not include emojis or unsupported characters",
                         SubmissionQuestionValidation.builder()
                                 .build())
-                                */
 
         );
 
@@ -342,6 +395,39 @@ class QuestionResponseValidatorTest {
 
         verify(submissionService).getQuestionByQuestionId(USER_ID, submissionId, questionId);
         assertThat(isValid).isTrue();
+    }
+
+    @ParameterizedTest
+    @MethodSource("provideSupportedSpecialCharacterResponses")
+    void validate_returnsTrueIfResponseContainsSupportedSpecialCharacters(String responseText) {
+
+        final SubmissionQuestion question = SubmissionQuestion.builder()
+                .questionId("1")
+                .responseType(SubmissionQuestionResponseType.LongAnswer)
+                .validation(SubmissionQuestionValidation.builder().build())
+                .build();
+
+        final CreateQuestionResponseDto response = CreateQuestionResponseDto.builder()
+                .submissionId(submissionId)
+                .questionId(questionId)
+                .response(responseText)
+                .build();
+
+        doReturn(question)
+                .when(submissionService).getQuestionByQuestionId(USER_ID, submissionId, questionId);
+
+        boolean isValid = validatorUnderTest.isValid(response, validatorContext);
+
+        assertThat(isValid).isTrue();
+    }
+
+    private static Stream<Arguments> provideSupportedSpecialCharacterResponses() {
+        return Stream.of(
+                Arguments.of("£1,000 for the café – “phase one” ‘pilot’"),
+                Arguments.of("Ünïcödé àccents ñ ß € • …"),
+                Arguments.of("± × ÷ ° © ® ™ ✓ ✔ ★ ♥ →"),
+                Arguments.of("Line one\r\nLine two\tTabbed")
+        );
     }
 
     @Test
@@ -547,7 +633,10 @@ class QuestionResponseValidatorTest {
                 Arguments.of(new String[]{"9 George Square", "", "Glasgow", "", "GL22 1QQQ"}, List.of("Postcode must be 8 characters or less")),
 
                 // Tests max character length validation
-                Arguments.of(new String[]{"an address line that consists of greater than the max number of characters", "", "Glasgow", "", "G2 1QQ"}, List.of("Address line 1 must be 50 characters or less"))
+                Arguments.of(new String[]{"an address line that consists of greater than the max number of characters", "", "Glasgow", "", "G2 1QQ"}, List.of("Address line 1 must be 50 characters or less")),
+
+                // Tests emoji validation
+                Arguments.of(new String[]{"9 George Square \uD83C\uDFE0", "", "Glasgow", "", "G2 1QQ"}, List.of("Address line 1 must not include emojis or unsupported characters"))
         );
     }
 
